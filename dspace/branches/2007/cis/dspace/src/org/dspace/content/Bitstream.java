@@ -262,6 +262,14 @@ public class Bitstream extends DSpaceObject
     {
         bRow.setColumn("sequence_id", sid);
     }
+    /**
+     * Get the internalID of this bitstream
+     * @return
+     */
+    public String getInternalID()
+    {
+        return bRow.getStringColumn("internal_id");
+    }
 
     /**
      * Get the name of this bitstream - typically the filename, without any path
