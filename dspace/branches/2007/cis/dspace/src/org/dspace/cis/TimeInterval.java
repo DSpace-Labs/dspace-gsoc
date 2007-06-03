@@ -1,6 +1,12 @@
 package org.dspace.cis;
 
+import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
+
+import org.dspace.core.Context;
+import org.dspace.storage.rdbms.*;
 
 public class TimeInterval
 {   
@@ -16,8 +22,20 @@ public class TimeInterval
     private Date from;
 
     private Date to;
-
-
+    
+    /** Our context */
+    private Context ourContext;
+    
+    /** The table row corresponding to this timeInterval */
+    private TableRow intervalRow;
+    
+    public TimeInterval(TableRow intervalRow)
+    {
+    	timeInterval_id = intervalRow.getIntColumn("time_interval_id");
+    	from = intervalRow.getDateColumn("from");
+    	to = intervalRow.getDateColumn("to");
+    	this.intervalRow = intervalRow;
+    }
     public TimeInterval(Date date)
     {
         timeInterval_id = getTimeInterval_id(date);
@@ -25,8 +43,8 @@ public class TimeInterval
         to = getTo(date);
     }
 
-//    public static void main(String[] args)
-//    {
+    public static void main(String[] args)
+    {
 //        Calendar c = Calendar.getInstance();
 //        c.set(2001, Calendar.JANUARY, 1, 0, 0, 0);
 //        Date date1 = c.getTime();
@@ -47,7 +65,15 @@ public class TimeInterval
 //        System.out.println(longvalue);
 //        System.out.println(intvalue);
 //        System.out.println(i);
-//    }
+    	TimeInterval tI = new TimeInterval(new Date());
+    	try {
+			tI.archive();
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    	
+    }
 
     // the timeInterval_id is number of hours since Mon Jan 01 00:00:00 CST 2001
     public static int getTimeInterval_id(Date date)
@@ -108,5 +134,20 @@ public class TimeInterval
     public void setTo(Date to)
     {
         this.to = to;
+    }
+    
+    public void archive() throws SQLException
+    {
+    	List collums = new ArrayList();
+    	collums.add("time_interval_id");
+    	collums.add("from");
+    	collums.add("to");
+    	
+    	TableRow tR = new TableRow("timeinterval", collums);
+    	tR.setColumn("time_interval_id", this.timeInterval_id);
+    	tR.setColumn("from", this.from);
+    	tR.setColumn("to", this.to);
+    	
+    	DatabaseManager.insert(ourContext, tR);
     }
 }
