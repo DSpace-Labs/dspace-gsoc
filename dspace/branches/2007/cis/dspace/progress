@@ -1,0 +1,4 @@
+org.dspace.content.Bitstream 	+ getInternalID()
+database						+ timeinterval
+								+ witness
+								+ hashvalueofitem

@@ -13,14 +13,14 @@ public class Certificate
 {
     private String algorithm;
     private String handle;
-    private List witnesses;
+    private List<Witness> witnesses;
     public Date from;
     public Date to;
     
     public Certificate()
     {
 //        setInterval();
-    	witnesses = new ArrayList();
+    	witnesses = new ArrayList<Witness>();
     }
     
     public String getAlgorithm()

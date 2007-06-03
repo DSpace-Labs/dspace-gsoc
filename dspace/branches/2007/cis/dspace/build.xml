@@ -41,7 +41,7 @@
   - Date:     $Date$
   -->
 
-<project name="DSpace" default="compile">
+<project name="DSpace" default="refresh">
 
   <!-- ============================================================= -->
   <!-- Description                                                   -->
@@ -471,5 +471,26 @@ Copied language packs into ${dspace.dir}/config
       </packageset>
     </javadoc>
   </target>
-
+	
+ 	<!-- ================================================================ -->
+ 	<!-- Update installed code and place the dspace.war in Tomcat/webapps -->
+ 	<!-- ================================================================ -->
+	
+ <target name="refresh"
+		 depends="update"
+ 		 description="update installed code and place the dspace.war in right place">
+ 	<!-- Make sure that the directory exists-->
+ 	<mkdir dir="D:/apache-tomcat-5.5.12/webapps/dspace"/>
+ 	<delete includeEmptyDirs="true">
+ 		<fileset dir="D:/apache-tomcat-5.5.12/webapps/dspace" 
+ 				 includes="**/*"
+ 			 	 defaultexcludes="false">
+ 		</fileset>
+ 	</delete>
+ 	<delete dir="D:/apache-tomcat-5.5.12/webapps/dspace"/>
+ 	<copy file="build/dspace.war" 
+ 		  todir="D:/apache-tomcat-5.5.12/webapps"
+ 		  overwrite="true">
+ 	</copy>
+ </target>
 </project>
