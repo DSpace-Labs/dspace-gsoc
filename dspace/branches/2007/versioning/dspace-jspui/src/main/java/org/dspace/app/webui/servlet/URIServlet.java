@@ -1,9 +1,9 @@
 /*
- * HandleServlet.java
+ * URIServlet.java
  *
- * Version: $Revision$
+ * Version: $Revision: 1726 $
  *
- * Date: $Date$
+ * Date: $Date: 2007-01-18 16:49:52 +0000 (Thu, 18 Jan 2007) $
  *
  * Copyright (c) 2002-2005, Hewlett-Packard Company and Massachusetts
  * Institute of Technology.  All rights reserved.
@@ -40,6 +40,7 @@
 package org.dspace.app.webui.servlet;
 
 import java.io.IOException;
+import java.net.URL;
 import java.net.URLEncoder;
 import java.sql.SQLException;
 import java.util.List;
@@ -49,6 +50,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.log4j.Logger;
+
 import org.dspace.app.webui.util.Authenticate;
 import org.dspace.app.webui.util.JSPManager;
 import org.dspace.app.webui.util.UIUtil;
@@ -61,6 +63,11 @@ import org.dspace.content.Community;
 import org.dspace.content.DCValue;
 import org.dspace.content.DSpaceObject;
 import org.dspace.content.Item;
+import org.dspace.content.uri.ObjectIdentifier;
+import org.dspace.content.uri.PersistentIdentifier;
+import org.dspace.content.uri.dao.PersistentIdentifierDAO;
+import org.dspace.content.uri.dao.PersistentIdentifierDAOFactory;
+import org.dspace.core.ArchiveManager;
 import org.dspace.core.ConfigurationManager;
 import org.dspace.core.Constants;
 import org.dspace.core.Context;
@@ -68,37 +75,27 @@ import org.dspace.core.LogManager;
 import org.dspace.eperson.EPerson;
 import org.dspace.eperson.Group;
 import org.dspace.eperson.Subscribe;
-import org.dspace.handle.HandleManager;
 
-/**
- * Servlet for handling requests within a community or collection. The Handle is
- * extracted from the URL, e.g: <code>/community/1721.1/1234</code>. If there
- * is anything after the Handle, the request is forwarded to the appropriate
- * servlet. For example:
- * <P>
- * <code>/community/1721.1/1234/simple-search</code>
- * <P>
- * would be forwarded to <code>/simple-search</code>. If there is nothing
- * after the Handle, the community or collection home page is shown.
- * 
- * @author Robert Tansley
- * @version $Revision$
- */
-public class HandleServlet extends DSpaceServlet
+public class URIServlet extends DSpaceServlet
 {
     /** log4j category */
     private static Logger log = Logger.getLogger(DSpaceServlet.class);
+
+    private PersistentIdentifierDAO identifierDAO;
 
     protected void doDSGet(Context context, HttpServletRequest request,
             HttpServletResponse response) throws ServletException, IOException,
             SQLException, AuthorizeException
     {
-        String handle = null;
+        identifierDAO = PersistentIdentifierDAOFactory.getInstance(context);
+
+        String uri = null;
         String extraPathInfo = null;
+        PersistentIdentifier identifier = null;
         DSpaceObject dso = null;
 
-        // Original path info, of the form "1721.x/1234"
-        // or "1721.x/1234/extra/stuff"
+        // Original path info, of the form "xyz:1234/56"
+        // or "xyz:1234/56/extra/stuff"
         String path = request.getPathInfo();
 
         if (path != null)
@@ -108,32 +105,39 @@ public class HandleServlet extends DSpaceServlet
 
             try
             {
-                // Extract the Handle
+                // Extract the URI
+                path = path.replaceFirst("/", ":");
                 int firstSlash = path.indexOf('/');
                 int secondSlash = path.indexOf('/', firstSlash + 1);
 
                 if (secondSlash != -1)
                 {
                     // We have extra path info
-                    handle = path.substring(0, secondSlash);
+                    // FIXME: this is shouldn't exist. if we have extra
+                    // information in the url, it should be parameterised, not
+                    // separated by a slash. If we escaped slashes in
+                    // identifiers to %2F this wouldn't be such an issue, but
+                    // we don't and as such are making assumptions about the
+                    // form of the identifiers.
+                    uri = path.substring(0, secondSlash);
                     extraPathInfo = path.substring(secondSlash);
                 }
                 else
                 {
-                    // The path is just the Handle
-                    handle = path;
+                    // The path is just the URI
+                    uri = path;
                 }
             }
-            catch (NumberFormatException nfe)
-            {
-                // Leave handle as null
-            }
+            catch (NumberFormatException nfe) { }
         }
 
-        // Find out what the handle relates to
-        if (handle != null)
+        // Find out what the value points to
+        if (uri != null)
         {
-            dso = HandleManager.resolveToObject(context, handle);
+            // The value of URI will be the persistent identifier in canonical
+            // form, eg: xyz:1234/56
+            identifier = identifierDAO.retrieve(uri);
+            dso = ArchiveManager.getObject(context, identifier);
         }
 
         if (dso == null)
@@ -145,7 +149,7 @@ public class HandleServlet extends DSpaceServlet
             return;
         }
 
-        // OK, we have a valid Handle. What is it?
+        // OK, we have a valid URI. What is it?
         if (dso.getType() == Constants.ITEM)
         {
             Item item = (Item) dso;
@@ -165,7 +169,7 @@ public class HandleServlet extends DSpaceServlet
             else
             {
                 // Display the item page
-                displayItem(context, request, response, item, handle);
+                displayItem(context, request, response, item);
             }
         }
         else if (dso.getType() == Constants.COLLECTION)
@@ -231,8 +235,8 @@ public class HandleServlet extends DSpaceServlet
         {
             // Shouldn't happen. Log and treat as invalid ID
             log.info(LogManager.getHeader(context,
-                    "Handle not an item, collection or community", "handle="
-                            + handle));
+                    "URI not an item, collection or community", "uri="
+                            + uri));
             JSPManager.showInvalidIDError(request, response, path, -1);
 
             return;
@@ -250,13 +254,13 @@ public class HandleServlet extends DSpaceServlet
      *            the HTTP response
      * @param item
      *            the item
-     * @param handle
-     *            the item's handle
+     * @param identifier
+     *            a persistent identifier that belongs to the item
      */
     private void displayItem(Context context, HttpServletRequest request,
-            HttpServletResponse response, Item item, String handle)
+            HttpServletResponse response, Item item)
             throws ServletException, IOException, SQLException,
-            AuthorizeException
+                              AuthorizeException
     {
         // Tombstone?
         if (item.isWithdrawn())
@@ -269,9 +273,8 @@ public class HandleServlet extends DSpaceServlet
         // Ensure the user has authorisation
         AuthorizeManager.authorizeAction(context, item, Constants.READ);
 
-        log
-                .info(LogManager.getHeader(context, "view_item", "handle="
-                        + handle));
+        log.info(LogManager.getHeader(context, "view_item", "uri=" +
+                    item.getPersistentIdentifier().getCanonicalForm()));
 
         // show edit link
         if (item.canEdit())
@@ -353,7 +356,7 @@ public class HandleServlet extends DSpaceServlet
             throws ServletException, IOException, SQLException
     {
         // Handle click on a browse or search button
-        if (!handleButton(request, response, community.getHandle()))
+        if (!handleButton(request, response, community.getURL()))
         {
             // No button pressed, display community home page
             log.info(LogManager.getHeader(context, "view_community",
@@ -425,11 +428,11 @@ public class HandleServlet extends DSpaceServlet
      */
     private void collectionHome(Context context, HttpServletRequest request,
             HttpServletResponse response, Community community,
-            Collection collection) throws ServletException, IOException,
-            SQLException, AuthorizeException
+            Collection collection)
+        throws ServletException, IOException, SQLException, AuthorizeException
     {
         // Handle click on a browse or search button
-        if (!handleButton(request, response, collection.getHandle()))
+        if (!handleButton(request, response, community.getURL()))
         {
             // Will need to know whether to commit to DB
             boolean updated = false;
@@ -544,14 +547,15 @@ public class HandleServlet extends DSpaceServlet
      *            HTTP request
      * @param response
      *            HTTP response
-     * @param handle
-     *            Handle of the community/collection home page
+     * @param identifier
+     *            object identifier that points to the collection / community
      * 
      * @return true if a browse/search button was pressed and the user was
      *         redirected
      */
     private boolean handleButton(HttpServletRequest request,
-            HttpServletResponse response, String handle) throws IOException
+            HttpServletResponse response, URL prefixURL)
+        throws IOException
     {
         String button = UIUtil.getSubmitButton(request, "");
         String location = request.getParameter("location");
@@ -565,47 +569,45 @@ public class HandleServlet extends DSpaceServlet
 
         /*
          * Work out the "prefix" to which to redirect If "/", scope is all of
-         * DSpace, so prefix is "/" If prefix is a handle, scope is a community
-         * or collection, so "/handle/1721.x/xxxx/" is the prefix.
+         * DSpace, so prefix is "/" If prefix is a URI, scope is a community
+         * or collection, so "/resource/xyz/1234/56/" is the prefix.
          */
         if (!location.equals("/"))
         {
-            prefix = "/handle/" + location + "/";
+            prefix = prefixURL.toString();
         }
 
         if (button.equals("submit_titles"))
         {
             // Redirect to browse by title
-            url = request.getContextPath() + prefix + "browse-title";
+            url = prefix + "browse-title";
         }
         else if (button.equals("submit_authors"))
         {
             // Redirect to browse authors
-            url = request.getContextPath() + prefix + "browse-author";
+            url = prefix + "browse-author";
         }
         else if (button.equals("submit_subjects"))
         {
             // Redirect to browse by date
-            url = request.getContextPath() + prefix + "browse-subject";
+            url = prefix + "browse-subject";
         }
         else if (button.equals("submit_dates"))
         {
             // Redirect to browse by date
-            url = request.getContextPath() + prefix + "browse-date";
+            url = prefix + "browse-date";
         }
-        else if (button.equals("submit_search")
-                || (request.getParameter("query") != null))
+        else if (button.equals("submit_search") ||
+                (request.getParameter("query") != null))
         {
             /*
              * Have to check for search button and query - in some browsers,
              * typing a query into the box and hitting return doesn't produce a
              * submit button parameter. Redirect to appropriate search page
              */
-            url = request.getContextPath()
-                    + prefix
-                    + "simple-search?query="
-                    + URLEncoder.encode(request.getParameter("query"),
-                            Constants.DEFAULT_ENCODING);
+            url = prefix + "simple-search?query=" +
+                URLEncoder.encode(request.getParameter("query"),
+                        Constants.DEFAULT_ENCODING);
         }
 
         // If a button was pressed, redirect to appropriate page
@@ -670,7 +672,7 @@ public class HandleServlet extends DSpaceServlet
         for (int i = 0; i < items.size(); i++)
         {
             Item item = (Item) items.get(i);
-            urls[i] = "/handle/" + item.getHandle();
+            urls[i] = item.getURL().toString();
         }
 
         return urls;

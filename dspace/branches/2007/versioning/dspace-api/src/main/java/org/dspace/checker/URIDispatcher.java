@@ -39,29 +39,33 @@ import java.util.List;
 
 import org.apache.log4j.Logger;
 import org.dspace.content.DSpaceObject;
+import org.dspace.content.uri.PersistentIdentifier;
+import org.dspace.content.uri.dao.PersistentIdentifierDAO;
+import org.dspace.content.uri.dao.PersistentIdentifierDAOFactory;
+import org.dspace.core.ArchiveManager;
 import org.dspace.core.Constants;
 import org.dspace.core.Context;
-import org.dspace.handle.HandleManager;
 
 /**
  * A BitstreamDispatcher that checks all the bitstreams contained within an
- * item, collection or community referred to by Handle.
+ * item, collection or community referred to by persistent identifier.
  * 
  * @author Jim Downing
  * @author Grace Carpenter
  * @author Nathan Sarr
+ * @author James Rutherford
  * 
  */
-public class HandleDispatcher implements BitstreamDispatcher
+public class URIDispatcher implements BitstreamDispatcher
 {
 
     /** Log 4j logger. */
-    private static final Logger LOG = Logger.getLogger(HandleDispatcher.class);
+    private static final Logger LOG = Logger.getLogger(URIDispatcher.class);
 
-    /** Handle to retrieve bitstreams from. */
-    String handle = null;
+    /** URI to retrieve bitstreams from. */
+    String uri = null;
 
-    /** Has the type of object the handle refers to been determined. */
+    /** Has the type of object the URI refers to been determined. */
     Boolean init = Boolean.FALSE;
 
     /** the delegate to dispatch to. */
@@ -75,7 +79,7 @@ public class HandleDispatcher implements BitstreamDispatcher
     /**
      * Blanked off, no-op constructor.
      */
-    private HandleDispatcher()
+    private URIDispatcher()
     {
         ;
     }
@@ -83,13 +87,13 @@ public class HandleDispatcher implements BitstreamDispatcher
     /**
      * Main constructor.
      * 
-     * @param hdl
-     *            the handle to get bitstreams from.
+     * @param uri
+     *            the uri to get bitstreams from (canonical form).
      */
-    public HandleDispatcher(BitstreamInfoDAO bitInfoDAO, String hdl)
+    public URIDispatcher(BitstreamInfoDAO bitInfoDAO, String uri)
     {
         bitstreamInfoDAO = bitInfoDAO;
-        handle = hdl;
+        this.uri = uri;
     }
 
     /**
@@ -107,7 +111,13 @@ public class HandleDispatcher implements BitstreamDispatcher
         try
         {
             context = new Context();
-            DSpaceObject dso = HandleManager.resolveToObject(context, handle);
+
+            PersistentIdentifierDAO identifierDAO =
+                PersistentIdentifierDAOFactory.getInstance(context);
+
+            PersistentIdentifier identifier = identifierDAO.retrieve(uri);
+            DSpaceObject dso = ArchiveManager.getObject(context, identifier);
+
             id = dso.getID();
             dsoType = dso.getType();
             context.abort();

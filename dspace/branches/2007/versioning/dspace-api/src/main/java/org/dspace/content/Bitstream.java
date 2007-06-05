@@ -48,6 +48,9 @@ import java.util.List;
 import org.apache.log4j.Logger;
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.authorize.AuthorizeManager;
+import org.dspace.content.uri.PersistentIdentifier;
+import org.dspace.content.uri.dao.PersistentIdentifierDAO;
+import org.dspace.content.uri.dao.PersistentIdentifierDAOFactory;
 import org.dspace.core.ConfigurationManager;
 import org.dspace.core.Constants;
 import org.dspace.core.Context;
@@ -56,6 +59,11 @@ import org.dspace.storage.bitstore.BitstreamStorageManager;
 import org.dspace.storage.rdbms.DatabaseManager;
 import org.dspace.storage.rdbms.TableRow;
 import org.dspace.storage.rdbms.TableRowIterator;
+
+import org.apache.commons.lang.builder.EqualsBuilder;
+import org.apache.commons.lang.builder.HashCodeBuilder;
+import org.apache.commons.lang.builder.ToStringBuilder;
+import org.apache.commons.lang.builder.ToStringStyle;
 
 /**
  * Class representing bitstreams stored in the DSpace system.
@@ -81,6 +89,9 @@ public class Bitstream extends DSpaceObject
     /** The bitstream format corresponding to this bitstream */
     private BitstreamFormat bitstreamFormat;
 
+    /** Experimental persistent identifier stuff */
+    private List<PersistentIdentifier> identifiers;
+
     /**
      * Private constructor for creating a Bitstream object based on the contents
      * of a DB table row.
@@ -91,7 +102,8 @@ public class Bitstream extends DSpaceObject
      *            the corresponding row in the table
      * @throws SQLException
      */
-    Bitstream(Context context, TableRow row) throws SQLException
+//    Bitstream(Context context, TableRow row) throws SQLException
+    public Bitstream(Context context, TableRow row) throws SQLException
     {
         bContext = context;
         bRow = row;
@@ -114,6 +126,11 @@ public class Bitstream extends DSpaceObject
 
         // Cache ourselves
         context.cache(this, row.getIntColumn("bitstream_id"));
+
+        // Experimental persistent identifier stuff
+        PersistentIdentifierDAO identifierDAO =
+                PersistentIdentifierDAOFactory.getInstance(context);
+        this.identifiers = identifierDAO.getPersistentIdentifiers(this);
     }
 
     /**
@@ -234,12 +251,6 @@ public class Bitstream extends DSpaceObject
     public int getID()
     {
         return bRow.getIntColumn("bitstream_id");
-    }
-
-    public String getHandle()
-    {
-        // No Handles for bitstreams
-        return null;
     }
 
     /**
@@ -476,7 +487,8 @@ public class Bitstream extends DSpaceObject
      * 
      * @throws SQLException
      */
-    void delete() throws SQLException
+//    void delete() throws SQLException
+    public void delete() throws SQLException
     {
         boolean oracle = false;
         if ("oracle".equals(ConfigurationManager.getProperty("db.name")))
@@ -569,16 +581,6 @@ public class Bitstream extends DSpaceObject
 
         return bundleArray;
     }
-
-    /**
-     * return type found in Constants
-     * 
-     * @return int Constants.BITSTREAM
-     */
-    public int getType()
-    {
-        return Constants.BITSTREAM;
-    }
     
     /**
      * Determine if this bitstream is registered
@@ -597,5 +599,85 @@ public class Bitstream extends DSpaceObject
      */
     public int getStoreNumber() {
         return bRow.getIntColumn("store_number");
+    }
+
+    ////////////////////////////////////////////////////////////////////
+    // Utility methods
+    ////////////////////////////////////////////////////////////////////
+
+    public int getType()
+    {
+        return Constants.BITSTREAM;
+    }
+
+    public String toString()
+    {
+        return ToStringBuilder.reflectionToString(this,
+                ToStringStyle.MULTI_LINE_STYLE);
+    }
+
+    public boolean equals(Object o)
+    {
+        return EqualsBuilder.reflectionEquals(this, o);
+    }
+
+    public boolean equals(DSpaceObject other)
+    {
+        if (this.getType() == other.getType())
+        {
+            if (this.getID() == other.getID())
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public int hashCode()
+    {
+        return HashCodeBuilder.reflectionHashCode(this);
+    }
+
+    ////////////////////////////////////////////////////////////////////
+    // Experimental persistent identifier stuff
+    ////////////////////////////////////////////////////////////////////
+
+    /**
+     * For those cases where you only want one, and you don't care what sort.
+     */
+    public PersistentIdentifier getPersistentIdentifier()
+    {
+        if (identifiers.size() > 0)
+        {
+            for (PersistentIdentifier pid : identifiers)
+            {
+                // For now, this will be a "null" identifier.
+                return pid;
+            }
+            return null;
+        }
+        else
+        {
+            // Because Items don't necessarily have persistent identifiers
+            // until they hit the archive.
+            log.warn("I don't have any persistent identifiers.\n" + this);
+            return null;
+        }
+    }
+
+    public List<PersistentIdentifier> getPersistentIdentifiers()
+    {
+        return identifiers;
+    }
+
+    public void addPersistentIdentifier(PersistentIdentifier identifier)
+    {
+        this.identifiers.add(identifier);
+    }
+
+    public void setPersistentIdentifiers(List<PersistentIdentifier> identifiers)
+    {
+        this.identifiers = identifiers;
     }
 }

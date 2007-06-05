@@ -63,9 +63,9 @@
 <%@ page import="org.dspace.content.Bitstream" %>
 <%@ page import="org.dspace.content.Community" %>
 <%@ page import="org.dspace.content.Collection"%>
-<%@ page import="org.dspace.core.Utils"%>
-<%@ page import="org.dspace.core.ConfigurationManager"%>
-<%@ page import="org.dspace.eperson.Group"     %>
+<%@ page import="org.dspace.core.Utils" %>
+<%@ page import="org.dspace.core.ConfigurationManager" %>
+<%@ page import="org.dspace.eperson.Group" %>
 
 
 
@@ -113,7 +113,7 @@
     }
 
     String communityName = community.getMetadata("name");
-    String communityLink = "/handle/" + community.getHandle();
+    String communityLink = community.getURL().toString();
 
     Bitstream logo = collection.getLogo();
     
@@ -160,8 +160,8 @@
 	        <label for="tlocation"><small><strong><fmt:message key="jsp.general.location"/></strong></small></label>&nbsp;
                   <select name="location" id="tlocation">
 		    <option value="/"><fmt:message key="jsp.general.genericScope"/></option>
-                    <option selected="selected" value="<%= community.getHandle() %>"><%= communityName %></option>
-                    <option selected="selected" value="<%= collection.getHandle() %>"><%= name %></option>
+                    <option selected="selected" value="<%= community.getPersistentIdentifier().getCanonicalForm() %>"><%= communityName %></option>
+                    <option selected="selected" value="<%= collection.getPersistentIdentifier().getCanonicalForm() %>"><%= name %></option>
                   </select>
               </td>
             </tr>
@@ -296,7 +296,7 @@
     		: Utils.addEntities(lastSubmittedTitles[i]));
     		
 %>
-    <p class="recentItem"><a href="<%= request.getContextPath() %><%= lastSubmittedURLs[i] %>"><%= displayTitle %></a></p>
+    <p class="recentItem"><a href="<%= lastSubmittedURLs[i] %>"><%= displayTitle %></a></p>
 <%
   }
 %>
@@ -329,7 +329,7 @@
     	       width = 36;
     	    }
 %>
-    <a href="<%= request.getContextPath() %>/feed/<%= fmts[j] %>/<%= collection.getHandle() %>"><img src="<%= request.getContextPath() %>/image/<%= icon %>" alt="RSS Feed" width="<%= width %>" height="15" vspace="3" border="0" /></a>
+    <a href="<%= request.getContextPath() %>/feed/<%= fmts[j] %>/<%= collection.getPersistentIdentifier().getCanonicalForm() %>"><img src="<%= request.getContextPath() %>/image/<%= icon %>" alt="RSS Feed" width="<%= width %>" height="15" vspace="3" border="0" /></a>
 <%
     	}
 %>
