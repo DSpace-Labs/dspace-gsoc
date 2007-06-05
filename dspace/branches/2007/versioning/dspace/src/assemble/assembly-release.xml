@@ -1,12 +1,12 @@
 <assembly>
-  <id>assembly-postgres</id>
+  <id>bin</id>
   <formats>
   	<format>zip</format>
     <format>tar.gz</format>
     <format>tar.bz2</format>
   </formats>
-  <excludeBaseDirectory>true</excludeBaseDirectory>
-
+  <includeBaseDirectory>true</includeBaseDirectory>
+  <baseDirectory>${artifactId}-${version}-bin</baseDirectory>
   <fileSets>
     <fileSet>
       <includes>
@@ -29,6 +29,7 @@
   <dependencySets>
     <dependencySet>
       <outputDirectory>lib</outputDirectory>
+      <outputFileNameMapping>${artifactId}.${extension}</outputFileNameMapping>
       <unpack>false</unpack>
       <scope>runtime</scope>
       <excludes>
@@ -45,6 +46,7 @@
       <binaries>
         <includeDependencies>true</includeDependencies>
         <outputDirectory>lib</outputDirectory>
+        <outputFileNameMapping>${artifactId}.${extension}</outputFileNameMapping>
         <unpack>false</unpack>
       </binaries>
     </moduleSet>
@@ -55,6 +57,7 @@
       <binaries>
       	<includeDependencies>false</includeDependencies>
         <outputDirectory>webapps</outputDirectory>
+        <outputFileNameMapping>${artifactId}.${extension}</outputFileNameMapping>
         <unpack>false</unpack>
       </binaries>
     </moduleSet>
