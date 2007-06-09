@@ -153,10 +153,10 @@ public class URIServlet extends DSpaceServlet
         if (dso.getType() == Constants.ITEM)
         {
             Item item = (Item) dso;
-            
+
             response.setDateHeader("Last-Modified", item
                     .getLastModified().getTime());
-            
+
             // Check for if-modified-since header
             long modSince = request.getDateHeader("If-Modified-Since");
 
@@ -245,7 +245,7 @@ public class URIServlet extends DSpaceServlet
 
     /**
      * Show an item page
-     * 
+     *
      * @param context
      *            Context object
      * @param request
@@ -312,13 +312,13 @@ public class URIServlet extends DSpaceServlet
         boolean suggestEnable = false;
         if (!ConfigurationManager.getBooleanProperty("webui.suggest.enable"))
         {
-            // do nothing, the suggestLink is allready set to false 
+            // do nothing, the suggestLink is allready set to false
         }
         else
         {
             // it is in general enabled
             suggestEnable= true;
-            
+
             // check for the enable only for logged in users option
             if(!ConfigurationManager.getBooleanProperty("webui.suggest.loggedinusers.only"))
             {
@@ -330,7 +330,7 @@ public class URIServlet extends DSpaceServlet
                 suggestEnable = (context.getCurrentUser() == null ? false : true);
             }
         }
-        
+
         // Set attributes and display
         request.setAttribute("suggest.enable", new Boolean(suggestEnable));
         request.setAttribute("display.all", new Boolean(displayAll));
@@ -341,7 +341,7 @@ public class URIServlet extends DSpaceServlet
 
     /**
      * Show a community home page, or deal with button press on home page
-     * 
+     *
      * @param context
      *            Context object
      * @param request
@@ -414,7 +414,7 @@ public class URIServlet extends DSpaceServlet
 
     /**
      * Show a collection home page, or deal with button press on home page
-     * 
+     *
      * @param context
      *            Context object
      * @param request
@@ -542,14 +542,14 @@ public class URIServlet extends DSpaceServlet
     /**
      * Check to see if a browse or search button has been pressed on a community
      * or collection home page. If so, redirect to the appropriate URL.
-     * 
+     *
      * @param request
      *            HTTP request
      * @param response
      *            HTTP response
      * @param identifier
      *            object identifier that points to the collection / community
-     * 
+     *
      * @return true if a browse/search button was pressed and the user was
      *         redirected
      */
@@ -574,7 +574,7 @@ public class URIServlet extends DSpaceServlet
          */
         if (!location.equals("/"))
         {
-            prefix = prefixURL.toString();
+            prefix = prefixURL.toString() + "/";
         }
 
         if (button.equals("submit_titles"))
@@ -623,7 +623,7 @@ public class URIServlet extends DSpaceServlet
 
     /**
      * Utility method to obtain the titles for the Items in the given list.
-     * 
+     *
      * @param List
      *            of Items
      * @return array of corresponding titles
@@ -657,7 +657,7 @@ public class URIServlet extends DSpaceServlet
 
     /**
      * Utility method obtain URLs for the most recent items
-     * 
+     *
      * @param context
      *            DSpace context
      * @param items
