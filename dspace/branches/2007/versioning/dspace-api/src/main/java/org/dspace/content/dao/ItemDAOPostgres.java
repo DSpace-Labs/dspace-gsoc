@@ -84,10 +84,10 @@ public class ItemDAOPostgres extends ItemDAO
 
     /** query to obtain all the items from the database */
     private final String findAll = "SELECT * FROM item";
-    
+
     /** query to check the existance of an item id */
     private final String getByID = "SELECT id FROM item WHERE item_id = ?";
-        
+
     /** query to get the text value of a metadata element only (qualifier is NULL) */
     private final String getByMetadataElement =
         "SELECT text_value FROM metadatavalue " +
@@ -99,7 +99,7 @@ public class ItemDAOPostgres extends ItemDAO
         "        WHERE short_id = ? " +
         "    )" +
         ")";
-    
+
     /** query to get the text value of a metadata element and qualifier */
     private final String getByMetadata =
         "SELECT text_value FROM metadatavalue " +
@@ -111,7 +111,7 @@ public class ItemDAOPostgres extends ItemDAO
         "        WHERE short_id = ? " +
         "    )" +
         ")";
-    
+
     /** query to get the text value of a metadata element with the wildcard
      * qualifier (*) */
     private final String getByMetadataAnyQualifier =
@@ -368,8 +368,8 @@ public class ItemDAOPostgres extends ItemDAO
             TableRowIterator tri = DatabaseManager.queryTable(context, "item",
                     "SELECT i.item_id " +
                     "FROM item i, collection2item c2i " +
-                    "WHERE i.item_id = c2i.item_id "+ 
-                    "AND c2i.collection_id = ? " + 
+                    "WHERE i.item_id = c2i.item_id "+
+                    "AND c2i.collection_id = ? " +
                     "AND i.in_archive = '1'",
                     collection.getID());
 
@@ -526,6 +526,8 @@ public class ItemDAOPostgres extends ItemDAO
         row.setColumn("in_archive", item.isArchived());
         row.setColumn("withdrawn", item.isWithdrawn());
         row.setColumn("last_modified", item.getLastModified());
+        row.setColumn("revision", item.getRevision());
+        row.setColumn("previousRevision", item.getPreviousRevision());
 
         if (submitter != null)
         {
@@ -546,6 +548,8 @@ public class ItemDAOPostgres extends ItemDAO
         boolean inArchive = row.getBooleanColumn("in_archive");
         boolean withdrawn = row.getBooleanColumn("withdrawn");
         Date lastModified = row.getDateColumn("last_modified");
+        int revision = row.getIntColumn("revision");
+        int previous_revision = row.getIntColumn("previous_revision");
 
         item.setID(id);
         item.setSubmitter(submitterId);
@@ -553,6 +557,8 @@ public class ItemDAOPostgres extends ItemDAO
         item.setArchived(inArchive);
         item.setWithdrawn(withdrawn);
         item.setLastModified(lastModified);
+        item.setPreviousRevision(previous_revision);
+        item.setRevision(revision);
     }
 
     @Override
@@ -605,17 +611,17 @@ public class ItemDAOPostgres extends ItemDAO
             throw new RuntimeException(sqle);
         }
     }
-    
+
     /**
      * Perform a database query to obtain the string array of values
      * corresponding to the passed parameters. This is only really called from
-     * 
+     *
      * <code>
      * getMetadata(schema, element, qualifier, lang);
      * </code>
-     * 
+     *
      * which will obtain the value from cache if available first.
-     * 
+     *
      * @param schema
      * @param element
      * @param qualifier
@@ -629,7 +635,7 @@ public class ItemDAOPostgres extends ItemDAO
         try
         {
             TableRowIterator tri;
-            
+
             if (qualifier == null)
             {
                 Object[] params = { item.getID(), element, schema };
@@ -647,7 +653,7 @@ public class ItemDAOPostgres extends ItemDAO
                 Object[] params = { item.getID(), element, qualifier, schema };
                 tri = DatabaseManager.query(context, getByMetadata, params);
             }
-            
+
             while (tri.hasNext())
             {
                 TableRow tr = tri.next();
