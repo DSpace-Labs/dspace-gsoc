@@ -2,3 +2,5 @@ org.dspace.content.Bitstream 	+ getInternalID()
 database						+ timeinterval
 								+ witness
 								+ hashvalueofitem
+								+ hashvalueofitem_seq
+org.dspace.content.InstallItem  + createHash(Item item, Context c)

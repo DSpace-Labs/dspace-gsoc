@@ -43,10 +43,12 @@ import java.io.IOException;
 import java.sql.SQLException;
 
 import org.dspace.authorize.AuthorizeException;
-import org.dspace.core.ConfigurationManager;
+//import org.dspace.core.ConfigurationManager;
 import org.dspace.core.Context;
 import org.dspace.handle.HandleManager;
 import org.dspace.search.DSIndexer;
+
+import org.dspace.cis.*;
 
 /**
  * Support to install item in the archive
@@ -154,6 +156,8 @@ public class InstallItem
         // remove the item's policies and replace them with
         // the defaults from the collection
         item.inheritCollectionDefaultPolicies(is.getCollection());
+        
+        createHash(item, c);
 
         return item;
     }
@@ -186,5 +190,24 @@ public class InstallItem
         }
 
         return mymessage;
+    }
+    
+    /**
+     * Create the hashvalue of this item and write it in the database
+     * @param item
+     * @param c
+     * @throws SQLException
+     */
+    private static void createHash(Item item, Context c) throws SQLException
+    {
+    	HashvalueofItem hash = new HashvalueofItem(c);
+    	DigestFactory df = new DigestFactory();
+    	String hashValue = df.digest(item);
+    	hash.setHash_Algorithm(df.getPRIMITIVE().toString());
+    	hash.setHashValue(hashValue);
+    	hash.setItem_id(item.getID());
+    	hash.setTime_interval_id(1);
+    	
+    	hash.archive();
     }
 }

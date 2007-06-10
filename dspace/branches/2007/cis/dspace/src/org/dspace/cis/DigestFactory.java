@@ -325,4 +325,12 @@ public class DigestFactory
     //     
     // }
 
+	public HashAlgorithms getPRIMITIVE() {
+		return PRIMITIVE;
+	}
+
+	public void setPRIMITIVE(HashAlgorithms primitive) {
+		PRIMITIVE = primitive;
+	}
+
 }

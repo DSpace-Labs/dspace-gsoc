@@ -473,7 +473,7 @@ Copied language packs into ${dspace.dir}/config
   </target>
 	
  	<!-- ================================================================ -->
- 	<!-- Update installed code and place the dspace.war in Tomcat/webapps -->
+ 	<!-- rebuild the dspace.war and compile the source code               -->
  	<!-- ================================================================ -->
 	
  <target name="refresh"
