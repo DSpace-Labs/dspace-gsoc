@@ -28,5 +28,6 @@
 --
 --   Caution: THIS IS POSTGRESQL-SPECIFIC:
 --
+-- DUMP YOUR DATABASE DUMP YOUR DATABASE DUMP YOUR DATABASE DUMP YOUR DATABASE
 ALTER TABLE Item ADD revision integer;
 ALTER TABLE Item ADD previous_revision integer; -- An item_id
