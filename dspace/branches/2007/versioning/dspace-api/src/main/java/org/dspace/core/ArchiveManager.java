@@ -56,6 +56,7 @@ import org.dspace.content.Community;
 import org.dspace.content.DCDate;
 import org.dspace.content.DSpaceObject;
 import org.dspace.content.Item;
+import org.dspace.content.Bundle;
 import org.dspace.content.InstallItem;
 import org.dspace.content.MetadataSchema;
 import org.dspace.content.dao.BundleDAOFactory;
@@ -108,6 +109,48 @@ public class ArchiveManager
                 return CommunityDAOFactory.getInstance(context).retrieve(id);
             default:
                 throw new RuntimeException("Not a valid DSpaceObject type");
+        }
+    }
+
+    /**
+     * Creates a Item in the database that maintains all the same
+     * attributes and metadata as the Item it supplants with a new
+     * revision number and a link to the given Item as the previousRevision
+     *
+     * @param item The Item to create a new version of
+     */
+    public static Item newVersionOfItem(Context context, Item originalItem)
+    {
+        try
+        {
+            ItemDAO itemDAO = ItemDAOFactory.getInstance(context);
+            Item item = itemDAO.create();
+
+            item.setArchived(originalItem.isArchived());
+            item.setWithdrawn(originalItem.isWithdrawn());
+            // Done by ItemDAO.update ... item.setLastModified();
+
+            item.setRevision(originalItem.getRevision()+1);
+            item.setPreviousRevision(originalItem.getID());
+
+            item.setOwningCollectionId(originalItem.getOwningCollection().getID());
+            item.setSubmitter(originalItem.getSubmitter().getID());
+
+            originalItem.transferMetadata(item);
+
+            List<Bundle> tmp = new ArrayList<Bundle>();
+            for (Bundle bundle : originalItem.getBundles())
+            {
+                item.addBundle(bundle);
+            }
+
+            itemDAO.update(item);
+
+            return item;
+        }
+        catch (AuthorizeException e)
+        {
+            throw new RuntimeException(e);
         }
     }
 

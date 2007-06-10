@@ -74,7 +74,7 @@ import org.dspace.eperson.Group;
 /**
  * Class representing an item in DSpace. Note that everything is held in memory
  * until update() is called on the ItemDAO.
- * 
+ *
  * @author James Rutherford
  * @version $Revision$
  */
@@ -96,6 +96,9 @@ public class Item extends DSpaceObject
     protected boolean inArchive;
     protected boolean withdrawn;
     protected Date lastModified;
+
+    protected int revision;
+    protected int previousRevision;
 
     protected int owningCollectionId;
     protected Collection owningCollection;
@@ -171,7 +174,7 @@ public class Item extends DSpaceObject
 
     /**
      * Find out if the item is part of the main archive
-     * 
+     *
      * @return true if the item is in the main archive
      */
     public boolean isArchived()
@@ -181,7 +184,7 @@ public class Item extends DSpaceObject
 
     /**
      * Only <code>WorkflowItem.archive()</code> should really set this.
-     * 
+     *
      * @param inArchive new value for the flag
      */
     public void setArchived(boolean inArchive)
@@ -191,7 +194,7 @@ public class Item extends DSpaceObject
 
     /**
      * Find out if the item has been withdrawn
-     * 
+     *
      * @return true if the item has been withdrawn
      */
     public boolean isWithdrawn()
@@ -207,7 +210,7 @@ public class Item extends DSpaceObject
     /**
      * Get the date the item was last modified, or the current date if
      * last_modified is null
-     * 
+     *
      * @return the date the item was last modified, or the current date if the
      *         column is null.
      */
@@ -224,7 +227,7 @@ public class Item extends DSpaceObject
 
     /**
      * Get the owning Collection for the item
-     * 
+     *
      * @return Collection that is the owner of the item
      */
     public Collection getOwningCollection()
@@ -234,7 +237,7 @@ public class Item extends DSpaceObject
 
     /**
      * List the owning Collection for the item
-     * 
+     *
      * @param c Collection
      */
     public void setOwningCollection(Collection owningCollection)
@@ -245,6 +248,26 @@ public class Item extends DSpaceObject
     public void setOwningCollectionId(int owningCollectionId)
     {
         this.owningCollectionId = owningCollectionId;
+    }
+
+    public int getPreviousRevision()
+    {
+        return this.previousRevision;
+    }
+
+    public void setPreviousRevision(int previousRevision)
+    {
+        this.previousRevision = previousRevision;
+    }
+
+    public int getRevision()
+    {
+        return this.revision;
+    }
+
+    public void setRevision(int revision)
+    {
+        this.revision = revision;
     }
 
     public List<DCValue> getMetadata()
@@ -327,7 +350,7 @@ public class Item extends DSpaceObject
 
         return (DCValue[]) values.toArray(new DCValue[0]);
     }
-    
+
     /**
      * Retrieve metadata field values from a given metadata string
      * of the form <schema prefix>.<element>[.<qualifier>|.*]
@@ -339,7 +362,7 @@ public class Item extends DSpaceObject
     public DCValue[] getMetadata(String mdString)
     {
         StringTokenizer st = new StringTokenizer(mdString, ".");
-        
+
         String[] tokens = { "", "", "" };
         int i = 0;
         while(st.hasMoreTokens())
@@ -350,7 +373,7 @@ public class Item extends DSpaceObject
         String schema = tokens[0];
         String element = tokens[1];
         String qualifier = tokens[2];
-        
+
         DCValue[] values;
         if ("*".equals(qualifier))
         {
@@ -364,10 +387,10 @@ public class Item extends DSpaceObject
         {
             values = getMetadata(schema, element, qualifier, Item.ANY);
         }
-        
+
         return values;
     }
-    
+
     /**
      * Add metadata fields. These are appended to existing values.
      * Use <code>clearDC</code> to remove values. The ordering of values
@@ -429,6 +452,14 @@ public class Item extends DSpaceObject
     }
 
     /**
+     * Transfers this Item's metadata into another Item object...for versioning purposes.
+     */
+    public void transferMetadata(Item receiver)
+    {
+        receiver.setMetadata(this.metadata);
+    }
+
+    /**
      * Clear metadata values. As with <code>getDC</code> above,
      * passing in <code>null</code> only matches fields where the qualifier or
      * language is actually <code>null</code>.<code>Item.ANY</code> will
@@ -473,7 +504,7 @@ public class Item extends DSpaceObject
 
     /**
      * Get the e-person that originally submitted this item
-     * 
+     *
      * @return the submitter
      */
     public EPerson getSubmitter()
@@ -486,7 +517,7 @@ public class Item extends DSpaceObject
      * method since it is handled by the WorkspaceItem class in the ingest
      * package. <code>update</code> must be called to write the change to the
      * database.
-     * 
+     *
      * @param sub
      *            the submitter
      */
@@ -511,7 +542,7 @@ public class Item extends DSpaceObject
 
     /**
      * Get the bundles in this item.
-     * 
+     *
      * @return the bundles in an unordered array
      */
     public Bundle[] getBundles()
@@ -526,10 +557,10 @@ public class Item extends DSpaceObject
 
     /**
      * Get the bundles matching a bundle name (name corresponds roughly to type)
-     * 
+     *
      * @param name
      *            name of bundle (ORIGINAL/TEXT/THUMBNAIL)
-     * 
+     *
      * @return the bundles in an unordered array
      */
     public Bundle[] getBundles(String name)
@@ -547,7 +578,7 @@ public class Item extends DSpaceObject
 
     /**
      * Create a bundle in this item, with immediate effect
-     * 
+     *
      * @param name
      *            bundle name (ORIGINAL/TEXT/THUMBNAIL)
      * @return the newly created bundle
@@ -586,7 +617,7 @@ public class Item extends DSpaceObject
 
     /**
      * Add an existing bundle to this item. This has immediate effect.
-     * 
+     *
      * @param b
      *            the bundle to add
      */
@@ -617,7 +648,9 @@ public class Item extends DSpaceObject
      *
      * FIXME: Will this ever not be the case? Can multiple Items own the same
      * Bundle?
-     * 
+     *
+     * Yes, Versioning.
+     *
      * @param b
      *            the bundle to remove
      */
@@ -641,7 +674,7 @@ public class Item extends DSpaceObject
     /**
      * Create a single bitstream in a new bundle. Provided as a convenience
      * method for the most common use.
-     * 
+     *
      * @param is
      *            the stream to create the new bitstream from
      * @param name
@@ -666,7 +699,7 @@ public class Item extends DSpaceObject
 
     /**
      * Convenience method, calls createSingleBitstream() with name "ORIGINAL"
-     * 
+     *
      * @param is
      *            InputStream
      * @return created bitstream
@@ -684,7 +717,7 @@ public class Item extends DSpaceObject
      * Get all non-internal bitstreams in the item. This is mainly used for
      * auditing for provenance messages and adding format.* DC values. The order
      * is indeterminate.
-     * 
+     *
      * @return non-internal bitstreams.
      */
     public Bitstream[] getNonInternalBitstreams()
@@ -715,7 +748,7 @@ public class Item extends DSpaceObject
 
     /**
      * Store a copy of the license a user granted in this item.
-     * 
+     *
      * @param license
      *            the license the user granted
      * @param eperson
@@ -751,7 +784,7 @@ public class Item extends DSpaceObject
 
     /**
      * Remove all licenses from an item - it was rejected
-     * 
+     *
      * @throws SQLException
      * @throws AuthorizeException
      * @throws IOException
@@ -791,7 +824,7 @@ public class Item extends DSpaceObject
     /**
      * Withdraw the item from the archive. It is kept in place, and the content
      * and metadata are not deleted, but it is not publicly accessible.
-     * 
+     *
      * @throws AuthorizeException
      * @throws IOException
      */
@@ -803,7 +836,7 @@ public class Item extends DSpaceObject
 
     /**
      * Reinstate a withdrawn item
-     * 
+     *
      * @throws AuthorizeException
      * @throws IOException
      */
@@ -815,7 +848,7 @@ public class Item extends DSpaceObject
 
     /**
      * Return true if the given Collection 'owns' this item.
-     * 
+     *
      * @param c Collection
      * @return true if this Collection owns this item
      */
@@ -842,7 +875,7 @@ public class Item extends DSpaceObject
 
     /**
      * Return type found in Constants
-     * 
+     *
      * @return int Constants.ITEM
      */
     public int getType()
@@ -853,7 +886,7 @@ public class Item extends DSpaceObject
     /**
      * remove all of the policies for item and replace them with a new list of
      * policies
-     * 
+     *
      * @param newpolicies -
      *            this will be all of the new policies for the item and its
      *            contents
@@ -874,7 +907,7 @@ public class Item extends DSpaceObject
     /**
      * remove all of the policies for item's bitstreams and bundles and replace
      * them with a new list of policies
-     * 
+     *
      * @param newpolicies -
      *            this will be all of the new policies for the bundle and
      *            bitstream contents
@@ -915,7 +948,7 @@ public class Item extends DSpaceObject
     /**
      * remove all of the policies for item's bitstreams and bundles that belong
      * to a given Group
-     * 
+     *
      * @param g
      *            Group referenced by policies that needs to be removed
      * @throws SQLException
@@ -954,7 +987,7 @@ public class Item extends DSpaceObject
      * remove all policies on an item and its contents, and replace them with
      * the DEFAULT_ITEM_READ and DEFAULT_BITSTREAM_READ policies belonging to
      * the collection.
-     * 
+     *
      * @param c
      *            Collection
      * @throws java.sql.SQLException
@@ -1020,7 +1053,7 @@ public class Item extends DSpaceObject
 
     /**
      * return TRUE if context's user can edit item, false otherwise
-     * 
+     *
      * @return boolean true = current user can edit item
      * @throws SQLException
      */
