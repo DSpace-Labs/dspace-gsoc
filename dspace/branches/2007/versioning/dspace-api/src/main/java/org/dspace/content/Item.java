@@ -1171,6 +1171,15 @@ public class Item extends DSpaceObject
         return true;
     }
 
+    public String toString()
+    {
+        String ret = "Item id:" +
+        this.getID() + " revision:" +
+        this.revision + " prev:" +
+        this.previousRevision + "\n";
+        return ret;
+    }
+
     /** Deprecated by the introduction of DAOs */
     @Deprecated
     Item(Context context, org.dspace.storage.rdbms.TableRow row)

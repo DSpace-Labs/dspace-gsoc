@@ -44,6 +44,12 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.io.BufferedReader;
+
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.PosixParser;
 
 import org.apache.log4j.Logger;
 
@@ -71,6 +77,7 @@ import org.dspace.content.uri.PersistentIdentifier;
 import org.dspace.eperson.EPerson;
 import org.dspace.history.HistoryManager;
 import org.dspace.search.DSIndexer;
+import org.dspace.eperson.EPerson;
 
 /**
  * This class could really do with a CLI...
@@ -78,6 +85,17 @@ import org.dspace.search.DSIndexer;
 public class ArchiveManager
 {
     private static Logger log = Logger.getLogger(ArchiveManager.class);
+    private Context c;
+
+    public ArchiveManager() throws SQLException
+    {
+        this.c = new Context();
+    }
+
+    public Context getContext()
+    {
+        return this.c;
+    }
 
     public static DSpaceObject getObject(Context context,
             PersistentIdentifier identifier)
@@ -562,5 +580,99 @@ public class ArchiveManager
         log.warn("***************************************************");
         log.warn("Moving " + dsoStr + " from " + sourceStr + " to " + destStr);
         log.warn("***************************************************");
+    }
+
+    /**
+     * CLI for Versioning
+     * Should be extenisble for other actions.
+     */
+    public static void main(String[] argv)
+    {
+        try {
+            CommandLineParser parser = new PosixParser();
+            Options options = new Options();
+            ArchiveManager am = new ArchiveManager();
+            ItemDAO itemDAO = ItemDAOFactory.getInstance(new Context());
+
+            options.addOption("a", "all", false, "print all items");
+            options.addOption("m", "metadata", true, "print item metadata");
+            options.addOption("r", "revision", true, "new revision of item");
+            options.addOption("p", "print", true, "print item");
+            options.addOption("u", "user", true, "eperson email address or id");
+
+            CommandLine line = parser.parse(options, argv);
+
+
+
+            if (line.hasOption("a"))
+            {
+                am.printItems(itemDAO.getItems());
+            }
+            else if (line.hasOption("m"))
+            {
+                am.printItemMetadata(Integer.parseInt(line.getOptionValue("m")));
+            }
+            else if (line.hasOption("p"))
+            {
+                int id = Integer.parseInt(line.getOptionValue("p"));
+                System.out.println(itemDAO.retrieve(id).toString());
+            }
+            else if (line.hasOption("r"))
+            {
+//            	 find the EPerson, assign to context
+                EPerson myEPerson = null;
+                String eperson = null;
+                if (line.hasOption('u'))
+                {
+                    eperson = line.getOptionValue("u");
+                }
+                else
+                {
+                    System.out.println("Error, eperson cannot be found: " + eperson);
+                    System.exit(1);
+                }
+                if (eperson.indexOf('@') != -1)
+                {
+                    // @ sign, must be an email
+                    myEPerson = EPerson.findByEmail(am.getContext(), eperson);
+                }
+                else
+                {
+                    myEPerson = EPerson.find(am.getContext(), Integer.parseInt(eperson));
+                }
+
+                if (myEPerson == null)
+                {
+                    System.out.println("Error, eperson cannot be found: " + eperson);
+                    System.exit(1);
+                }
+
+                am.getContext().setCurrentUser(myEPerson);
+
+                int id = Integer.parseInt(line.getOptionValue("r"));
+                Item i = ArchiveManager.newVersionOfItem(am.getContext(), itemDAO.retrieve(id));
+                System.out.println("Original Item: \n");
+                System.out.println(itemDAO.retrieve(id).toString());
+                System.out.println("New Item: \n");
+                System.out.println(i.toString());
+            }
+        }
+        catch (Exception e)
+        {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void printItems(List<Item> items)
+    {
+        for (Item i : items)
+        {
+            System.out.println(i.toString());
+        }
+    }
+
+    private void printItemMetadata(int id)
+    {
+
     }
 }

@@ -527,7 +527,7 @@ public class ItemDAOPostgres extends ItemDAO
         row.setColumn("withdrawn", item.isWithdrawn());
         row.setColumn("last_modified", item.getLastModified());
         row.setColumn("revision", item.getRevision());
-        row.setColumn("previousRevision", item.getPreviousRevision());
+        row.setColumn("previous_revision", item.getPreviousRevision());
 
         if (submitter != null)
         {
