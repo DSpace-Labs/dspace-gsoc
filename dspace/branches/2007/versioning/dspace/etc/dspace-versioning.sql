@@ -31,3 +31,15 @@
 -- DUMP YOUR DATABASE DUMP YOUR DATABASE DUMP YOUR DATABASE DUMP YOUR DATABASE
 ALTER TABLE Item ADD revision integer;
 ALTER TABLE Item ADD previous_revision integer; -- An item_id
+
+CREATE OR REPLACE FUNCTION get_next_revision(id integer) RETURNS integer AS $$
+DECLARE
+	rev integer;
+BEGIN
+	SELECT INTO rev revision 
+	FROM Item 
+	WHERE item_id = id;
+
+	RETURN 1 + rev;
+END;
+$$ LANGUAGE plpgsql;
