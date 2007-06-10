@@ -34,12 +34,18 @@ ALTER TABLE Item ADD previous_revision integer; -- An item_id
 
 CREATE OR REPLACE FUNCTION get_next_revision(id integer) RETURNS integer AS $$
 DECLARE
-	rev integer;
+  rev integer;
 BEGIN
-	SELECT INTO rev revision 
-	FROM Item 
-	WHERE item_id = id;
+  SELECT INTO rev revision
+  FROM Item
+  WHERE item_id = id;
 
-	RETURN 1 + rev;
+    IF rev < 0 OR rev IS NULL
+    THEN
+        UPDATE Item set revision = 1 WHERE item_id = id;
+        RETURN 2;
+    ELSE
+      RETURN 1 + rev;
+  END IF;
 END;
 $$ LANGUAGE plpgsql;
