@@ -460,14 +460,6 @@ public class Item extends DSpaceObject
     }
 
     /**
-     * Transfers this Item's metadata into another Item object...for versioning purposes.
-     */
-    public void transferMetadata(Item receiver)
-    {
-        receiver.setMetadata(this.getMetadata());
-    }
-
-    /**
      * Clear metadata values. As with <code>getDC</code> above,
      * passing in <code>null</code> only matches fields where the qualifier or
      * language is actually <code>null</code>.<code>Item.ANY</code> will
