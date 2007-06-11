@@ -74,6 +74,8 @@ import org.dspace.content.dao.CommunityDAO;
 import org.dspace.content.dao.CommunityDAOFactory;
 import org.dspace.content.uri.ObjectIdentifier;
 import org.dspace.content.uri.PersistentIdentifier;
+import org.dspace.content.uri.dao.PersistentIdentifierDAO;
+import org.dspace.content.uri.dao.PersistentIdentifierDAOFactory;
 import org.dspace.eperson.EPerson;
 import org.dspace.history.HistoryManager;
 import org.dspace.search.DSIndexer;
@@ -132,6 +134,16 @@ public class ArchiveManager
         {
             ItemDAO itemDAO = ItemDAOFactory.getInstance(context);
             Item item = itemDAO.create();
+            PersistentIdentifierDAO identifierDAO =
+            PersistentIdentifierDAOFactory.getInstance(context);
+            PersistentIdentifier identifier;
+
+            // Persistent Identfier Stuff
+            // Create persistent identifier. Note that this will create an
+            // identifier of the default type (as specified in the
+            // configuration).
+            identifier = identifierDAO.create(item);
+            String uri = identifier.getURI().toString();
 
             item.setArchived(originalItem.isArchived());
             item.setWithdrawn(originalItem.isWithdrawn());
@@ -145,11 +157,19 @@ public class ArchiveManager
 
             originalItem.transferMetadata(item);
 
+            // Add uri as identifier.uri DC value
+            item.clearMetadata("dc", "identifier", "uri", null);
+            item.addMetadata("dc", "identifier", "uri", null, uri);
+
+
             List<Bundle> tmp = new ArrayList<Bundle>();
             for (Bundle bundle : originalItem.getBundles())
             {
                 item.addBundle(bundle);
             }
+
+//          create collection2item mapping
+            originalItem.getOwningCollection().addItem(item);
 
             itemDAO.update(item);
 
@@ -586,11 +606,12 @@ public class ArchiveManager
             ItemDAO itemDAO = ItemDAOFactory.getInstance(c);
 
             options.addOption("a", "all", false, "print all items");
-            options.addOption("m", "metadata", true, "print item metadata");
-            options.addOption("r", "revision", true, "new revision of item");
-            options.addOption("p", "print", true, "print item");
+            options.addOption("m", "metadata", false, "print item metadata");
+            options.addOption("r", "revision", false, "new revision of item");
+            options.addOption("p", "print", false, "print item");
             options.addOption("u", "user", true, "eperson email address or id");
-
+            options.addOption("i", "item_id", true, "id of the item");
+            options.addOption("z", "identifiers", false, "print the presistent ids");
             CommandLine line = parser.parse(options, argv);
 
 
@@ -599,16 +620,21 @@ public class ArchiveManager
             {
                 am.printItems(itemDAO.getItems());
             }
-            else if (line.hasOption("m"))
+            else if (line.hasOption("m") && line.hasOption("i"))
             {
-                am.printItemMetadata(Integer.parseInt(line.getOptionValue("m")));
+                am.printItemMetadata(itemDAO.retrieve(Integer.parseInt(line.getOptionValue("i"))));
             }
-            else if (line.hasOption("p"))
+            else if (line.hasOption("p") && line.hasOption("i"))
             {
-                int id = Integer.parseInt(line.getOptionValue("p"));
+                int id = Integer.parseInt(line.getOptionValue("i"));
                 System.out.println(itemDAO.retrieve(id).toString());
             }
-            else if (line.hasOption("r"))
+            else if (line.hasOption("z") && line.hasOption("i"))
+            {
+                System.out.println("id go");
+                am.printPersistentIdentifiers(itemDAO.retrieve(Integer.parseInt(line.getOptionValue("i"))));
+            }
+            else if (line.hasOption("r") && line.hasOption("i"))
             {
 //            	 find the EPerson, assign to context
                 EPerson myEPerson = null;
@@ -640,7 +666,7 @@ public class ArchiveManager
 
                 c.setCurrentUser(myEPerson);
 
-                int id = Integer.parseInt(line.getOptionValue("r"));
+                int id = Integer.parseInt(line.getOptionValue("i"));
                 Item i = ArchiveManager.newVersionOfItem(c, itemDAO.retrieve(id));
                 System.out.println("Original Item: \n");
                 System.out.println(itemDAO.retrieve(id).toString());
@@ -663,8 +689,22 @@ public class ArchiveManager
         }
     }
 
-    private void printItemMetadata(int id)
+    private void printItemMetadata(Item item)
     {
+        System.out.println(item.getMetadata().toString());
+        for (Object o : item.getMetadata())
+        {
+            System.out.println(o.toString());
+        }
+    }
 
+    private void printPersistentIdentifiers(Item item)
+    {
+        System.out.println("one pi: " + item.getPersistentIdentifier().getCanonicalForm());
+        System.out.println(item.getPersistentIdentifiers().toString());
+        for (PersistentIdentifier id : item.getPersistentIdentifiers())
+        {
+            System.out.println(id.getCanonicalForm());
+        }
     }
 }

@@ -159,7 +159,7 @@ public class Item extends DSpaceObject
 
     public List<PersistentIdentifier> getPersistentIdentifiers()
     {
-        return identifiers;
+            return identifiers;
     }
 
     public void addPersistentIdentifier(PersistentIdentifier identifier)
@@ -272,7 +272,15 @@ public class Item extends DSpaceObject
 
     public List<DCValue> getMetadata()
     {
-        return metadata;
+        if (this.metadata.isEmpty())
+        {
+            dao.loadMetadata(this);
+            return this.metadata;
+        }
+        else
+        {
+            return this.metadata;
+        }
     }
 
     public void setMetadata(List<DCValue> metadata)
@@ -456,7 +464,7 @@ public class Item extends DSpaceObject
      */
     public void transferMetadata(Item receiver)
     {
-        receiver.setMetadata(this.metadata);
+        receiver.setMetadata(this.getMetadata());
     }
 
     /**
