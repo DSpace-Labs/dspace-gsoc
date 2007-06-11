@@ -85,17 +85,6 @@ import org.dspace.eperson.EPerson;
 public class ArchiveManager
 {
     private static Logger log = Logger.getLogger(ArchiveManager.class);
-    private Context c;
-
-    public ArchiveManager() throws SQLException
-    {
-        this.c = new Context();
-    }
-
-    public Context getContext()
-    {
-        return this.c;
-    }
 
     public static DSpaceObject getObject(Context context,
             PersistentIdentifier identifier)
@@ -588,11 +577,13 @@ public class ArchiveManager
      */
     public static void main(String[] argv)
     {
+        Context c = null;
         try {
+            c = new Context();
             CommandLineParser parser = new PosixParser();
             Options options = new Options();
             ArchiveManager am = new ArchiveManager();
-            ItemDAO itemDAO = ItemDAOFactory.getInstance(new Context());
+            ItemDAO itemDAO = ItemDAOFactory.getInstance(c);
 
             options.addOption("a", "all", false, "print all items");
             options.addOption("m", "metadata", true, "print item metadata");
@@ -634,11 +625,11 @@ public class ArchiveManager
                 if (eperson.indexOf('@') != -1)
                 {
                     // @ sign, must be an email
-                    myEPerson = EPerson.findByEmail(am.getContext(), eperson);
+                    myEPerson = EPerson.findByEmail(c, eperson);
                 }
                 else
                 {
-                    myEPerson = EPerson.find(am.getContext(), Integer.parseInt(eperson));
+                    myEPerson = EPerson.find(c, Integer.parseInt(eperson));
                 }
 
                 if (myEPerson == null)
@@ -647,15 +638,16 @@ public class ArchiveManager
                     System.exit(1);
                 }
 
-                am.getContext().setCurrentUser(myEPerson);
+                c.setCurrentUser(myEPerson);
 
                 int id = Integer.parseInt(line.getOptionValue("r"));
-                Item i = ArchiveManager.newVersionOfItem(am.getContext(), itemDAO.retrieve(id));
+                Item i = ArchiveManager.newVersionOfItem(c, itemDAO.retrieve(id));
                 System.out.println("Original Item: \n");
                 System.out.println(itemDAO.retrieve(id).toString());
                 System.out.println("New Item: \n");
                 System.out.println(i.toString());
             }
+            c.complete();
         }
         catch (Exception e)
         {
