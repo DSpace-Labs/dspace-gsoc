@@ -155,8 +155,7 @@ public class ArchiveManager
             item.setOwningCollectionId(originalItem.getOwningCollection().getID());
             item.setSubmitter(originalItem.getSubmitter().getID());
 
-            originalItem.transferMetadata(item);
-
+            item.setMetadata(originalItem.getMetadata());
             // Add uri as identifier.uri DC value
             item.clearMetadata("dc", "identifier", "uri", null);
             item.addMetadata("dc", "identifier", "uri", null, uri);
