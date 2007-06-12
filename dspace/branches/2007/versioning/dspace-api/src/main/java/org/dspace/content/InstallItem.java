@@ -54,7 +54,7 @@ import org.dspace.search.DSIndexer;
 
 /**
  * Support to install item in the archive
- * 
+ *
  * @author dstuve
  * @version $Revision$
  */
@@ -63,12 +63,12 @@ public class InstallItem
     /**
      * Take an InProgressSubmission and turn it into a fully-archived Item,
      * creating a new Handle
-     * 
+     *
      * @param c
      *            DSpace Context
      * @param is
      *            submission to install
-     * 
+     *
      * @return the fully archived Item
      */
     public static Item installItem(Context c, InProgressSubmission is)
@@ -79,14 +79,14 @@ public class InstallItem
 
     /**
      * Take an InProgressSubmission and turn it into a fully-archived Item.
-     * 
+     *
      * @param c  current context
      * @param is
      *            submission to install
      * @param value
      *            the existing identifier to give the installed item in
      *            canonical form
-     * 
+     *
      * @return the fully archived Item
      */
     public static Item installItem(Context c, InProgressSubmission is,
@@ -153,6 +153,9 @@ public class InstallItem
         // set in_archive=true
         item.setArchived(true);
 
+        // set the itemNumber as this item's id (root in a linear succession)
+        item.setItemNumber(item.getID());
+
         // save changes ;-)
         itemDAO.update(item);
 
@@ -173,13 +176,13 @@ public class InstallItem
     /**
      * Generate provenance-worthy description of the bitstreams contained in an
      * item.
-     * 
+     *
      * @param myitem  the item generate description for
-     * 
+     *
      * @return provenance description
      */
     public static String getBitstreamProvenanceMessage(Item myitem)
-    						throws SQLException
+                            throws SQLException
     {
         // Get non-internal format bitstreams
         Bitstream[] bitstreams = myitem.getNonInternalBitstreams();

@@ -31,6 +31,7 @@
 -- DUMP YOUR DATABASE DUMP YOUR DATABASE DUMP YOUR DATABASE DUMP YOUR DATABASE
 ALTER TABLE Item ADD revision integer;
 ALTER TABLE Item ADD previous_revision integer; -- An item_id
+ALTER TABLE Item ADD item_number integer;
 
 CREATE OR REPLACE FUNCTION get_next_revision(id integer) RETURNS integer AS $$
 DECLARE

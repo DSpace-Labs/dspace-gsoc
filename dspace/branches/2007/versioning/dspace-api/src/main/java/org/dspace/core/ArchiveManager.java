@@ -66,6 +66,7 @@ import org.dspace.content.Bundle;
 import org.dspace.content.InstallItem;
 import org.dspace.content.MetadataSchema;
 import org.dspace.content.dao.BundleDAOFactory;
+import org.dspace.content.dao.BundleDAO;
 import org.dspace.content.dao.ItemDAO;
 import org.dspace.content.dao.ItemDAOFactory;
 import org.dspace.content.dao.CollectionDAO;
@@ -132,8 +133,10 @@ public class ArchiveManager
     {
         try
         {
+            ArchiveManager am = new ArchiveManager();
             ItemDAO itemDAO = ItemDAOFactory.getInstance(context);
             Item item = itemDAO.create();
+            Item head = itemDAO.getHeadRevision(originalItem.getItemNumber());
             PersistentIdentifierDAO identifierDAO =
             PersistentIdentifierDAOFactory.getInstance(context);
             PersistentIdentifier identifier;
@@ -149,8 +152,10 @@ public class ArchiveManager
             item.setWithdrawn(originalItem.isWithdrawn());
             // Done by ItemDAO.update ... item.setLastModified();
 
-            item.setRevision(originalItem.getRevision()+1);
-            item.setPreviousRevision(originalItem.getID());
+            item.setItemNumber(originalItem.getItemNumber());
+
+            item.setRevision(head.getRevision()+1);
+            item.setPreviousRevision(head.getID());
 
             item.setOwningCollectionId(originalItem.getOwningCollection().getID());
             item.setSubmitter(originalItem.getSubmitter().getID());
@@ -160,11 +165,9 @@ public class ArchiveManager
             item.clearMetadata("dc", "identifier", "uri", null);
             item.addMetadata("dc", "identifier", "uri", null, uri);
 
-
-            List<Bundle> tmp = new ArrayList<Bundle>();
             for (Bundle bundle : originalItem.getBundles())
             {
-                item.addBundle(bundle);
+                item.addBundle(am.dupeBundle(context, bundle));
             }
 
 //          create collection2item mapping
@@ -174,7 +177,7 @@ public class ArchiveManager
 
             return item;
         }
-        catch (AuthorizeException e)
+        catch (Exception e)
         {
             throw new RuntimeException(e);
         }
@@ -705,5 +708,33 @@ public class ArchiveManager
         {
             System.out.println(id.getCanonicalForm());
         }
+    }
+
+    /**
+     *  Takes in a bundle and makes a deep copy of it.
+     *
+     *  @param bundle
+     */
+    private Bundle dupeBundle (Context context, Bundle bundle)
+    throws SQLException, AuthorizeException
+    {
+        BundleDAO bdao = BundleDAOFactory.getInstance(context);
+        Bundle dupe = bdao.create();
+        Bitstream[] bitstreams = null;
+        int primary = bundle.getPrimaryBitstreamID();
+
+        bitstreams = bundle.getBitstreams();
+        for (Bitstream b : bitstreams)
+        {
+            Bitstream copy = b.clone();
+            dupe.addBitstream(copy);
+            if (primary == b.getID())
+            {
+                dupe.setPrimaryBitstreamID(copy.getID());
+            }
+        }
+
+        dupe.setName(bundle.getName());
+        return dupe;
     }
 }

@@ -99,6 +99,10 @@ public class Item extends DSpaceObject
 
     protected int revision;
     protected int previousRevision;
+    /**
+     * @var itemNumber An integer that connects all revisions of a logical item.
+     */
+    protected int itemNumber;
 
     protected int owningCollectionId;
     protected Collection owningCollection;
@@ -133,6 +137,16 @@ public class Item extends DSpaceObject
     public void setID(int id)
     {
         this.id = id;
+    }
+
+    public int getItemNumber()
+    {
+        return this.itemNumber;
+    }
+
+    public void setItemNumber(int num)
+    {
+        this.itemNumber = num;
     }
 
     /**
