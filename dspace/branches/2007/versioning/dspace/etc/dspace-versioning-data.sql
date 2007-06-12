@@ -2,3 +2,4 @@
 -- will set all current items to revision 1 and indicate
 -- that there is no previous revision.
 UPDATE Item SET revision = 1, previous_revision = 0;
+UPDATE Item SET itemNumber = item_id;
