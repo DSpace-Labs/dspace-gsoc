@@ -88,6 +88,13 @@ public class ItemDAOPostgres extends ItemDAO
     /** query to check the existance of an item id */
     private final String getByID = "SELECT id FROM item WHERE item_id = ?";
 
+    /**
+     * Query to get the head revision for a given item
+     */
+    private final String getItemHeadRevision = "SELECT * FROM item WHERE " +
+                                           "item_number = ? AND " +
+                                           "revision = (SELECT max(revision) FROM item)";
+
     /** query to get the text value of a metadata element only (qualifier is NULL) */
     private final String getByMetadataElement =
         "SELECT text_value FROM metadatavalue " +
@@ -528,6 +535,7 @@ public class ItemDAOPostgres extends ItemDAO
         row.setColumn("last_modified", item.getLastModified());
         row.setColumn("revision", item.getRevision());
         row.setColumn("previous_revision", item.getPreviousRevision());
+        row.setColumn("item_number", item.getItemNumber());
 
         if (submitter != null)
         {
@@ -550,6 +558,7 @@ public class ItemDAOPostgres extends ItemDAO
         Date lastModified = row.getDateColumn("last_modified");
         int revision = row.getIntColumn("revision");
         int previous_revision = row.getIntColumn("previous_revision");
+        int itemNumber = row.getIntColumn("item_number");
 
         item.setID(id);
         item.setSubmitter(submitterId);
@@ -559,6 +568,7 @@ public class ItemDAOPostgres extends ItemDAO
         item.setLastModified(lastModified);
         item.setPreviousRevision(previous_revision);
         item.setRevision(revision);
+        item.setItemNumber(itemNumber);
     }
 
     @Override
@@ -678,5 +688,26 @@ public class ItemDAOPostgres extends ItemDAO
         DatabaseManager.updateQuery(context,
                 "DELETE FROM MetadataValue WHERE item_id= ? ",
                 itemId);
+    }
+
+    /**
+     * Perform a database query to get the head revision Item
+     * for a given Item number.
+     *
+     * @param itemNumber
+     */
+    public Item getHeadRevision(int itemNumber)
+    {
+        try
+        {
+            TableRow row = DatabaseManager.querySingle(context, getItemHeadRevision, itemNumber);
+            Item i = new Item(context, 0);
+            populateItemFromTableRow(i, row);
+            return i;
+        }
+        catch (SQLException e)
+        {
+            throw new RuntimeException(e);
+        }
     }
 }

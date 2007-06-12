@@ -261,6 +261,7 @@ public abstract class ItemDAO extends ContentDAO
         }
     }
 
+    public abstract Item getHeadRevision(int x);
     public abstract List<Item> getItems();
     public abstract List<Item> getItemsByCollection(Collection collection);
     public abstract List<Item> getItemsBySubmitter(EPerson eperson);
