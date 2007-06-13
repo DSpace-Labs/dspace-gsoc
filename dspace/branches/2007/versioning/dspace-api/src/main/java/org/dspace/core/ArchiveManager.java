@@ -726,11 +726,10 @@ public class ArchiveManager
         bitstreams = bundle.getBitstreams();
         for (Bitstream b : bitstreams)
         {
-            Bitstream copy = b.clone();
-            dupe.addBitstream(copy);
+            dupe.addBitstream(b);
             if (primary == b.getID())
             {
-                dupe.setPrimaryBitstreamID(copy.getID());
+                dupe.setPrimaryBitstreamID(b.getID());
             }
         }
 

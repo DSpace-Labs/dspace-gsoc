@@ -98,11 +98,11 @@ public class Item extends DSpaceObject
     protected Date lastModified;
 
     protected int revision;
-    protected int previousRevision;
+    protected int previousItemID;
     /**
-     * @var itemNumber An integer that connects all revisions of a logical item.
+     * @var originalItemID An integer that connects all revisions of a logical item.
      */
-    protected int itemNumber;
+    protected int originalItemID;
 
     protected int owningCollectionId;
     protected Collection owningCollection;
@@ -139,14 +139,14 @@ public class Item extends DSpaceObject
         this.id = id;
     }
 
-    public int getItemNumber()
+    public int getOriginalItemID()
     {
-        return this.itemNumber;
+        return this.originalItemID;
     }
 
-    public void setItemNumber(int num)
+    public void setOriginalItemID(int num)
     {
-        this.itemNumber = num;
+        this.originalItemID = num;
     }
 
     /**
@@ -264,14 +264,14 @@ public class Item extends DSpaceObject
         this.owningCollectionId = owningCollectionId;
     }
 
-    public int getPreviousRevision()
+    public int getPreviousItemID()
     {
-        return this.previousRevision;
+        return this.previousItemID;
     }
 
-    public void setPreviousRevision(int previousRevision)
+    public void setPreviousItemID(int previousItemID)
     {
-        this.previousRevision = previousRevision;
+        this.previousItemID = previousItemID;
     }
 
     public int getRevision()
@@ -1190,7 +1190,8 @@ public class Item extends DSpaceObject
         String ret = "Item id:" +
         this.getID() + " revision:" +
         this.revision + " prev:" +
-        this.previousRevision + "\n";
+        this.previousItemID + " orig:" +
+        this.originalItemID + "\n";
         return ret;
     }
 
