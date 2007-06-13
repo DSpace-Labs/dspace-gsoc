@@ -534,8 +534,8 @@ public class ItemDAOPostgres extends ItemDAO
         row.setColumn("withdrawn", item.isWithdrawn());
         row.setColumn("last_modified", item.getLastModified());
         row.setColumn("revision", item.getRevision());
-        row.setColumn("previous_revision", item.getPreviousRevision());
-        row.setColumn("item_number", item.getItemNumber());
+        row.setColumn("previous_item_id", item.getPreviousItemID());
+        row.setColumn("original_item_id", item.getOriginalItemID());
 
         if (submitter != null)
         {
@@ -557,8 +557,8 @@ public class ItemDAOPostgres extends ItemDAO
         boolean withdrawn = row.getBooleanColumn("withdrawn");
         Date lastModified = row.getDateColumn("last_modified");
         int revision = row.getIntColumn("revision");
-        int previous_revision = row.getIntColumn("previous_revision");
-        int itemNumber = row.getIntColumn("item_number");
+        int previousItemID = row.getIntColumn("previous_item_id");
+        int originalItemID = row.getIntColumn("original_item_id");
 
         item.setID(id);
         item.setSubmitter(submitterId);
@@ -566,9 +566,9 @@ public class ItemDAOPostgres extends ItemDAO
         item.setArchived(inArchive);
         item.setWithdrawn(withdrawn);
         item.setLastModified(lastModified);
-        item.setPreviousRevision(previous_revision);
+        item.setPreviousItemID(previousItemID);
         item.setRevision(revision);
-        item.setItemNumber(itemNumber);
+        item.setOriginalItemID(originalItemID);
     }
 
     @Override
