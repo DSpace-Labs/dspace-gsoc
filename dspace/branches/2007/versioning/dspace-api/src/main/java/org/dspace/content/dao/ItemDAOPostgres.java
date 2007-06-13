@@ -92,8 +92,14 @@ public class ItemDAOPostgres extends ItemDAO
      * Query to get the head revision for a given item
      */
     private final String getItemHeadRevision = "SELECT * FROM item WHERE " +
-                                           "item_number = ? AND " +
+                                           "original_item_id = ? AND " +
                                            "revision = (SELECT max(revision) FROM item)";
+    
+    /**
+     * Query to get an item using an originalItemID and a revision number
+     */
+    private final String getItemByOriginalItemIDAndRevision = 
+    	"SELECT * FROM item WHERE original_item_id = ? and revision = ?";
 
     /** query to get the text value of a metadata element only (qualifier is NULL) */
     private final String getByMetadataElement =
@@ -701,8 +707,42 @@ public class ItemDAOPostgres extends ItemDAO
         try
         {
             TableRow row = DatabaseManager.querySingle(context, getItemHeadRevision, itemNumber);
-            Item i = new Item(context, 0);
+            Item i = new ItemProxy(context, 0);
             populateItemFromTableRow(i, row);
+            
+            List<PersistentIdentifier> identifiers =
+                identifierDAO.getPersistentIdentifiers(i);
+            i.setPersistentIdentifiers(identifiers);
+
+            context.cache(i, i.getID());
+            return i;
+        }
+        catch (SQLException e)
+        {
+            throw new RuntimeException(e);
+        }
+    }
+    
+    /**
+     * Get an Item by an originalItemID and revision number
+     * 
+     * @param originalItemID
+     * @param revision
+     */
+    public Item getByOriginalItemIDAndRevision(int originalItemID, int revision)
+    {
+        try
+        {
+            TableRow row = DatabaseManager.querySingle(context, getItemByOriginalItemIDAndRevision, originalItemID, revision);
+            Item i = new ItemProxy(context, 0);
+            populateItemFromTableRow(i, row);
+            
+            List<PersistentIdentifier> identifiers =
+                identifierDAO.getPersistentIdentifiers(i);
+            i.setPersistentIdentifiers(identifiers);
+
+            context.cache(i, i.getID());
+            
             return i;
         }
         catch (SQLException e)

@@ -44,6 +44,8 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -134,10 +136,47 @@ public class URIServlet extends DSpaceServlet
         // Find out what the value points to
         if (uri != null)
         {
-            // The value of URI will be the persistent identifier in canonical
-            // form, eg: xyz:1234/56
-            identifier = identifierDAO.retrieve(uri);
-            dso = ArchiveManager.getObject(context, identifier);
+        	log.info(LogManager.getHeader(context, "debug", "uri:" + uri));
+        	Pattern pFull = Pattern.compile("^(\\d+):v(\\d+)/(\\d+)");
+        	Pattern pRevision = Pattern.compile("^(\\d+):v(\\d+)");
+        	Pattern pStream = Pattern.compile("^(\\d+):(\\d+)");
+        	Pattern pItem = Pattern.compile("^(\\d+)");
+        	
+        	Matcher mFull = pFull.matcher(uri);
+        	Matcher mRevision = pRevision.matcher(uri);
+        	Matcher mStream = pStream.matcher(uri);
+        	Matcher mItem = pItem.matcher(uri);
+        	
+        	if (mFull.matches())
+        	{
+        		log.info(LogManager.getHeader(context, "debug", "Matched Full"));
+        		//FIXME Needs to be a bitstream
+        		dso = ArchiveManager.getVersionedItem(context,
+        				Integer.parseInt(mFull.group(1)), Integer.parseInt(mFull.group(2)));
+        	}
+        	else if (mRevision.matches())
+        	{
+        		dso = ArchiveManager.getVersionedItem(context,
+        				Integer.parseInt(mRevision.group(1)), Integer.parseInt(mRevision.group(2)));
+        	}
+        	else if (mStream.matches())
+        	{
+        		dso = ArchiveManager.getVersionedItem(context,
+        				Integer.parseInt(mStream.group(1)), Integer.parseInt(mStream.group(2)));
+        	}
+        	else if (mItem.matches())
+        	{
+        		log.info(LogManager.getHeader(context, "debug", "Matched Item"));
+        		dso = ArchiveManager.getHeadRevision(context, Integer.parseInt(mItem.group(1)));
+        	}
+        	else
+        	{
+        		log.info(LogManager.getHeader(context, "", "Didn't Match"));
+	            // The value of URI will be the persistent identifier in canonical
+	            // form, eg: xyz:1234/56
+	            identifier = identifierDAO.retrieve(uri);
+	            dso = ArchiveManager.getObject(context, identifier);
+        	}
         }
 
         if (dso == null)
@@ -152,6 +191,7 @@ public class URIServlet extends DSpaceServlet
         // OK, we have a valid URI. What is it?
         if (dso.getType() == Constants.ITEM)
         {
+        	
             Item item = (Item) dso;
 
             response.setDateHeader("Last-Modified", item
@@ -273,8 +313,8 @@ public class URIServlet extends DSpaceServlet
         // Ensure the user has authorisation
         AuthorizeManager.authorizeAction(context, item, Constants.READ);
 
-        log.info(LogManager.getHeader(context, "view_item", "uri=" +
-                    item.getPersistentIdentifier().getCanonicalForm()));
+        //log.info(LogManager.getHeader(context, "view_item", "uri=" +
+        //            item.getPersistentIdentifier().getCanonicalForm()));
 
         // show edit link
         if (item.canEdit())

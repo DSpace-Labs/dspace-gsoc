@@ -246,7 +246,20 @@ public class Item extends DSpaceObject
      */
     public Collection getOwningCollection()
     {
-        return owningCollection;
+        if (owningCollection != null)
+        {
+            return owningCollection;
+        }
+        else if (owningCollectionId != -1)
+        {
+            owningCollection = collectionDAO.retrieve(owningCollectionId);
+            return owningCollection;
+        }
+        else
+        {
+            log.warn("No owning collection information available!");
+            return null;
+        }
     }
 
     /**
