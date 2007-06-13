@@ -123,6 +123,24 @@ public class ArchiveManager
     }
 
     /**
+     * Gets an Item by its OriginalItemID and Revision numbers
+     */
+    public static DSpaceObject getVersionedItem(Context context, int originalItemID, int revision)
+    {
+
+    	return ItemDAOFactory.getInstance(context).getByOriginalItemIDAndRevision(originalItemID, revision);
+    }
+    
+    /**
+     * Gets the HEAD of an OriginalItemID
+     */
+    public static DSpaceObject getHeadRevision(Context context, int originalItemID)
+    {
+
+    	return ItemDAOFactory.getInstance(context).getHeadRevision(originalItemID);
+    }
+    
+    /**
      * Creates a Item in the database that maintains all the same
      * attributes and metadata as the Item it supplants with a new
      * revision number and a link to the given Item as the previousRevision
@@ -136,7 +154,7 @@ public class ArchiveManager
             ArchiveManager am = new ArchiveManager();
             ItemDAO itemDAO = ItemDAOFactory.getInstance(context);
             Item item = itemDAO.create();
-            Item head = itemDAO.getHeadRevision(originalItem.getItemNumber());
+            Item head = itemDAO.getHeadRevision(originalItem.getOriginalItemID());
             PersistentIdentifierDAO identifierDAO =
             PersistentIdentifierDAOFactory.getInstance(context);
             PersistentIdentifier identifier;
@@ -152,10 +170,10 @@ public class ArchiveManager
             item.setWithdrawn(originalItem.isWithdrawn());
             // Done by ItemDAO.update ... item.setLastModified();
 
-            item.setItemNumber(originalItem.getItemNumber());
+            item.setOriginalItemID(originalItem.getOriginalItemID());
 
             item.setRevision(head.getRevision()+1);
-            item.setPreviousRevision(head.getID());
+            item.setPreviousItemID(head.getID());
 
             item.setOwningCollectionId(originalItem.getOwningCollection().getID());
             item.setSubmitter(originalItem.getSubmitter().getID());
