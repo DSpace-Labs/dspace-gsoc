@@ -367,7 +367,7 @@ public class Item extends DSpaceObject
         // Build up list of matching values
         List<DCValue> values = new ArrayList<DCValue>();
 
-        for (DCValue dcv : metadata)
+        for (DCValue dcv : this.getMetadata())
         {
             if (match(schema, element, qualifier, lang, dcv))
             {
