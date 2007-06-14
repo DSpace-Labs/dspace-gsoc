@@ -166,6 +166,29 @@ public class ItemDAOPostgres extends ItemDAO
         }
     }
 
+    private Item populate(int id, TableRow row) throws SQLException
+    {
+    	if (row == null)
+        {
+            log.warn("item " + id + " not found in ItemDAO.populate");
+            return null;
+        }
+
+        Item item = new ItemProxy(context, id);
+        populateItemFromTableRow(item, row);
+
+        // FIXME: I'd like to bump the rest of this up into the superclass
+        // so we don't have to do it for every implementation, but I can't
+        // figure out a clean way of doing this yet.
+        List<PersistentIdentifier> identifiers =
+            identifierDAO.getPersistentIdentifiers(item);
+        item.setPersistentIdentifiers(identifiers);
+
+        context.cache(item, id);
+        
+        return item;
+    }
+    
     @Override
     public Item retrieve(int id)
     {
@@ -180,25 +203,7 @@ public class ItemDAOPostgres extends ItemDAO
         {
             TableRow row = DatabaseManager.find(context, "item", id);
 
-            if (row == null)
-            {
-                log.warn("item " + id + " not found");
-                return null;
-            }
-
-            item = new ItemProxy(context, id);
-            populateItemFromTableRow(item, row);
-
-            // FIXME: I'd like to bump the rest of this up into the superclass
-            // so we don't have to do it for every implementation, but I can't
-            // figure out a clean way of doing this yet.
-            List<PersistentIdentifier> identifiers =
-                identifierDAO.getPersistentIdentifiers(item);
-            item.setPersistentIdentifiers(identifiers);
-
-            context.cache(item, id);
-
-            return item;
+            return this.populate(id, row);
         }
         catch (SQLException sqle)
         {
@@ -707,15 +712,7 @@ public class ItemDAOPostgres extends ItemDAO
         try
         {
             TableRow row = DatabaseManager.querySingle(context, getItemHeadRevision, itemNumber);
-            Item i = new ItemProxy(context, 0);
-            populateItemFromTableRow(i, row);
-            
-            List<PersistentIdentifier> identifiers =
-                identifierDAO.getPersistentIdentifiers(i);
-            i.setPersistentIdentifiers(identifiers);
-
-            context.cache(i, i.getID());
-            return i;
+            return this.populate(0, row);
         }
         catch (SQLException e)
         {
@@ -734,16 +731,7 @@ public class ItemDAOPostgres extends ItemDAO
         try
         {
             TableRow row = DatabaseManager.querySingle(context, getItemByOriginalItemIDAndRevision, originalItemID, revision);
-            Item i = new ItemProxy(context, 0);
-            populateItemFromTableRow(i, row);
-            
-            List<PersistentIdentifier> identifiers =
-                identifierDAO.getPersistentIdentifiers(i);
-            i.setPersistentIdentifiers(identifiers);
-
-            context.cache(i, i.getID());
-            
-            return i;
+            return this.populate(0, row);
         }
         catch (SQLException e)
         {
