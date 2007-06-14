@@ -136,42 +136,26 @@ public class URIServlet extends DSpaceServlet
         // Find out what the value points to
         if (uri != null)
         {
-        	log.info(LogManager.getHeader(context, "debug", "uri:" + uri));
-        	Pattern pFull = Pattern.compile("^(\\d+):v(\\d+)/(\\d+)");
+        	log.info(LogManager.getHeader(context, "debug", "uri:" + uri));   	
         	Pattern pRevision = Pattern.compile("^(\\d+):v(\\d+)");
-        	Pattern pStream = Pattern.compile("^(\\d+):(\\d+)");
         	Pattern pItem = Pattern.compile("^(\\d+)");
         	
-        	Matcher mFull = pFull.matcher(uri);
         	Matcher mRevision = pRevision.matcher(uri);
-        	Matcher mStream = pStream.matcher(uri);
         	Matcher mItem = pItem.matcher(uri);
         	
-        	if (mFull.matches())
-        	{
-        		log.info(LogManager.getHeader(context, "debug", "Matched Full"));
-        		//FIXME Needs to be a bitstream
-        		dso = ArchiveManager.getVersionedItem(context,
-        				Integer.parseInt(mFull.group(1)), Integer.parseInt(mFull.group(2)));
-        	}
-        	else if (mRevision.matches())
+        	if (mRevision.matches())
         	{
         		dso = ArchiveManager.getVersionedItem(context,
         				Integer.parseInt(mRevision.group(1)), Integer.parseInt(mRevision.group(2)));
         	}
-        	else if (mStream.matches())
-        	{
-        		dso = ArchiveManager.getVersionedItem(context,
-        				Integer.parseInt(mStream.group(1)), Integer.parseInt(mStream.group(2)));
-        	}
         	else if (mItem.matches())
         	{
-        		log.info(LogManager.getHeader(context, "debug", "Matched Item"));
+        		//log.info(LogManager.getHeader(context, "debug", "Matched Item"));
         		dso = ArchiveManager.getHeadRevision(context, Integer.parseInt(mItem.group(1)));
         	}
         	else
         	{
-        		log.info(LogManager.getHeader(context, "", "Didn't Match"));
+        		//log.info(LogManager.getHeader(context, "", "Didn't Match"));
 	            // The value of URI will be the persistent identifier in canonical
 	            // form, eg: xyz:1234/56
 	            identifier = identifierDAO.retrieve(uri);

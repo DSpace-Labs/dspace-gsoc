@@ -48,6 +48,8 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 import java.util.TimeZone;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -97,10 +99,17 @@ public class BitstreamServlet extends DSpaceServlet
 
         // Get the ID from the URL
         String idString = request.getPathInfo();
+        String uriString = idString;
         String uri = "";
         String sequenceText = "";
         String filename = null;
+        DSpaceObject dso;
+        Pattern pFull = Pattern.compile("^/(\\d+)/v(\\d+)/(\\d+)");
+    	Pattern pStream = Pattern.compile("^/(\\d+)/(\\d+)");
+    	Matcher mFull = pFull.matcher(uriString);
+    	Matcher mStream = pStream.matcher(uriString);
         int sequenceID;
+        boolean no_filename = true;
 
         // Parse 'uri' and 'sequence' (bitstream seq. number) out
         // of remaining URL path, which is typically of the format:
@@ -108,48 +117,76 @@ public class BitstreamServlet extends DSpaceServlet
         // But since the bitstream name MAY have any number of "/"s in
         // it, and the uri is guaranteed to have one slash (LIES!!), we
         // scan from the start to pick out uri and sequence:
-
-        // Remove leading slash if any:
-        if (idString.startsWith("/"))
-        {
-            idString = idString.substring(1);
-        }
-
-        // skip first slash within uri
-        int slashIndex = idString.indexOf('/');
-        if (slashIndex != -1)
-        {
-            slashIndex = idString.indexOf('/', slashIndex + 1); // first / after uri
-            if (slashIndex != -1)
-            {
-                uri = idString.substring(0, slashIndex);
-                int slash2 = idString.indexOf('/', slashIndex + 1);
-                if (slash2 != -1)
-                {
-                    sequenceText = idString.substring(slashIndex+1,slash2);
-                    filename = idString.substring(slash2+1);
-                }
-            }
-        }
-
-        try
-        {
-            sequenceID = Integer.parseInt(sequenceText);
-        }
-        catch (NumberFormatException nfe)
-        {
-            sequenceID = -1;
-        }
+        log.info(LogManager.getHeader(context, "view_bitstream",
+                "idString=" + idString));
         
-        // Now try and retrieve the item
-        PersistentIdentifier identifier = identifierDAO.retrieve(uri);
-        DSpaceObject dso = ArchiveManager.getObject(context, identifier);
+        if (mFull.matches())
+    	{
+        	log.info(LogManager.getHeader(context, "view_bitstream",
+                    "Full Match"));
+    		dso = ArchiveManager.getVersionedItem(context,
+    				Integer.parseInt(mFull.group(1)), Integer.parseInt(mFull.group(2)));
+    		sequenceID = Integer.parseInt(mFull.group(3));
+    		no_filename = false;
+    	}
+    	else if (mStream.matches())
+    	{
+    		log.info(LogManager.getHeader(context, "view_bitstream",
+                    "Stream Match"));
+    		dso = ArchiveManager.getHeadRevision(context, Integer.parseInt(mStream.group(1)));
+    		sequenceID = Integer.parseInt(mStream.group(2));
+    		no_filename = false;
+    	} 
+    	else 
+    	{ 
+    		log.info(LogManager.getHeader(context, "view_bitstream",
+            "Miss Match"));
+	        // Remove leading slash if any:
+	        if (idString.startsWith("/"))
+	        {
+	            idString = idString.substring(1);
+	        }
+	        
+	        // skip first slash within uri
+	        int slashIndex = idString.indexOf('/');
+	        if (slashIndex != -1)
+	        {
+	            slashIndex = idString.indexOf('/', slashIndex + 1); // first / after uri
+	            if (slashIndex != -1)
+	            {
+	                uri = idString.substring(0, slashIndex);
+	                int slash2 = idString.indexOf('/', slashIndex + 1);
+	                if (slash2 != -1)
+	                {
+	                    sequenceText = idString.substring(slashIndex+1,slash2);
+	                    filename = idString.substring(slash2+1);
+	                }
+	            }
+	        }
+	
+	        try
+	        {
+	            sequenceID = Integer.parseInt(sequenceText);
+	        }
+	        catch (NumberFormatException nfe)
+	        {
+	            sequenceID = -1;
+	        }
+        
+
+	        // Now try and retrieve the item
+	        PersistentIdentifier identifier = identifierDAO.retrieve(uri);
+	        dso = ArchiveManager.getObject(context, identifier);
+    	}
         
         // Make sure we have valid item and sequence number
         if (dso != null && dso.getType() == Constants.ITEM && sequenceID >= 0)
         {
             item = (Item) dso;
-        
+            
+            log.info(LogManager.getHeader(context, "view_bitstream",
+            item.toString() + " sequenceID = " + sequenceID));
+            
             if (item.isWithdrawn())
             {
                 log.info(LogManager.getHeader(context, "view_bitstream",
@@ -177,16 +214,19 @@ public class BitstreamServlet extends DSpaceServlet
             }
         }
 
-        if (bitstream == null || filename == null
-                || !filename.equals(bitstream.getName()))
+        if (no_filename)
         {
-            // No bitstream found or filename was wrong -- ID invalid
-            log.info(LogManager.getHeader(context, "invalid_id", "path="
-                    + idString));
-            JSPManager.showInvalidIDError(request, response, idString,
-                    Constants.BITSTREAM);
-
-            return;
+	        if (bitstream == null || filename == null
+	                || !filename.equals(bitstream.getName()))
+	        {
+	            // No bitstream found or filename was wrong -- ID invalid
+	            log.info(LogManager.getHeader(context, "invalid_id", "path="
+	                    + idString));
+	            JSPManager.showInvalidIDError(request, response, idString,
+	                    Constants.BITSTREAM);
+	
+	            return;
+	        }
         }
 
         log.info(LogManager.getHeader(context, "view_bitstream",
