@@ -91,7 +91,7 @@ public class Bitstream extends DSpaceObject
      *            the corresponding row in the table
      * @throws SQLException
      */
-    Bitstream(Context context, TableRow row) throws SQLException
+    public Bitstream(Context context, TableRow row) throws SQLException
     {
         bContext = context;
         bRow = row;

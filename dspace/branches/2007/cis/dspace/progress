@@ -3,4 +3,6 @@ database						+ timeinterval
 								+ witness
 								+ hashvalueofitem
 								+ hashvalueofitem_seq
+database#bitstreamformatregistry
+								+ text/xml, Certificate, true(internal)							
 org.dspace.content.InstallItem  + createHash(Item item, Context c)
