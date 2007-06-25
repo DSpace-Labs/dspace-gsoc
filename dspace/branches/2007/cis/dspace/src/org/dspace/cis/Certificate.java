@@ -80,6 +80,21 @@ public class Certificate extends Bitstream {
 		return handle;
 	}
 
+	public Date getFrom() {
+		return from;
+	}
+
+	public void setFrom(Date from) {
+		this.from = from;
+	}
+
+	public Date getTo() {
+		return to;
+	}
+
+	public void setTo(Date to) {
+		this.to = to;
+	}
 	public void addWitness(AssistHash witness) {
 		witnesses.add(witness);
 	}
@@ -168,6 +183,7 @@ public class Certificate extends Bitstream {
 		outputter.output(doc, writer);
 		writer.close();
 	}
+
 
 //	public static void main(String[] argv) throws IOException {
 //		Document doc = new Document();

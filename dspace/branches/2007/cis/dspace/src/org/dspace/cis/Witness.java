@@ -101,7 +101,7 @@ public class Witness {
 
 		DigestFactory dF = new DigestFactory();
 
-		String tmpString = witHash(hashvalues, dF);
+		String tmpString = Utils.witHash(hashvalues, dF);
 
 		result.setHash_algorithm(dF.getPRIMITIVE().toString());
 		result.setHashvalue(tmpString);
@@ -109,49 +109,6 @@ public class Witness {
 		result.setOurContext(ourContext);
 
 		return result;
-	}
-
-	/**
-	 * Generate the witness hash value given a list of items' hash values. It's
-	 * finished by a assistant Merkley Tree. In each iteration, a temporary list
-	 * holds the nodes of a level, generate the parents' hash values and assign
-	 * them to the temporary List. This procedure will run in recursion until
-	 * the List just hold one string object, which is the output of this
-	 * function.
-	 * 
-	 * @param hashvalues
-	 * @param dF
-	 * @return
-	 */
-	private String witHash(List<String> hashvalues, DigestFactory dF) {
-		/** temp values to help traversing the hashvalues */
-		String[] tmpArray = (String[]) hashvalues.toArray();
-		List<String> tmpList = new ArrayList<String>();
-		String tmpString = null;
-		while (tmpArray.length != 1) {
-			/** if the size of the temp array is an even */
-			if (tmpArray.length % 2 == 0) {
-				for (int i = 0; i < tmpArray.length / 2; i++) {
-					tmpString = dF.digest(tmpArray[2 * i])
-							+ dF.digest(tmpArray[2 * i + 1]);
-					tmpList.add(dF.digest(tmpString));
-				}
-				tmpArray = (String[]) tmpList.toArray();
-				tmpList.clear();
-			} else {
-				for (int i = 0; i < (tmpArray.length - 1) / 2; i++) {
-					tmpString = dF.digest(tmpArray[2 * i])
-							+ dF.digest(tmpArray[2 * i + 1]);
-					tmpList.add(dF.digest(tmpString));
-				}
-				tmpList.add(tmpArray[tmpArray.length - 1]);
-				tmpArray = (String[]) tmpList.toArray();
-				tmpList.clear();
-			}
-		}
-
-		tmpString = tmpArray[0];
-		return tmpString;
 	}
 
 	/**
@@ -165,7 +122,7 @@ public class Witness {
 	private List<String> hashValuesOfInterval(Context c, int timeinterval_id)
 			throws SQLException {
 
-		/** excute the sql command to get the TableRowIterator as a result */
+		/** execute the sql command to get the TableRowIterator as a result */
 		String query = "SELECT * FROM hashvalueofitem WHERE time_interval_id= ?";
 		TableRowIterator tri = DatabaseManager.queryTable(c, "hashvalueofitem",
 				query, timeinterval_id);
@@ -199,7 +156,7 @@ public class Witness {
 
 		DigestFactory dF = new DigestFactory();
 
-		return witHash(hashvalues, dF);
+		return Utils.witHash(hashvalues, dF);
 	}
 
 }

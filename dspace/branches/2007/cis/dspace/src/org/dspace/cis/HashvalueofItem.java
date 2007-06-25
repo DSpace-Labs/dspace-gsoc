@@ -31,48 +31,54 @@ public class HashvalueofItem {
 		return hash_Algorithm;
 	}
 
-	public void setHash_Algorithm(String hash_Algorithm) {
+	public HashvalueofItem setHash_Algorithm(String hash_Algorithm) {
 		this.hash_Algorithm = hash_Algorithm;
+		return this;
 	}
 
 	public String getHashValue() {
 		return hashValue;
 	}
 
-	public void setHashValue(String hashValue) {
+	public HashvalueofItem setHashValue(String hashValue) {
 		this.hashValue = hashValue;
+		return this;
 	}
 
 	public int getHashvalue_id() {
 		return hashvalue_id;
 	}
 
-	public void setHashvalue_id(int hashvalue_id) {
-		this.hashvalue_id = hashvalue_id;
-	}
+//	public HashvalueofItem setHashvalue_id(int hashvalue_id) {
+//		this.hashvalue_id = hashvalue_id;
+//		return this;
+//	}
 
 	public int getItem_id() {
 		return item_id;
 	}
 
-	public void setItem_id(int item_id) {
+	public HashvalueofItem setItem_id(int item_id) {
 		this.item_id = item_id;
+		return this;
 	}
 
 	public int getTime_interval_id() {
 		return time_interval_id;
 	}
 
-	public void setTime_interval_id(int time_interval_id) {
+	public HashvalueofItem setTime_interval_id(int time_interval_id) {
 		this.time_interval_id = time_interval_id;
+		return this;
 	}
 	
 	public Context getOurContext() {
 		return ourContext;
 	}
 
-	public void setOurContext(Context ourContext) {
+	public HashvalueofItem setOurContext(Context ourContext) {
 		this.ourContext = ourContext;
+		return this;
 	}
 	/**
 	 * write this hash value into the database
