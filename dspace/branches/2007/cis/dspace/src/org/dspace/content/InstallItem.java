@@ -41,6 +41,7 @@ package org.dspace.content;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.Date;
 
 import org.dspace.authorize.AuthorizeException;
 //import org.dspace.core.ConfigurationManager;
@@ -203,10 +204,10 @@ public class InstallItem
     	HashvalueofItem hash = new HashvalueofItem(c);
     	DigestFactory df = new DigestFactory();
     	String hashValue = df.digest(item);
+    	hash.setTime_interval_id(Utils.getTimeInterval_id(new Date()));
     	hash.setHash_Algorithm(df.getPRIMITIVE().toString());
     	hash.setHashValue(hashValue);
     	hash.setItem_id(item.getID());
-    	hash.setTime_interval_id(1);
     	
     	hash.archive();
     }

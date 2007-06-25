@@ -498,7 +498,7 @@ public class Bundle extends DSpaceObject
     /**
      * Update the bundle metadata
      */
-    public void update() throws SQLException, AuthorizeException
+    public void update() throws SQLException
     {
         // Check authorisation
         //AuthorizeManager.authorizeAction(ourContext, this, Constants.WRITE);
@@ -542,5 +542,39 @@ public class Bundle extends DSpaceObject
     public int getType()
     {
         return Constants.BUNDLE;
+    }
+    
+    /**
+     * Add an existing bitstream to this bundle without authorization.
+     * 
+     * @param b
+     *            the bitstream to add
+     */
+    public void addBitstreamWithoutAuthorization(Bitstream b) throws SQLException
+    {
+        log.info(LogManager.getHeader(ourContext, "add_bitstream", "bundle_id="
+                + getID() + ",bitstream_id=" + b.getID()));
+
+        // First check that the bitstream isn't already in the list
+        for (int i = 0; i < bitstreams.size(); i++)
+        {
+            Bitstream existing = (Bitstream) bitstreams.get(i);
+
+            if (b.getID() == existing.getID())
+            {
+                // Bitstream is already there; no change
+                return;
+            }
+        }
+
+        // Add the bitstream object
+        bitstreams.add(b);
+
+        // Add the mapping row to the database
+        TableRow mappingRow = DatabaseManager.create(ourContext,
+                "bundle2bitstream");
+        mappingRow.setColumn("bundle_id", getID());
+        mappingRow.setColumn("bitstream_id", b.getID());
+        DatabaseManager.update(ourContext, mappingRow);
     }
 }

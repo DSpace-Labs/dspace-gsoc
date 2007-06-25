@@ -1,20 +1,14 @@
 package org.dspace.cis;
 
 import java.sql.SQLException;
-//import java.util.ArrayList;
 import java.util.Date;
-//import java.util.List;
 
 import org.dspace.core.Context;
 import org.dspace.storage.rdbms.*;
 
 public class TimeInterval
 {   
-    // 271752 is the number of hours from 00:00:00 CST 1970 to 00:00:00 CST
-    // 2001
-    private static final int HOURS_OFFSET = 271752;
 
-    //the number of milliseconds of an hour
     private static final int MILLISECONDS_OF_AN_HOUR = 60 * 60 * 1000;
 
     private int timeInterval_id;
@@ -39,9 +33,9 @@ public class TimeInterval
     }
     public TimeInterval(Date date, Context ourContext)
     {
-        timeInterval_id = getTimeInterval_id(date);
-        from = getFrom(date);
-        to = getTo(date);
+        timeInterval_id = Utils.getTimeInterval_id(date);
+        from = Utils.getFrom(date);
+        to = Utils.getTo(date);
         this.ourContext = ourContext;
     }
 
@@ -77,36 +71,7 @@ public class TimeInterval
 //    	
 //    }
 
-    // the timeInterval_id is number of hours since Mon Jan 01 00:00:00 CST 2001
-    public static int getTimeInterval_id(Date date)
-    {
-        Long tmp = new Long(date.getTime());
-        
-        tmp = tmp / MILLISECONDS_OF_AN_HOUR - HOURS_OFFSET;
-        
-        int result;
-        result = (new Long(tmp)).intValue();
-        return result;
-    }
-    //get from time of the time-interval of a given time
-    public static Date getFrom(Date date)
-    {
-       
-        long milliseds = date.getTime();
-        long tmp = milliseds % (MILLISECONDS_OF_AN_HOUR);
-        milliseds = milliseds - tmp;
-        Date result = new Date(milliseds);
-        return result;
-    }
-    //get to time of the time-interval of a given time
-    public static Date getTo(Date date)
-    {
-        long milliseds = date.getTime();
-        long tmp = milliseds % (MILLISECONDS_OF_AN_HOUR);
-        milliseds = milliseds - tmp + MILLISECONDS_OF_AN_HOUR;
-        Date result = new Date(milliseds);
-        return result;
-    }
+
 
     public Date getFrom()
     {

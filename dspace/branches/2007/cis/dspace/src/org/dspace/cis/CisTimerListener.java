@@ -25,7 +25,7 @@ import org.dspace.core.Context;
  * &lt;/listener&gt;
  * 
  * @author Administrator
- * @see CertificateGeneration
+ * @see CertificateGenerator
  * @see web.xml
  */
 public class CisTimerListener implements ServletContextListener {
@@ -67,7 +67,7 @@ public class CisTimerListener implements ServletContextListener {
 
 			log.info("The cis-timer-listener has been started.");
 
-			timer.scheduleAtFixedRate(new CertificateGeneration(ourContext),
+			timer.scheduleAtFixedRate(new CertificateGenerator(ourContext),
 					NextHour, HOUR_INTERVAL);
 
 			log.info("The task has been added to the cis-timer-listener.");
