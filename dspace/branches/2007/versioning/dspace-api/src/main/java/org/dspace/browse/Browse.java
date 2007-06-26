@@ -88,7 +88,6 @@ public class Browse
     static final int SUBJECTS_BROWSE = 4;
 
     static final int ITEMS_BY_SUBJECT_BROWSE = 5;
-    private static ItemDAO itemDAO;
     
     /** Log4j log */
     private static Logger log = Logger.getLogger(Browse.class);
@@ -597,8 +596,6 @@ public class Browse
      */
     public static int indexAll(Context context) throws SQLException
     {
-        itemDAO = ItemDAOFactory.getInstance(context);
-
         indexRemoveAll(context);
 
         List<Item> items = ItemDAOFactory.getInstance(context).getItems();
