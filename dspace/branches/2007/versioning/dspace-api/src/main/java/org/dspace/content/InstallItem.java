@@ -154,7 +154,7 @@ public class InstallItem
         item.setArchived(true);
 
         // set the itemNumber as this item's id (root in a linear succession)
-        item.setItemNumber(item.getID());
+        item.setOriginalItemID(item.getID());
 
         // save changes ;-)
         itemDAO.update(item);

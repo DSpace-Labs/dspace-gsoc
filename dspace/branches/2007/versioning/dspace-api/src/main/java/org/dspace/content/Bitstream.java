@@ -74,7 +74,7 @@ import org.apache.commons.lang.builder.ToStringStyle;
  * When modifying the bitstream metadata, changes are not reflected in the
  * database until <code>update</code> is called. Note that you cannot alter
  * the contents of a bitstream; you need to create a new bitstream.
- *
+ * 
  * @author Robert Tansley
  * @version $Revision$
  */
@@ -105,11 +105,6 @@ public class Bitstream extends DSpaceObject
         this.context = context;
         this.dao = BitstreamDAOFactory.getInstance(context);
         this.bundleDAO = BundleDAOFactory.getInstance(context);
-
-        // Experimental persistent identifier stuff
-        PersistentIdentifierDAO identifierDAO =
-                PersistentIdentifierDAOFactory.getInstance(context);
-        this.identifiers = identifierDAO.getPersistentIdentifiers(this);
     }
 
     public int getSequenceID()
@@ -148,7 +143,7 @@ public class Bitstream extends DSpaceObject
      * Get the source of this bitstream - typically the filename with path
      * information (if originally provided) or the name of the tool that
      * generated this bitstream
-     *
+     * 
      * @return the source of the bitstream
      */
     public String getSource()
@@ -173,7 +168,7 @@ public class Bitstream extends DSpaceObject
 
     /**
      * Get the checksum of the content of the bitstream.
-     *
+     * 
      * @return the checksum
      */
     public String getChecksum()
@@ -189,7 +184,7 @@ public class Bitstream extends DSpaceObject
 
     /**
      * Get the algorithm used to calculate the checksum
-     *
+     * 
      * @return the algorithm, e.g. "MD5"
      */
     public String getChecksumAlgorithm()
@@ -205,7 +200,7 @@ public class Bitstream extends DSpaceObject
 
     /**
      * Get the size of the bitstream
-     *
+     * 
      * @return the size in bytes
      */
     public long getSize()
@@ -222,7 +217,7 @@ public class Bitstream extends DSpaceObject
     /**
      * Set the user's format description. This implies that the format of the
      * bitstream is uncertain, and the format is set to "unknown."
-     *
+     * 
      * @param desc the user's description of the format
      */
     public void setUserFormatDescription(String desc)
@@ -234,7 +229,7 @@ public class Bitstream extends DSpaceObject
     /**
      * Get the user's format description. Returns null if the format is known by
      * the system.
-     *
+     * 
      * @return the user's format description.
      */
     public String getUserFormatDescription()
@@ -245,7 +240,7 @@ public class Bitstream extends DSpaceObject
     /**
      * Get the description of the format - either the user's or the description
      * of the format defined by the system.
-     *
+     * 
      * @return a description of the format.
      */
     public String getFormatDescription()
@@ -267,7 +262,7 @@ public class Bitstream extends DSpaceObject
 
     /**
      * Get the format of the bitstream
-     *
+     * 
      * @return the format of this bitstream
      */
     public BitstreamFormat getFormat()
@@ -279,7 +274,7 @@ public class Bitstream extends DSpaceObject
      * Set the format of the bitstream. If the user has supplied a type
      * description, it is cleared. Passing in <code>null</code> sets the type
      * of this bitstream to "unknown".
-     *
+     * 
      * @param f
      *            the format of this bitstream, or <code>null</code> for
      *            unknown
@@ -309,7 +304,7 @@ public class Bitstream extends DSpaceObject
 
     /**
      * Retrieve the contents of the bitstream
-     *
+     * 
      * @return a stream from which the bitstream can be read.
      * @throws AuthorizeException
      */
@@ -334,7 +329,7 @@ public class Bitstream extends DSpaceObject
     
     /**
      * Determine if this bitstream is registered
-     *
+     * 
      * @return true if the bitstream is registered, false otherwise
      */
     public boolean isRegisteredBitstream()
@@ -344,7 +339,7 @@ public class Bitstream extends DSpaceObject
     
     /**
      * Get the asset store number where this bitstream is stored
-     *
+     * 
      * @return the asset store number of the bitstream
      */
     public int getStoreNumber()
@@ -418,111 +413,5 @@ public class Bitstream extends DSpaceObject
     void delete() throws AuthorizeException
     {
         dao.delete(this.getID());
-    }
-
-    ////////////////////////////////////////////////////////////////////
-    // Utility methods
-    ////////////////////////////////////////////////////////////////////
-
-    /**
-     * Clones a bitstream from top to bottom, but does not put it in any container
-     *
-     * FIXME: Can be smarter about bitstreams and not always store new ones.
-     *
-     * @param context
-     */
-    public Bitstream clone()
-    {
-        try {
-            Bitstream clone = Bitstream.create(bContext, this.retrieve());
-            clone.setFormat(this.getFormat());
-            clone.setUserFormatDescription(this.getFormatDescription());
-            clone.setDescription(this.getDescription());
-            clone.setSource(this.getSource());
-            clone.setName(this.getName());
-            clone.setSequenceID(this.getSequenceID());
-            clone.update();
-            return clone;
-        }
-        catch (Exception e)
-        {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public int getType()
-    {
-        return Constants.BITSTREAM;
-    }
-
-    public String toString()
-    {
-        return ToStringBuilder.reflectionToString(this,
-                ToStringStyle.MULTI_LINE_STYLE);
-    }
-
-    public boolean equals(Object o)
-    {
-        return EqualsBuilder.reflectionEquals(this, o);
-    }
-
-    public boolean equals(DSpaceObject other)
-    {
-        if (this.getType() == other.getType())
-        {
-            if (this.getID() == other.getID())
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    public int hashCode()
-    {
-        return HashCodeBuilder.reflectionHashCode(this);
-    }
-
-    ////////////////////////////////////////////////////////////////////
-    // Experimental persistent identifier stuff
-    ////////////////////////////////////////////////////////////////////
-
-    /**
-     * For those cases where you only want one, and you don't care what sort.
-     */
-    public PersistentIdentifier getPersistentIdentifier()
-    {
-        if (identifiers.size() > 0)
-        {
-            for (PersistentIdentifier pid : identifiers)
-            {
-                // For now, this will be a "null" identifier.
-                return pid;
-            }
-            return null;
-        }
-        else
-        {
-            // Because Items don't necessarily have persistent identifiers
-            // until they hit the archive.
-            log.warn("I don't have any persistent identifiers.\n" + this);
-            return null;
-        }
-    }
-
-    public List<PersistentIdentifier> getPersistentIdentifiers()
-    {
-        return identifiers;
-    }
-
-    public void addPersistentIdentifier(PersistentIdentifier identifier)
-    {
-        this.identifiers.add(identifier);
-    }
-
-    public void setPersistentIdentifiers(List<PersistentIdentifier> identifiers)
-    {
-        this.identifiers = identifiers;
     }
 }

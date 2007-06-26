@@ -130,7 +130,6 @@ public class Collection extends DSpaceObject
         this.metadata = new TreeMap<String, String>();
         this.workflowGroups = new Group[3];
     }
-    }
 
     public Group getSubmitters()
     {
