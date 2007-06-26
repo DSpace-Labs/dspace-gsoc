@@ -116,8 +116,6 @@ public class EditItemServlet extends DSpaceServlet
     /** Logger */
     private static Logger log = Logger.getLogger(EditCommunitiesServlet.class);
 
-    private PersistentIdentifierDAO identifierDAO = null;
-
     protected void doDSGet(Context context, HttpServletRequest request,
             HttpServletResponse response) throws ServletException, IOException,
             SQLException, AuthorizeException
