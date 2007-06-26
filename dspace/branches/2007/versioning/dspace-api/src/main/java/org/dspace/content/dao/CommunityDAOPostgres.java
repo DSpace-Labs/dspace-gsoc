@@ -42,6 +42,7 @@ package org.dspace.content.dao;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.Bitstream;
@@ -50,9 +51,10 @@ import org.dspace.content.DSpaceObject;
 import org.dspace.content.Community;
 import org.dspace.content.Item;
 import org.dspace.content.dao.CollectionDAO;
-import org.dspace.content.uri.PersistentIdentifier;
-import org.dspace.content.uri.dao.PersistentIdentifierDAO;
-import org.dspace.content.uri.dao.PersistentIdentifierDAOFactory;
+import org.dspace.content.uri.ObjectIdentifier;
+import org.dspace.content.uri.ExternalIdentifier;
+import org.dspace.content.uri.dao.ExternalIdentifierDAO;
+import org.dspace.content.uri.dao.ExternalIdentifierDAOFactory;
 import org.dspace.core.Context;
 import org.dspace.storage.rdbms.DatabaseManager;
 import org.dspace.storage.rdbms.TableRow;
@@ -93,9 +95,10 @@ public class CommunityDAOPostgres extends CommunityDAO
         if (context != null)
         {
             this.context = context;
+            this.bitstreamDAO = BitstreamDAOFactory.getInstance(context);
             this.collectionDAO = CollectionDAOFactory.getInstance(context);
             this.identifierDAO =
-                PersistentIdentifierDAOFactory.getInstance(context);
+                ExternalIdentifierDAOFactory.getInstance(context);
         }
     }
 
@@ -104,10 +107,15 @@ public class CommunityDAOPostgres extends CommunityDAO
     {
         try
         {
-            TableRow row = DatabaseManager.create(context, "community");
-            int id = row.getIntColumn("community_id");
+            UUID uuid = UUID.randomUUID();
 
-            return super.create(id);
+            TableRow row = DatabaseManager.create(context, "community");
+            row.setColumn("uuid", uuid.toString());
+            DatabaseManager.update(context, row);
+
+            int id = row.getIntColumn("community_id");
+            
+            return super.create(id, uuid);
         }
         catch (SQLException sqle)
         {
@@ -140,9 +148,50 @@ public class CommunityDAOPostgres extends CommunityDAO
             // FIXME: I'd like to bump the rest of this up into the superclass
             // so we don't have to do it for every implementation, but I can't
             // figure out a clean way of doing this yet.
-            List<PersistentIdentifier> identifiers =
-                identifierDAO.getPersistentIdentifiers(community);
-            community.setPersistentIdentifiers(identifiers);
+            List<ExternalIdentifier> identifiers =
+                identifierDAO.getExternalIdentifiers(community);
+            community.setExternalIdentifiers(identifiers);
+
+            context.cache(community, id);
+
+            return community;
+        }
+        catch (SQLException sqle)
+        {
+            throw new RuntimeException(sqle);
+        }
+    }
+
+    @Override
+    public Community retrieve(UUID uuid)
+    {
+        Community community = super.retrieve(uuid);
+
+        if (community != null)
+        {
+            return community;
+        }
+
+        try
+        {
+            TableRow row = DatabaseManager.findByUnique(context, "community",
+                    "uuid", uuid.toString());
+
+            if (row == null)
+            {
+                return null;
+            }
+
+            int id = row.getIntColumn("community_id");
+            community = new Community(context, id);
+            populateCommunityFromTableRow(community, row);
+
+            // FIXME: I'd like to bump the rest of this up into the superclass
+            // so we don't have to do it for every implementation, but I can't
+            // figure out a clean way of doing this yet.
+            List<ExternalIdentifier> identifiers =
+                identifierDAO.getExternalIdentifiers(community);
+            community.setExternalIdentifiers(identifiers);
 
             context.cache(community, id);
 
@@ -562,16 +611,12 @@ public class CommunityDAOPostgres extends CommunityDAO
         // Get the logo bitstream
         if (!row.isColumnNull("logo_bitstream_id"))
         {
-            try
-            {
-                logo = Bitstream.find(context,
-                        row.getIntColumn("logo_bitstream_id"));
-            }
-            catch (SQLException sqle)
-            {
-                throw new RuntimeException(sqle);
-            }
+            int id = row.getIntColumn("logo_bitstream_id");
+            logo = bitstreamDAO.retrieve(id);
         }
+
+        UUID uuid = UUID.fromString(row.getStringColumn("uuid"));
+        c.setIdentifier(new ObjectIdentifier(uuid));
 
         c.setLogoBitstream(logo);
 

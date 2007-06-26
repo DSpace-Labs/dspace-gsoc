@@ -47,6 +47,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.authorize.AuthorizeManager;
@@ -62,9 +63,10 @@ import org.dspace.content.MetadataField;
 import org.dspace.content.MetadataSchema;
 import org.dspace.content.MetadataValue;
 import org.dspace.content.proxy.ItemProxy;
-import org.dspace.content.uri.PersistentIdentifier;
-import org.dspace.content.uri.dao.PersistentIdentifierDAO;
-import org.dspace.content.uri.dao.PersistentIdentifierDAOFactory;
+import org.dspace.content.uri.ObjectIdentifier;
+import org.dspace.content.uri.ExternalIdentifier;
+import org.dspace.content.uri.dao.ExternalIdentifierDAO;
+import org.dspace.content.uri.dao.ExternalIdentifierDAOFactory;
 import org.dspace.core.Constants;
 import org.dspace.core.Context;
 import org.dspace.core.LogManager;
@@ -80,27 +82,14 @@ import org.dspace.storage.rdbms.TableRowIterator;
  */
 public class ItemDAOPostgres extends ItemDAO
 {
-    private PersistentIdentifierDAO identifierDAO;
+    private ExternalIdentifierDAO identifierDAO;
 
     /** query to obtain all the items from the database */
     private final String findAll = "SELECT * FROM item";
-
+    
     /** query to check the existance of an item id */
     private final String getByID = "SELECT id FROM item WHERE item_id = ?";
-
-    /**
-     * Query to get the head revision for a given item
-     */
-    private final String getItemHeadRevision = "SELECT * FROM item WHERE " +
-                                           "original_item_id = ? AND " +
-                                           "revision = (SELECT max(revision) FROM item)";
-    
-    /**
-     * Query to get an item using an originalItemID and a revision number
-     */
-    private final String getItemByOriginalItemIDAndRevision = 
-    	"SELECT * FROM item WHERE original_item_id = ? and revision = ?";
-
+        
     /** query to get the text value of a metadata element only (qualifier is NULL) */
     private final String getByMetadataElement =
         "SELECT text_value FROM metadatavalue " +
@@ -112,7 +101,7 @@ public class ItemDAOPostgres extends ItemDAO
         "        WHERE short_id = ? " +
         "    )" +
         ")";
-
+    
     /** query to get the text value of a metadata element and qualifier */
     private final String getByMetadata =
         "SELECT text_value FROM metadatavalue " +
@@ -124,7 +113,7 @@ public class ItemDAOPostgres extends ItemDAO
         "        WHERE short_id = ? " +
         "    )" +
         ")";
-
+    
     /** query to get the text value of a metadata element with the wildcard
      * qualifier (*) */
     private final String getByMetadataAnyQualifier =
@@ -141,13 +130,11 @@ public class ItemDAOPostgres extends ItemDAO
 
     public ItemDAOPostgres(Context context)
     {
-        if (context != null)
-        {
-            this.context = context;
-            this.bundleDAO = BundleDAOFactory.getInstance(context);
-            this.identifierDAO =
-                PersistentIdentifierDAOFactory.getInstance(context);
-        }
+        this.context = context;
+        this.bundleDAO = BundleDAOFactory.getInstance(context);
+        this.bitstreamDAO = BitstreamDAOFactory.getInstance(context);
+        this.identifierDAO =
+            ExternalIdentifierDAOFactory.getInstance(context);
     }
 
     @Override
@@ -155,10 +142,15 @@ public class ItemDAOPostgres extends ItemDAO
     {
         try
         {
+            UUID uuid = UUID.randomUUID();
+
             TableRow row = DatabaseManager.create(context, "item");
+            row.setColumn("uuid", uuid.toString());
+            DatabaseManager.update(context, row);
+
             int id = row.getIntColumn("item_id");
 
-            return super.create(id);
+            return super.create(id, uuid);
         }
         catch (SQLException sqle)
         {
@@ -166,29 +158,6 @@ public class ItemDAOPostgres extends ItemDAO
         }
     }
 
-    private Item populate(int id, TableRow row) throws SQLException
-    {
-    	if (row == null)
-        {
-            log.warn("item " + id + " not found in ItemDAO.populate");
-            return null;
-        }
-
-        Item item = new ItemProxy(context, id);
-        populateItemFromTableRow(item, row);
-
-        // FIXME: I'd like to bump the rest of this up into the superclass
-        // so we don't have to do it for every implementation, but I can't
-        // figure out a clean way of doing this yet.
-        List<PersistentIdentifier> identifiers =
-            identifierDAO.getPersistentIdentifiers(item);
-        item.setPersistentIdentifiers(identifiers);
-
-        context.cache(item, id);
-        
-        return item;
-    }
-    
     @Override
     public Item retrieve(int id)
     {
@@ -203,7 +172,67 @@ public class ItemDAOPostgres extends ItemDAO
         {
             TableRow row = DatabaseManager.find(context, "item", id);
 
-            return this.populate(id, row);
+            if (row == null)
+            {
+                log.warn("item " + id + " not found");
+                return null;
+            }
+
+            item = new ItemProxy(context, id);
+            populateItemFromTableRow(item, row);
+
+            // FIXME: I'd like to bump the rest of this up into the superclass
+            // so we don't have to do it for every implementation, but I can't
+            // figure out a clean way of doing this yet.
+            List<ExternalIdentifier> identifiers =
+                identifierDAO.getExternalIdentifiers(item);
+            item.setExternalIdentifiers(identifiers);
+
+            context.cache(item, id);
+
+            return item;
+        }
+        catch (SQLException sqle)
+        {
+            throw new RuntimeException(sqle);
+        }
+    }
+
+    @Override
+    public Item retrieve(UUID uuid)
+    {
+        Item item = super.retrieve(uuid);
+
+        if (item != null)
+        {
+            return item;
+        }
+
+        try
+        {
+            TableRow row = DatabaseManager.findByUnique(context, "item",
+                    "uuid", uuid.toString());
+
+            if (row == null)
+            {
+                log.warn("item " + uuid + " not found");
+                return null;
+            }
+
+            int id = row.getIntColumn("item_id");
+            item = new ItemProxy(context, id);
+            populateItemFromTableRow(item, row);
+
+            // FIXME: I'd like to bump the rest of this up into the superclass
+            // so we don't have to do it for every implementation, but I can't
+            // figure out a clean way of doing this yet.
+            List<ExternalIdentifier> identifiers =
+                identifierDAO.getExternalIdentifiers(item);
+            item.setExternalIdentifiers(identifiers);
+
+            context.cache(item, id);
+
+            return item;
         }
         catch (SQLException sqle)
         {
@@ -386,8 +415,8 @@ public class ItemDAOPostgres extends ItemDAO
             TableRowIterator tri = DatabaseManager.queryTable(context, "item",
                     "SELECT i.item_id " +
                     "FROM item i, collection2item c2i " +
-                    "WHERE i.item_id = c2i.item_id "+
-                    "AND c2i.collection_id = ? " +
+                    "WHERE i.item_id = c2i.item_id "+ 
+                    "AND c2i.collection_id = ? " + 
                     "AND i.in_archive = '1'",
                     collection.getID());
 
@@ -544,9 +573,6 @@ public class ItemDAOPostgres extends ItemDAO
         row.setColumn("in_archive", item.isArchived());
         row.setColumn("withdrawn", item.isWithdrawn());
         row.setColumn("last_modified", item.getLastModified());
-        row.setColumn("revision", item.getRevision());
-        row.setColumn("previous_item_id", item.getPreviousItemID());
-        row.setColumn("original_item_id", item.getOriginalItemID());
 
         if (submitter != null)
         {
@@ -561,25 +587,19 @@ public class ItemDAOPostgres extends ItemDAO
 
     private void populateItemFromTableRow(Item item, TableRow row)
     {
-        int id = row.getIntColumn("item_id");
+        UUID uuid = UUID.fromString(row.getStringColumn("uuid"));
         int submitterId = row.getIntColumn("submitter_id");
         int owningCollectionId = row.getIntColumn("owning_collection");
         boolean inArchive = row.getBooleanColumn("in_archive");
         boolean withdrawn = row.getBooleanColumn("withdrawn");
         Date lastModified = row.getDateColumn("last_modified");
-        int revision = row.getIntColumn("revision");
-        int previousItemID = row.getIntColumn("previous_item_id");
-        int originalItemID = row.getIntColumn("original_item_id");
 
-        item.setID(id);
+        item.setIdentifier(new ObjectIdentifier(uuid));
         item.setSubmitter(submitterId);
         item.setOwningCollectionId(owningCollectionId);
         item.setArchived(inArchive);
         item.setWithdrawn(withdrawn);
         item.setLastModified(lastModified);
-        item.setPreviousItemID(previousItemID);
-        item.setRevision(revision);
-        item.setOriginalItemID(originalItemID);
     }
 
     @Override
@@ -632,17 +652,17 @@ public class ItemDAOPostgres extends ItemDAO
             throw new RuntimeException(sqle);
         }
     }
-
+    
     /**
      * Perform a database query to obtain the string array of values
      * corresponding to the passed parameters. This is only really called from
-     *
+     * 
      * <code>
      * getMetadata(schema, element, qualifier, lang);
      * </code>
-     *
+     * 
      * which will obtain the value from cache if available first.
-     *
+     * 
      * @param schema
      * @param element
      * @param qualifier
@@ -656,7 +676,7 @@ public class ItemDAOPostgres extends ItemDAO
         try
         {
             TableRowIterator tri;
-
+            
             if (qualifier == null)
             {
                 Object[] params = { item.getID(), element, schema };
@@ -674,7 +694,7 @@ public class ItemDAOPostgres extends ItemDAO
                 Object[] params = { item.getID(), element, qualifier, schema };
                 tri = DatabaseManager.query(context, getByMetadata, params);
             }
-
+            
             while (tri.hasNext())
             {
                 TableRow tr = tri.next();
@@ -699,43 +719,5 @@ public class ItemDAOPostgres extends ItemDAO
         DatabaseManager.updateQuery(context,
                 "DELETE FROM MetadataValue WHERE item_id= ? ",
                 itemId);
-    }
-
-    /**
-     * Perform a database query to get the head revision Item
-     * for a given Item number.
-     *
-     * @param itemNumber
-     */
-    public Item getHeadRevision(int itemNumber)
-    {
-        try
-        {
-            TableRow row = DatabaseManager.querySingle(context, getItemHeadRevision, itemNumber);
-            return this.populate(0, row);
-        }
-        catch (SQLException e)
-        {
-            throw new RuntimeException(e);
-        }
-    }
-    
-    /**
-     * Get an Item by an originalItemID and revision number
-     * 
-     * @param originalItemID
-     * @param revision
-     */
-    public Item getByOriginalItemIDAndRevision(int originalItemID, int revision)
-    {
-        try
-        {
-            TableRow row = DatabaseManager.querySingle(context, getItemByOriginalItemIDAndRevision, originalItemID, revision);
-            return this.populate(0, row);
-        }
-        catch (SQLException e)
-        {
-            throw new RuntimeException(e);
-        }
     }
 }

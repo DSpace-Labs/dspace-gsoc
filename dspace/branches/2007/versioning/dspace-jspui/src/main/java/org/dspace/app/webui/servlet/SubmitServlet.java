@@ -75,6 +75,10 @@ import org.dspace.content.FormatIdentifier;
 import org.dspace.content.Item;
 import org.dspace.content.MetadataField;
 import org.dspace.content.WorkspaceItem;
+import org.dspace.content.dao.BitstreamDAO;
+import org.dspace.content.dao.BitstreamDAOFactory;
+import org.dspace.content.dao.BundleDAOFactory;
+import org.dspace.content.dao.CollectionDAOFactory;
 import org.dspace.core.ConfigurationManager;
 import org.dspace.core.Constants;
 import org.dspace.core.Context;
@@ -204,11 +208,24 @@ public class SubmitServlet extends DSpaceServlet
     private DCInputsReader inputsReader = null;
     
     private Locale langForm = null;
-    
+
     protected void doDSGet(Context context, HttpServletRequest request,
             HttpServletResponse response) throws ServletException, IOException,
             SQLException, AuthorizeException
     {
+        // XXX: This is a temporary fix for a bug that was introduced in the
+        // multilingualism work
+        Locale locale = context.getCurrentLocale();
+     	
+       	if (inputsReader == null || !langForm.equals(locale))
+    	{
+    		log.info("Dateiname="+I18nUtil.getInputFormsFileName(locale));
+    		
+    	    // read configurable submissions forms data
+    		inputsReader = new DCInputsReader(I18nUtil.getInputFormsFileName(locale));
+    		langForm = locale;
+    	}
+
         /*
          * Possible GET parameters:
          * 
@@ -487,7 +504,8 @@ public class SubmitServlet extends DSpaceServlet
 
         // First we find the collection
         int id = UIUtil.getIntParameter(request, "collection");
-        Collection col = Collection.find(context, id);
+        Collection col =
+            CollectionDAOFactory.getInstance(context).retrieve(id);
 
         // Show an error if we don't have a collection
         if (col == null)
@@ -814,7 +832,7 @@ public class SubmitServlet extends DSpaceServlet
 
         // lookup applicable inputs
         Collection c = subInfo.submission.getCollection();
-        DCInput[] inputs = inputsReader.getInputs(c.getPersistentIdentifier().getCanonicalForm()).getPageRows(curStep - EDIT_METADATA_1,
+        DCInput[] inputs = inputsReader.getInputs(c.getExternalIdentifier().getCanonicalForm()).getPageRows(curStep - EDIT_METADATA_1,
 									 subInfo.submission.hasMultipleTitles(),
 									 subInfo.submission.isPublishedBefore());
  
@@ -969,7 +987,7 @@ public class SubmitServlet extends DSpaceServlet
         	else
         	{
         		// determine next step - skipping unused MD pages
-        		int lastMDPage = EDIT_METADATA_1 + inputsReader.getNumberInputPages(c.getPersistentIdentifier().getCanonicalForm()) - 1;
+        		int lastMDPage = EDIT_METADATA_1 + inputsReader.getNumberInputPages(c.getExternalIdentifier().getCanonicalForm()) - 1;
         		if ( curStep == lastMDPage )
         		{
         		    curStep = EDIT_METADATA_2;
@@ -1134,7 +1152,7 @@ public class SubmitServlet extends DSpaceServlet
                 // No files, go back to last edit metadata page
             	Collection c = subInfo.submission.getCollection();
             	int lastPage = EDIT_METADATA_1 + 
-				               inputsReader.getNumberInputPages( c.getPersistentIdentifier().getCanonicalForm() ) - 1;
+				               inputsReader.getNumberInputPages( c.getExternalIdentifier().getCanonicalForm() ) - 1;
                 doStep(context, request, response, subInfo, lastPage);
             }
         }
@@ -1251,6 +1269,8 @@ public class SubmitServlet extends DSpaceServlet
             throws ServletException, IOException, SQLException,
             AuthorizeException
     {
+        BitstreamDAO bitstreamDAO = BitstreamDAOFactory.getInstance(context);
+
         String buttonPressed = UIUtil.getSubmitButton(request, "submit_next");
         Item item = subInfo.submission.getItem();
 
@@ -1266,7 +1286,7 @@ public class SubmitServlet extends DSpaceServlet
             // a great deal of sense, so go back to last edit metadata page.
         	Collection c = subInfo.submission.getCollection();
         	int lastPage = EDIT_METADATA_1 + 
-			               inputsReader.getNumberInputPages( c.getPersistentIdentifier().getCanonicalForm() ) - 1;
+			               inputsReader.getNumberInputPages( c.getExternalIdentifier().getCanonicalForm() ) - 1;
             doStep(context, request, response, subInfo, lastPage);
         }
         else if (buttonPressed.equals("submit_next"))
@@ -1315,7 +1335,7 @@ public class SubmitServlet extends DSpaceServlet
             try
             {
                 int id = Integer.parseInt(buttonPressed.substring(16));
-                bitstream = Bitstream.find(context, id);
+                bitstream = bitstreamDAO.retrieve(id);
             }
             catch (NumberFormatException nfe)
             {
@@ -1346,7 +1366,7 @@ public class SubmitServlet extends DSpaceServlet
             try
             {
                 int id = Integer.parseInt(buttonPressed.substring(14));
-                bitstream = Bitstream.find(context, id);
+                bitstream = bitstreamDAO.retrieve(id);
             }
             catch (NumberFormatException nfe)
             {
@@ -1390,7 +1410,7 @@ public class SubmitServlet extends DSpaceServlet
             try
             {
                 int id = Integer.parseInt(buttonPressed.substring(14));
-                bitstream = Bitstream.find(context, id);
+                bitstream = bitstreamDAO.retrieve(id);
             }
             catch (NumberFormatException nfe)
             {
@@ -1828,15 +1848,17 @@ public class SubmitServlet extends DSpaceServlet
     {
         // determine collection
         Collection c = subInfo.submission.getCollection();
+        String uri = c.getExternalIdentifier().getCanonicalForm();
         
         if ( step >= EDIT_METADATA_1 && step <= EDIT_METADATA_2 )
         {
         	// requires configurable form info per collection
-        	request.setAttribute( "submission.inputs", inputsReader.getInputs(c.getPersistentIdentifier().getCanonicalForm()));
+            request.setAttribute( "submission.inputs",
+                    inputsReader.getInputs(uri));
         	// also indicate page
            	request.setAttribute( "submission.page", new Integer(step) );
-		showProgressAwareJSP(request, response, subInfo,
-                  		     "/submit/edit-metadata.jsp");
+            showProgressAwareJSP(request, response, subInfo,
+                    "/submit/edit-metadata.jsp");
             return;
         }
 
@@ -1844,7 +1866,8 @@ public class SubmitServlet extends DSpaceServlet
         {
         case INITIAL_QUESTIONS:
             // requires configurable form info per collection
-            request.setAttribute( "submission.inputs", inputsReader.getInputs(c.getPersistentIdentifier().getCanonicalForm()));
+            request.setAttribute( "submission.inputs",
+                    inputsReader.getInputs(uri));
             showProgressAwareJSP(request, response, subInfo,
                 		 "/submit/initial-questions.jsp");
             break;
@@ -1867,7 +1890,8 @@ public class SubmitServlet extends DSpaceServlet
 
         case REVIEW_SUBMISSION:
             // requires configurable form info per collection
-            request.setAttribute( "submission.inputs", inputsReader.getInputs(c.getPersistentIdentifier().getCanonicalForm()));
+            request.setAttribute( "submission.inputs",
+                    inputsReader.getInputs(uri));
             showProgressAwareJSP(request, response, subInfo,
             		         "/submit/review.jsp");
             break;
@@ -2061,7 +2085,7 @@ public class SubmitServlet extends DSpaceServlet
      	// all JSPs displaying the progress bar need to know the
      	// number of metadata edit pages
         subInfo.numMetadataPages =
-        	inputsReader.getNumberInputPages(subInfo.submission.getCollection().getPersistentIdentifier().getCanonicalForm());
+        	inputsReader.getNumberInputPages(subInfo.submission.getCollection().getExternalIdentifier().getCanonicalForm());
         request.setAttribute("submission.info", subInfo);
         
         JSPManager.showJSP(request, response, jspPath);
@@ -2104,13 +2128,15 @@ public class SubmitServlet extends DSpaceServlet
         if (request.getParameter("bundle_id") != null)
         {
             int bundleID = UIUtil.getIntParameter(request, "bundle_id");
-            info.bundle = Bundle.find(context, bundleID);
+            info.bundle =
+                BundleDAOFactory.getInstance(context).retrieve(bundleID);
         }
 
         if (request.getParameter("bitstream_id") != null)
         {
             int bitstreamID = UIUtil.getIntParameter(request, "bitstream_id");
-            info.bitstream = Bitstream.find(context, bitstreamID);
+            info.bitstream =
+                BitstreamDAOFactory.getInstance(context).retrieve(bitstreamID);
         }
 
         return info;

@@ -60,10 +60,10 @@ import org.dspace.content.DSpaceObject;
 import org.dspace.content.Item;
 import org.dspace.content.dao.ItemDAO;
 import org.dspace.content.dao.ItemDAOFactory;
-import org.dspace.content.uri.PersistentIdentifier;
-import org.dspace.content.uri.dao.PersistentIdentifierDAO;
-import org.dspace.content.uri.dao.PersistentIdentifierDAOFactory;
-import org.dspace.core.ArchiveManager;
+import org.dspace.content.uri.ObjectIdentifier;
+import org.dspace.content.uri.ExternalIdentifier;
+import org.dspace.content.uri.dao.ExternalIdentifierDAO;
+import org.dspace.content.uri.dao.ExternalIdentifierDAOFactory;
 import org.dspace.core.ConfigurationManager;
 import org.dspace.core.Constants;
 import org.dspace.core.Context;
@@ -186,8 +186,8 @@ public class MediaFilterManager
         try
         {
             c = new Context();
-            PersistentIdentifierDAO identifierDAO =
-                PersistentIdentifierDAOFactory.getInstance(c);
+            ExternalIdentifierDAO identifierDAO =
+                ExternalIdentifierDAOFactory.getInstance(c);
 
             // have to be super-user to do the filtering
             c.setIgnoreAuthorization(true);
@@ -199,9 +199,11 @@ public class MediaFilterManager
             }
             else  // restrict application scope to identifier
             {
-                PersistentIdentifier pid =
+                ExternalIdentifier pid =
                     identifierDAO.retrieve(identifier);
-            	DSpaceObject dso = ArchiveManager.getObject(c, pid);
+                ObjectIdentifier oi = pid.getObjectIdentifier();
+
+                DSpaceObject dso = oi.getObject(c);
 
             	if (dso == null)
             	{

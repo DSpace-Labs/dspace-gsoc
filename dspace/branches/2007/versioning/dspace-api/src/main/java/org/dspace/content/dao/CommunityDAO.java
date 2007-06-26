@@ -42,6 +42,7 @@ package org.dspace.content.dao;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.UUID;
 
 import org.apache.log4j.Logger;
 
@@ -51,8 +52,9 @@ import org.dspace.authorize.ResourcePolicy;
 import org.dspace.content.Collection;
 import org.dspace.content.Community;
 import org.dspace.content.DSpaceObject;
-import org.dspace.content.uri.PersistentIdentifier;
-import org.dspace.content.uri.dao.PersistentIdentifierDAO;
+import org.dspace.content.uri.ObjectIdentifier;
+import org.dspace.content.uri.ExternalIdentifier;
+import org.dspace.content.uri.dao.ExternalIdentifierDAO;
 import org.dspace.core.Constants;
 import org.dspace.core.Context;
 import org.dspace.core.LogManager;
@@ -68,12 +70,13 @@ public abstract class CommunityDAO extends ContentDAO
     protected static Logger log = Logger.getLogger(CommunityDAOPostgres.class);
 
     protected Context context;
+    protected BitstreamDAO bitstreamDAO;
     protected CollectionDAO collectionDAO;
-    protected PersistentIdentifierDAO identifierDAO;
+    protected ExternalIdentifierDAO identifierDAO;
 
     public abstract Community create() throws AuthorizeException;
 
-    public final Community create(int id) throws AuthorizeException
+    public final Community create(int id, UUID uuid) throws AuthorizeException
     {
         try
         {
@@ -86,10 +89,12 @@ public abstract class CommunityDAO extends ContentDAO
 
             Community community = new Community(context, id);
 
+            community.setIdentifier(new ObjectIdentifier(uuid));
+
             // Create a default persistent identifier for this Community, and
             // add it to the in-memory Community object.
-            PersistentIdentifier identifier = identifierDAO.create(community);
-            community.addPersistentIdentifier(identifier);
+            ExternalIdentifier identifier = identifierDAO.create(community);
+            community.addExternalIdentifier(identifier);
 
             // create the default authorization policy for communities
             // of 'anonymous' READ
@@ -101,15 +106,15 @@ public abstract class CommunityDAO extends ContentDAO
             policy.setGroup(anonymousGroup);
             policy.update();
 
-            update(community);
-
             HistoryManager.saveHistory(context, community,
                     HistoryManager.CREATE, context.getCurrentUser(),
                     context.getExtraLogInfo());
 
             log.info(LogManager.getHeader(context, "create_community",
                     "community_id=" + id) + ",uri=" +
-                    community.getPersistentIdentifier().getCanonicalForm());
+                    community.getExternalIdentifier().getCanonicalForm());
+
+            update(community);
 
             return community;
         }
@@ -122,6 +127,11 @@ public abstract class CommunityDAO extends ContentDAO
     public Community retrieve(int id)
     {
         return (Community) context.fromCache(Community.class, id);
+    }
+
+    public Community retrieve(UUID uuid)
+    {
+        return null;
     }
 
     public void update(Community community) throws AuthorizeException

@@ -39,10 +39,10 @@ import java.util.List;
 
 import org.apache.log4j.Logger;
 import org.dspace.content.DSpaceObject;
-import org.dspace.content.uri.PersistentIdentifier;
-import org.dspace.content.uri.dao.PersistentIdentifierDAO;
-import org.dspace.content.uri.dao.PersistentIdentifierDAOFactory;
-import org.dspace.core.ArchiveManager;
+import org.dspace.content.uri.ObjectIdentifier;
+import org.dspace.content.uri.ExternalIdentifier;
+import org.dspace.content.uri.dao.ExternalIdentifierDAO;
+import org.dspace.content.uri.dao.ExternalIdentifierDAOFactory;
 import org.dspace.core.Constants;
 import org.dspace.core.Context;
 
@@ -112,11 +112,12 @@ public class URIDispatcher implements BitstreamDispatcher
         {
             context = new Context();
 
-            PersistentIdentifierDAO identifierDAO =
-                PersistentIdentifierDAOFactory.getInstance(context);
+            ExternalIdentifierDAO identifierDAO =
+                ExternalIdentifierDAOFactory.getInstance(context);
 
-            PersistentIdentifier identifier = identifierDAO.retrieve(uri);
-            DSpaceObject dso = ArchiveManager.getObject(context, identifier);
+            ExternalIdentifier identifier = identifierDAO.retrieve(uri);
+            ObjectIdentifier oi = identifier.getObjectIdentifier();
+            DSpaceObject dso = oi.getObject(context);
 
             id = dso.getID();
             dsoType = dso.getType();

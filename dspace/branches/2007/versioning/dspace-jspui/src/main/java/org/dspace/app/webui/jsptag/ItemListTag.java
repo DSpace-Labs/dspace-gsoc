@@ -249,7 +249,7 @@ public class ItemListTag extends TagSupport
                         else if (field.equals(titleField))
                         {
                             metadata = "<a href=\"" 
-                            + items[i].getURL().toString() + "\">" 
+                            + items[i].getIdentifier().getURL().toString() + "\">" 
                             + Utils.addEntities(metadataArray[0].value)
                             + "</a>";
                         }
@@ -560,8 +560,7 @@ public class ItemListTag extends TagSupport
                 if ((original[0].getBitstreams().length > 1)
                         && (original[0].getPrimaryBitstreamID() > -1))
                 {
-                    originalBitstream = Bitstream.find(c, original[0]
-                            .getPrimaryBitstreamID());
+                    originalBitstream = original[0].getPrimaryBitstream();
                     thumbnailBitstream = thumbs[0]
                             .getBitstreamByName(originalBitstream.getName()
                                     + ".jpg");
@@ -582,7 +581,7 @@ public class ItemListTag extends TagSupport
                     {
                         thumbLink = "<br/><a target=\"_blank\" href=\"" +
                             hrq.getContextPath() + "/bitstream/" +
-                            item.getPersistentIdentifier().getCanonicalForm() +
+                            item.getExternalIdentifier().getCanonicalForm() +
                             "/" + originalBitstream.getSequenceID() + "/" +
                             UIUtil.encodeBitstreamName(originalBitstream.getName(),
                                     Constants.DEFAULT_ENCODING);
@@ -590,7 +589,7 @@ public class ItemListTag extends TagSupport
                     else
                     {
                         thumbLink = "<br/><a href=\"" +
-                            item.getURL().toString();
+                            item.getIdentifier().getURL().toString();
                     }
 
                     thumbLink = thumbLink + "\"><img src=\"" +

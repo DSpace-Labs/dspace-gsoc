@@ -57,10 +57,10 @@ import org.dspace.content.dao.CollectionDAO;
 import org.dspace.content.dao.CollectionDAOFactory;
 import org.dspace.content.dao.ItemDAO;
 import org.dspace.content.dao.ItemDAOFactory;
-import org.dspace.content.uri.PersistentIdentifier;
-import org.dspace.content.uri.dao.PersistentIdentifierDAO;
-import org.dspace.content.uri.dao.PersistentIdentifierDAOFactory;
-import org.dspace.core.ArchiveManager;
+import org.dspace.content.uri.ObjectIdentifier;
+import org.dspace.content.uri.ExternalIdentifier;
+import org.dspace.content.uri.dao.ExternalIdentifierDAO;
+import org.dspace.content.uri.dao.ExternalIdentifierDAOFactory;
 import org.dspace.core.ConfigurationManager;
 import org.dspace.core.Constants;
 import org.dspace.core.Context;
@@ -129,9 +129,9 @@ public class Harvest
             throws SQLException, ParseException
     {
         ItemDAO itemDAO = ItemDAOFactory.getInstance(context);
-        PersistentIdentifierDAO identifierDAO =
-            PersistentIdentifierDAOFactory.getInstance(context);
-        PersistentIdentifier identifier = null;
+        ExternalIdentifierDAO identifierDAO =
+            ExternalIdentifierDAOFactory.getInstance(context);
+        ExternalIdentifier identifier = null;
 
         // Put together our query. Note there is no need for an
         // "in_archive=true" condition, we are using the existence of a
@@ -140,8 +140,7 @@ public class Harvest
             "SELECT p.value, p.type_id, p.resource_id, " +
             "i.withdrawn, i.last_modified " +
             "FROM persistentidentifier p, item i";
-        
-        
+
         // We are building a complex query that may contain a variable 
         // about of input data points. To accomidate this while still 
         // providing type safty we build a list of parameters to be 
@@ -260,9 +259,9 @@ public class Harvest
                 String value = row.getStringColumn("value");
                 int typeID = row.getIntColumn("type_id");
 
-                PersistentIdentifier.Type type = null;
+                ExternalIdentifier.Type type = null;
 
-                for (PersistentIdentifier.Type t : PersistentIdentifier.Type.values())
+                for (ExternalIdentifier.Type t : ExternalIdentifier.Type.values())
                 {
                     if (t.getID() == typeID)
                     {
@@ -276,8 +275,7 @@ public class Harvest
                     throw new RuntimeException(value + " not supported.");
                 }
 
-                identifier =
-                    identifierDAO.retrieve(type.getNamespace() + ":" + value);
+                identifier = identifierDAO.retrieve(type, value);
 
                 itemInfo.context = context;
                 itemInfo.identifier = identifier;
@@ -323,11 +321,14 @@ public class Harvest
      * @throws SQLException
      */
     public static HarvestedItemInfo getSingle(Context context,
-            PersistentIdentifier identifier, boolean collections)
+            ExternalIdentifier identifier, boolean collections)
         throws SQLException
     {
         // FIXME: Assume identifier is item
-        Item i = (Item) ArchiveManager.getObject(context, identifier);
+        // FIXME: We should be passing an ObjectIdentifier in here, not a
+        // ExternalIdentifier
+        ObjectIdentifier oi = identifier.getObjectIdentifier();
+        Item i = (Item) oi.getObject(context);
 
         if (i == null)
         {
@@ -367,16 +368,17 @@ public class Harvest
     {
         CollectionDAO collectionDAO = CollectionDAOFactory.getInstance(context);
 
-        Item item = (Item) ArchiveManager.getObject(
-                context, itemInfo.itemID, Constants.ITEM);
+        ObjectIdentifier oi = new ObjectIdentifier(itemInfo.itemID, Constants.ITEM);
+        Item item = (Item) oi.getObject(context);
+
         List<Collection> parents = collectionDAO.getParentCollections(item);
 
-        List<PersistentIdentifier> identifiers =
-            new LinkedList<PersistentIdentifier>();
+        List<ExternalIdentifier> identifiers =
+            new LinkedList<ExternalIdentifier>();
 
         for (Collection parent : parents)
         {
-            identifiers.add(parent.getPersistentIdentifier());
+            identifiers.add(parent.getExternalIdentifier());
         }
 
         itemInfo.collectionIdentifiers = identifiers;

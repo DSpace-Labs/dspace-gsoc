@@ -39,26 +39,30 @@
  */
 package org.dspace.content;
 
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.dspace.core.ConfigurationManager;
 import org.dspace.core.Context;
 import org.dspace.content.uri.ObjectIdentifier;
-import org.dspace.content.uri.PersistentIdentifier;
+import org.dspace.content.uri.ExternalIdentifier;
 
 import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
 import org.apache.commons.lang.builder.ToStringStyle;
+import org.apache.log4j.Logger;
 
 /**
  * Abstract base class for DSpace objects
  */
 public abstract class DSpaceObject
 {
+    private static Logger log = Logger.getLogger(DSpaceObject.class);
+
+    protected int id;
+    protected ObjectIdentifier oid;
+    protected List<ExternalIdentifier> identifiers;
+
     /**
      * Get the type of this object, found in Constants
      * 
@@ -71,40 +75,57 @@ public abstract class DSpaceObject
      * 
      * @return internal ID of object
      */
-    public abstract int getID();
+    public int getID()
+    {
+        return id;
+    }
 
     public ObjectIdentifier getIdentifier()
     {
-        return new ObjectIdentifier(this);
+        return oid;
     }
 
-    public URL getURL()
+    public void setIdentifier(ObjectIdentifier oid)
     {
-        String base = ConfigurationManager.getProperty("dspace.url");
-        String value = getIdentifier().toString();
+        this.oid = oid;
+    }
 
-        try
+    /**
+     * For those cases where you only want one, and you don't care what sort.
+     */
+    public ExternalIdentifier getExternalIdentifier()
+    {
+        if ((identifiers != null) && (identifiers.size() > 0))
         {
-            return new URL(base + "/resource/dsi/" + value);
+            return identifiers.get(0);
         }
-        catch (MalformedURLException murle)
+        else
         {
-            throw new RuntimeException(murle);
+            log.warn("no persistent identifiers found. type=" + getType() +
+                    ", id=" + getID());
+            return null;
         }
     }
 
-    public PersistentIdentifier getPersistentIdentifier()
+    public List<ExternalIdentifier> getExternalIdentifiers()
     {
-        return null;
+        if (identifiers == null)
+        {
+            identifiers = new ArrayList<ExternalIdentifier>();
+        }
+
+        return identifiers;
     }
 
-    public List<PersistentIdentifier> getPersistentIdentifiers()
+    public void addExternalIdentifier(ExternalIdentifier identifier)
     {
-        return new ArrayList<PersistentIdentifier>();
+        this.identifiers.add(identifier);
     }
 
-    public void addPersistentIdentifier(PersistentIdentifier pid) { }
-    public void setPersistentIdentifiers(List<PersistentIdentifier> pids) { }
+    public void setExternalIdentifiers(List<ExternalIdentifier> identifiers)
+    {
+        this.identifiers = identifiers;
+    }
 
     ////////////////////////////////////////////////////////////////////
     // Utility methods

@@ -43,6 +43,7 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 
 import org.apache.log4j.Logger;
 
@@ -56,6 +57,7 @@ import org.dspace.content.Community;
 import org.dspace.content.DCValue;
 import org.dspace.content.Item;
 import org.dspace.content.proxy.ItemProxy;
+import org.dspace.content.uri.ObjectIdentifier;
 import org.dspace.core.Constants;
 import org.dspace.core.Context;
 import org.dspace.core.LogManager;
@@ -72,6 +74,7 @@ public abstract class ItemDAO extends ContentDAO
 
     protected Context context;
     protected BundleDAO bundleDAO;
+    protected BitstreamDAO bitstreamDAO;
 
     public abstract Item create() throws AuthorizeException;
 
@@ -80,9 +83,11 @@ public abstract class ItemDAO extends ContentDAO
     // need access to the item that was created, but we can't reach into the
     // subclass to get it (storing it as a protected member variable would be
     // even more filthy).
-    public final Item create(int id) throws AuthorizeException
+    public final Item create(int id, UUID uuid) throws AuthorizeException
     {
         Item item = new ItemProxy(context, id);
+
+        item.setIdentifier(new ObjectIdentifier(uuid));
 
         HistoryManager.saveHistory(context, item, HistoryManager.CREATE,
                 context.getCurrentUser(), context.getExtraLogInfo());
@@ -101,6 +106,11 @@ public abstract class ItemDAO extends ContentDAO
     {
         // Check the cache
         return (Item) context.fromCache(Item.class, id);
+    }
+
+    public Item retrieve(UUID uuid)
+    {
+        return null;
     }
 
     public void update(Item item) throws AuthorizeException
@@ -146,7 +156,6 @@ public abstract class ItemDAO extends ContentDAO
         for (Bundle bundle : bundles)
         {
             link(item, bundle);
-            bundleDAO.update(bundle);
         }
 
         // Set sequence IDs for bitstreams in item
@@ -179,14 +188,7 @@ public abstract class ItemDAO extends ContentDAO
                 {
                     bitstreams[k].setSequenceID(sequence);
                     sequence++;
-                    try
-                    {
-                        bitstreams[k].update();
-                    }
-                    catch (SQLException sqle)
-                    {
-                        throw new RuntimeException(sqle);
-                    }
+                    bitstreamDAO.update(bitstreams[k]);
                 }
             }
 
@@ -197,7 +199,7 @@ public abstract class ItemDAO extends ContentDAO
     public void delete(int id) throws AuthorizeException
     {
         Item item = retrieve(id);
-        this.update(item); // Sync in-memory object with db before removal
+        this.update(item); // Sync in-memory object before removal
 
         // Remove from cache
         context.removeCached(item, id);
@@ -261,8 +263,6 @@ public abstract class ItemDAO extends ContentDAO
         }
     }
 
-    public abstract Item getByOriginalItemIDAndRevision(int originalItemID, int revision);
-    public abstract Item getHeadRevision(int x);
     public abstract List<Item> getItems();
     public abstract List<Item> getItemsByCollection(Collection collection);
     public abstract List<Item> getItemsBySubmitter(EPerson eperson);
@@ -275,7 +275,6 @@ public abstract class ItemDAO extends ContentDAO
     // between Items (or do we? I doubt it).
     protected final void removeBundleFromItem(Item item, Bundle bundle)
         throws AuthorizeException
-//        throws AuthorizeException, IOException, SQLException
     {
         unlink(item, bundle);
 

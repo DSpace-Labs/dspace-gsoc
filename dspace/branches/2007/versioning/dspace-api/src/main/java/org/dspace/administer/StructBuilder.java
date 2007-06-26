@@ -55,6 +55,7 @@ import org.apache.xpath.XPathAPI;
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.Collection;
 import org.dspace.content.Community;
+import org.dspace.content.dao.CommunityDAOFactory;
 import org.dspace.core.Context;
 import org.dspace.eperson.EPerson;
 import org.jdom.Element;
@@ -422,7 +423,7 @@ public class StructBuilder
             }
             else
             {
-                community = Community.create(null, context);
+                community = CommunityDAOFactory.getInstance(context).create();
             }
             
             // default the short description to be an empty string
@@ -457,7 +458,7 @@ public class StructBuilder
             // This looks like a lot of repetition of getting information from
             // above but it's here to keep it separate from the create process
             // in case we want to move it or make it switchable later
-            element.setAttribute("uri", community.getPersistentIdentifier().getCanonicalForm());
+            element.setAttribute("uri", community.getExternalIdentifier().getCanonicalForm());
             
             Element nameElement = new Element("name");
             nameElement.setText(community.getMetadata("name"));
@@ -555,7 +556,7 @@ public class StructBuilder
             
             collection.update();
             
-            element.setAttribute("uri", collection.getPersistentIdentifier().getCanonicalForm());
+            element.setAttribute("uri", collection.getExternalIdentifier().getCanonicalForm());
             
             Element nameElement = new Element("name");
             nameElement.setText(collection.getMetadata("name"));

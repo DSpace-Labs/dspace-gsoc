@@ -45,6 +45,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.authorize.AuthorizeManager;
@@ -53,8 +54,9 @@ import org.dspace.content.Bitstream;
 import org.dspace.content.Collection;
 import org.dspace.content.Community;
 import org.dspace.content.Item;
-import org.dspace.content.uri.PersistentIdentifier;
-import org.dspace.content.uri.dao.PersistentIdentifierDAOFactory;
+import org.dspace.content.uri.ObjectIdentifier;
+import org.dspace.content.uri.ExternalIdentifier;
+import org.dspace.content.uri.dao.ExternalIdentifierDAOFactory;
 import org.dspace.core.Context;
 import org.dspace.eperson.Group;
 import org.dspace.storage.rdbms.DatabaseManager;
@@ -97,9 +99,10 @@ public class CollectionDAOPostgres extends CollectionDAO
         if (context != null)
         {
             this.context = context;
+            this.bitstreamDAO = BitstreamDAOFactory.getInstance(context);
             this.itemDAO = ItemDAOFactory.getInstance(context);
             this.identifierDAO =
-                PersistentIdentifierDAOFactory.getInstance(context);
+                ExternalIdentifierDAOFactory.getInstance(context);
         }
     }
 
@@ -108,10 +111,15 @@ public class CollectionDAOPostgres extends CollectionDAO
     {
         try
         {
+            UUID uuid = UUID.randomUUID();
+
             TableRow row = DatabaseManager.create(context, "collection");
+            row.setColumn("uuid", uuid.toString());
+            DatabaseManager.update(context, row);
+
             int id = row.getIntColumn("collection_id");
             
-            return super.create(id);
+            return super.create(id, uuid);
         }
         catch (SQLException sqle)
         {
@@ -149,9 +157,51 @@ public class CollectionDAOPostgres extends CollectionDAO
             // FIXME: I'd like to bump the rest of this up into the superclass
             // so we don't have to do it for every implementation, but I can't
             // figure out a clean way of doing this yet.
-            List<PersistentIdentifier> identifiers =
-                identifierDAO.getPersistentIdentifiers(collection);
-            collection.setPersistentIdentifiers(identifiers);
+            List<ExternalIdentifier> identifiers =
+                identifierDAO.getExternalIdentifiers(collection);
+            collection.setExternalIdentifiers(identifiers);
+
+            context.cache(collection, id);
+
+            return collection;
+        }
+        catch (SQLException sqle)
+        {
+            throw new RuntimeException(sqle);
+        }
+    }
+
+    @Override
+    public Collection retrieve(UUID uuid)
+    {
+        Collection collection = super.retrieve(uuid);
+
+        if (collection != null)
+        {
+            return collection;
+        }
+
+        try
+        {
+            TableRow row = DatabaseManager.findByUnique(context, "collection",
+                    "uuid", uuid.toString());
+
+            if (row == null)
+            {
+                log.warn("collection " + uuid + " not found");
+                return null;
+            }
+
+            int id = row.getIntColumn("collection_id");
+            collection = new Collection(context, id);
+            populateCollectionFromTableRow(collection, row);
+
+            // FIXME: I'd like to bump the rest of this up into the superclass
+            // so we don't have to do it for every implementation, but I can't
+            // figure out a clean way of doing this yet.
+            List<ExternalIdentifier> identifiers =
+                identifierDAO.getExternalIdentifiers(collection);
+            collection.setExternalIdentifiers(identifiers);
 
             context.cache(collection, id);
 
@@ -550,15 +600,8 @@ public class CollectionDAOPostgres extends CollectionDAO
         // Get the logo bitstream
         if (!row.isColumnNull("logo_bitstream_id"))
         {
-            try
-            {
-                logo = Bitstream.find(context,
-                        row.getIntColumn("logo_bitstream_id"));
-            }
-            catch (SQLException sqle)
-            {
-                throw new RuntimeException(sqle);
-            }
+            int id = row.getIntColumn("logo_bitstream_id"); 
+            logo = bitstreamDAO.retrieve(id);
         }
 
         // Get the template item
@@ -567,6 +610,9 @@ public class CollectionDAOPostgres extends CollectionDAO
             templateItem =
                 itemDAO.retrieve(row.getIntColumn("template_item_id"));
         }
+
+        UUID uuid = UUID.fromString(row.getStringColumn("uuid"));
+        c.setIdentifier(new ObjectIdentifier(uuid));
 
         c.setLogoBitstream(logo);
         c.setTemplateItem(templateItem);
@@ -618,3 +664,4 @@ public class CollectionDAOPostgres extends CollectionDAO
         }
     }
 }
+

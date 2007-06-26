@@ -61,7 +61,6 @@ import org.dspace.content.Community;
 import org.dspace.content.DCValue;
 import org.dspace.content.Item;
 import org.dspace.content.ItemComparator;
-import org.dspace.content.dao.ItemDAO;
 import org.dspace.content.dao.ItemDAOFactory;
 import org.dspace.core.ConfigurationManager;
 import org.dspace.core.Context;
@@ -89,7 +88,6 @@ public class Browse
     static final int SUBJECTS_BROWSE = 4;
 
     static final int ITEMS_BY_SUBJECT_BROWSE = 5;
-
     private static ItemDAO itemDAO;
     
     /** Log4j log */
@@ -407,7 +405,9 @@ public class Browse
         for (Iterator iterator = results.iterator(); iterator.hasNext();)
         {
             TableRow row = (TableRow) iterator.next();
-            Item item = Item.find(context, row.getIntColumn("item_id"));
+            int id = row.getIntColumn("item_id");
+
+            Item item = ItemDAOFactory.getInstance(context).retrieve(id);
             items.add(item);
         }
 
@@ -601,7 +601,7 @@ public class Browse
 
         indexRemoveAll(context);
 
-        List<Item> items = itemDAO.getItems();
+        List<Item> items = ItemDAOFactory.getInstance(context).getItems();
         for (Item item : items)
         {
             itemAdded(context, item);
@@ -1537,7 +1537,8 @@ public class Browse
         for (Iterator iterator = ids.iterator(); iterator.hasNext();)
         {
             Integer id = (Integer) iterator.next();
-            Item item = Item.find(context, id.intValue());
+            Item item =
+                ItemDAOFactory.getInstance(context).retrieve(id.intValue());
 
             if (item != null)
             {

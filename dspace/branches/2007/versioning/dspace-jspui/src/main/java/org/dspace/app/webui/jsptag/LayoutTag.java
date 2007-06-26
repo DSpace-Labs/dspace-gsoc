@@ -214,7 +214,7 @@ public class LayoutTag extends TagSupport
                     {
                         parents.add(comms[i].getMetadata("name"));
                         parentLinks.add(
-                                comms[i].getURL().toString());
+                                comms[i].getIdentifier().getURL().toString());
                     }
                 }
             }
@@ -243,14 +243,14 @@ public class LayoutTag extends TagSupport
                     {
                         parents.add(comms[i].getMetadata("name"));
                         parentLinks.add(
-                                comms[i].getURL().toString());
+                                comms[i].getIdentifier().getURL().toString());
                     }
 
                     if (col != null)
                     {
                         parents.add(col.getMetadata("name"));
                         parentLinks.add(
-                                col.getURL().toString());
+                                col.getIdentifier().getURL().toString());
                     }
                 }
             }
@@ -301,12 +301,12 @@ public class LayoutTag extends TagSupport
         	if ( commLinks )
         	{
                 Community com = (Community)request.getAttribute("dspace.community");
-        		request.setAttribute("dspace.layout.feedref", com.getPersistentIdentifier().getCanonicalForm());
+        		request.setAttribute("dspace.layout.feedref", com.getExternalIdentifier().getCanonicalForm());
         	}
         	else if( collLinks )
         	{
         		Collection col = (Collection)request.getAttribute("dspace.collection");
-        		request.setAttribute("dspace.layout.feedref", col.getPersistentIdentifier().getCanonicalForm());
+        		request.setAttribute("dspace.layout.feedref", col.getExternalIdentifier().getCanonicalForm());
         	}
         	else //feed is across all of DSpace and not Community/Collection specific
         	{
