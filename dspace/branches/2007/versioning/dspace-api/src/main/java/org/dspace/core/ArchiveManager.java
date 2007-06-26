@@ -44,29 +44,19 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.io.BufferedReader;
-
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.CommandLineParser;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.PosixParser;
 
 import org.apache.log4j.Logger;
 
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.authorize.AuthorizeManager;
 import org.dspace.browse.Browse;
-import org.dspace.content.Bitstream;
 import org.dspace.content.Collection;
 import org.dspace.content.Community;
 import org.dspace.content.DCDate;
 import org.dspace.content.DSpaceObject;
 import org.dspace.content.Item;
-import org.dspace.content.Bundle;
 import org.dspace.content.InstallItem;
 import org.dspace.content.MetadataSchema;
-import org.dspace.content.dao.BundleDAOFactory;
-import org.dspace.content.dao.BundleDAO;
 import org.dspace.content.dao.ItemDAO;
 import org.dspace.content.dao.ItemDAOFactory;
 import org.dspace.content.dao.CollectionDAO;
@@ -74,13 +64,10 @@ import org.dspace.content.dao.CollectionDAOFactory;
 import org.dspace.content.dao.CommunityDAO;
 import org.dspace.content.dao.CommunityDAOFactory;
 import org.dspace.content.uri.ObjectIdentifier;
-import org.dspace.content.uri.PersistentIdentifier;
-import org.dspace.content.uri.dao.PersistentIdentifierDAO;
-import org.dspace.content.uri.dao.PersistentIdentifierDAOFactory;
+import org.dspace.content.uri.ExternalIdentifier;
 import org.dspace.eperson.EPerson;
 import org.dspace.history.HistoryManager;
 import org.dspace.search.DSIndexer;
-import org.dspace.eperson.EPerson;
 
 /**
  * This class could really do with a CLI...
@@ -88,118 +75,6 @@ import org.dspace.eperson.EPerson;
 public class ArchiveManager
 {
     private static Logger log = Logger.getLogger(ArchiveManager.class);
-
-    public static DSpaceObject getObject(Context context,
-            PersistentIdentifier identifier)
-    {
-        return getObject(context, identifier.getResourceID(),
-                identifier.getResourceTypeID());
-    }
-
-    public static DSpaceObject getObject(Context context, int id, int type)
-    {
-        switch(type)
-        {
-            case (Constants.BITSTREAM):
-                try
-                {
-                    return Bitstream.find(context, id);
-                }
-                catch (SQLException sqle)
-                {
-                    throw new RuntimeException(sqle);
-                }
-            case (Constants.BUNDLE):
-                return BundleDAOFactory.getInstance(context).retrieve(id);
-            case (Constants.ITEM):
-                return ItemDAOFactory.getInstance(context).retrieve(id);
-            case (Constants.COLLECTION):
-                return CollectionDAOFactory.getInstance(context).retrieve(id);
-            case (Constants.COMMUNITY):
-                return CommunityDAOFactory.getInstance(context).retrieve(id);
-            default:
-                throw new RuntimeException("Not a valid DSpaceObject type");
-        }
-    }
-
-    /**
-     * Gets an Item by its OriginalItemID and Revision numbers
-     */
-    public static DSpaceObject getVersionedItem(Context context, int originalItemID, int revision)
-    {
-
-    	return ItemDAOFactory.getInstance(context).getByOriginalItemIDAndRevision(originalItemID, revision);
-    }
-    
-    /**
-     * Gets the HEAD of an OriginalItemID
-     */
-    public static DSpaceObject getHeadRevision(Context context, int originalItemID)
-    {
-
-    	return ItemDAOFactory.getInstance(context).getHeadRevision(originalItemID);
-    }
-    
-    /**
-     * Creates a Item in the database that maintains all the same
-     * attributes and metadata as the Item it supplants with a new
-     * revision number and a link to the given Item as the previousRevision
-     *
-     * @param item The Item to create a new version of
-     */
-    public static Item newVersionOfItem(Context context, Item originalItem)
-    {
-        try
-        {
-            ArchiveManager am = new ArchiveManager();
-            ItemDAO itemDAO = ItemDAOFactory.getInstance(context);
-            Item item = itemDAO.create();
-            Item head = itemDAO.getHeadRevision(originalItem.getOriginalItemID());
-            PersistentIdentifierDAO identifierDAO =
-            PersistentIdentifierDAOFactory.getInstance(context);
-            PersistentIdentifier identifier;
-
-            // Persistent Identfier Stuff
-            // Create persistent identifier. Note that this will create an
-            // identifier of the default type (as specified in the
-            // configuration).
-            identifier = identifierDAO.create(item);
-            String uri = identifier.getURI().toString();
-
-            item.setArchived(originalItem.isArchived());
-            item.setWithdrawn(originalItem.isWithdrawn());
-            // Done by ItemDAO.update ... item.setLastModified();
-
-            item.setOriginalItemID(originalItem.getOriginalItemID());
-
-            item.setRevision(head.getRevision()+1);
-            item.setPreviousItemID(head.getID());
-
-            item.setOwningCollectionId(originalItem.getOwningCollection().getID());
-            item.setSubmitter(originalItem.getSubmitter().getID());
-
-            item.setMetadata(originalItem.getMetadata());
-            // Add uri as identifier.uri DC value
-            item.clearMetadata("dc", "identifier", "uri", null);
-            item.addMetadata("dc", "identifier", "uri", null, uri);
-
-            for (Bundle bundle : originalItem.getBundles())
-            {
-                item.addBundle(am.dupeBundle(context, bundle));
-            }
-
-//          create collection2item mapping
-            originalItem.getOwningCollection().addItem(item);
-
-            itemDAO.update(item);
-
-            return item;
-        }
-        catch (Exception e)
-        {
-            throw new RuntimeException(e);
-        }
-    }
 
     /**
      * Withdraw the item from the archive. It is kept in place, and the content
@@ -222,8 +97,8 @@ public class ArchiveManager
                     + " (ID: " + colls[i].getID() + ")\n";
         }
 
-        // Check permission. User either has to have REMOVE on owning collection
-        // or be COLLECTION_EDITOR of owning collection
+        // Check permission. User either has to have REMOVE on owning
+        // collection or be COLLECTION_EDITOR of owning collection
         if (!AuthorizeManager.authorizeActionBoolean(context,
                 item.getOwningCollection(), Constants.COLLECTION_ADMIN)
                 && !AuthorizeManager.authorizeActionBoolean(context,
@@ -247,8 +122,8 @@ public class ArchiveManager
                     + "Item was in collections:\n" + collectionProv
                     + InstallItem.getBitstreamProvenanceMessage(item);
 
-            item.addMetadata(MetadataSchema.DC_SCHEMA, "description", "provenance",
-                    "en", prov);
+            item.addMetadata(MetadataSchema.DC_SCHEMA, "description",
+                    "provenance", "en", prov);
 
             // Update item in DB
             itemDAO.update(item);
@@ -310,8 +185,8 @@ public class ArchiveManager
                     + "Item was in collections:\n" + collectionProv
                     + InstallItem.getBitstreamProvenanceMessage(item);
 
-            item.addMetadata(MetadataSchema.DC_SCHEMA, "description", "provenance",
-                    "en", prov);
+            item.addMetadata(MetadataSchema.DC_SCHEMA, "description",
+                    "provenance", "en", prov);
 
             // Update item in DB
             itemDAO.update(item);
@@ -609,149 +484,5 @@ public class ArchiveManager
         log.warn("***************************************************");
         log.warn("Moving " + dsoStr + " from " + sourceStr + " to " + destStr);
         log.warn("***************************************************");
-    }
-
-    /**
-     * CLI for Versioning
-     * Should be extenisble for other actions.
-     */
-    public static void main(String[] argv)
-    {
-        Context c = null;
-        try {
-            c = new Context();
-            CommandLineParser parser = new PosixParser();
-            Options options = new Options();
-            ArchiveManager am = new ArchiveManager();
-            ItemDAO itemDAO = ItemDAOFactory.getInstance(c);
-
-            options.addOption("a", "all", false, "print all items");
-            options.addOption("m", "metadata", false, "print item metadata");
-            options.addOption("r", "revision", false, "new revision of item");
-            options.addOption("p", "print", false, "print item");
-            options.addOption("u", "user", true, "eperson email address or id");
-            options.addOption("i", "item_id", true, "id of the item");
-            options.addOption("z", "identifiers", false, "print the presistent ids");
-            CommandLine line = parser.parse(options, argv);
-
-
-
-            if (line.hasOption("a"))
-            {
-                am.printItems(itemDAO.getItems());
-            }
-            else if (line.hasOption("m") && line.hasOption("i"))
-            {
-                am.printItemMetadata(itemDAO.retrieve(Integer.parseInt(line.getOptionValue("i"))));
-            }
-            else if (line.hasOption("p") && line.hasOption("i"))
-            {
-                int id = Integer.parseInt(line.getOptionValue("i"));
-                System.out.println(itemDAO.retrieve(id).toString());
-            }
-            else if (line.hasOption("z") && line.hasOption("i"))
-            {
-                System.out.println("id go");
-                am.printPersistentIdentifiers(itemDAO.retrieve(Integer.parseInt(line.getOptionValue("i"))));
-            }
-            else if (line.hasOption("r") && line.hasOption("i"))
-            {
-//            	 find the EPerson, assign to context
-                EPerson myEPerson = null;
-                String eperson = null;
-                if (line.hasOption('u'))
-                {
-                    eperson = line.getOptionValue("u");
-                }
-                else
-                {
-                    System.out.println("Error, eperson cannot be found: " + eperson);
-                    System.exit(1);
-                }
-                if (eperson.indexOf('@') != -1)
-                {
-                    // @ sign, must be an email
-                    myEPerson = EPerson.findByEmail(c, eperson);
-                }
-                else
-                {
-                    myEPerson = EPerson.find(c, Integer.parseInt(eperson));
-                }
-
-                if (myEPerson == null)
-                {
-                    System.out.println("Error, eperson cannot be found: " + eperson);
-                    System.exit(1);
-                }
-
-                c.setCurrentUser(myEPerson);
-
-                int id = Integer.parseInt(line.getOptionValue("i"));
-                Item i = ArchiveManager.newVersionOfItem(c, itemDAO.retrieve(id));
-                System.out.println("Original Item: \n");
-                System.out.println(itemDAO.retrieve(id).toString());
-                System.out.println("New Item: \n");
-                System.out.println(i.toString());
-            }
-            c.complete();
-        }
-        catch (Exception e)
-        {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private void printItems(List<Item> items)
-    {
-        for (Item i : items)
-        {
-            System.out.println(i.toString());
-        }
-    }
-
-    private void printItemMetadata(Item item)
-    {
-        System.out.println(item.getMetadata().toString());
-        for (Object o : item.getMetadata())
-        {
-            System.out.println(o.toString());
-        }
-    }
-
-    private void printPersistentIdentifiers(Item item)
-    {
-        System.out.println("one pi: " + item.getPersistentIdentifier().getCanonicalForm());
-        System.out.println(item.getPersistentIdentifiers().toString());
-        for (PersistentIdentifier id : item.getPersistentIdentifiers())
-        {
-            System.out.println(id.getCanonicalForm());
-        }
-    }
-
-    /**
-     *  Takes in a bundle and makes a deep copy of it.
-     *
-     *  @param bundle
-     */
-    private Bundle dupeBundle (Context context, Bundle bundle)
-    throws SQLException, AuthorizeException
-    {
-        BundleDAO bdao = BundleDAOFactory.getInstance(context);
-        Bundle dupe = bdao.create();
-        Bitstream[] bitstreams = null;
-        int primary = bundle.getPrimaryBitstreamID();
-
-        bitstreams = bundle.getBitstreams();
-        for (Bitstream b : bitstreams)
-        {
-            dupe.addBitstream(b);
-            if (primary == b.getID())
-            {
-                dupe.setPrimaryBitstreamID(b.getID());
-            }
-        }
-
-        dupe.setName(bundle.getName());
-        return dupe;
     }
 }

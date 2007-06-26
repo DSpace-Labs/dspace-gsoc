@@ -39,13 +39,14 @@
  */
 package org.dspace.app.webui.servlet;
 
+import java.io.InputStream;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.net.URL;
+import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.sql.SQLException;
 import java.util.List;
-import java.util.regex.Pattern;
-import java.util.regex.Matcher;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -60,20 +61,21 @@ import org.dspace.authorize.AuthorizeException;
 import org.dspace.authorize.AuthorizeManager;
 import org.dspace.browse.Browse;
 import org.dspace.browse.BrowseScope;
+import org.dspace.content.Bitstream;
 import org.dspace.content.Collection;
 import org.dspace.content.Community;
 import org.dspace.content.DCValue;
 import org.dspace.content.DSpaceObject;
 import org.dspace.content.Item;
 import org.dspace.content.uri.ObjectIdentifier;
-import org.dspace.content.uri.PersistentIdentifier;
-import org.dspace.content.uri.dao.PersistentIdentifierDAO;
-import org.dspace.content.uri.dao.PersistentIdentifierDAOFactory;
-import org.dspace.core.ArchiveManager;
+import org.dspace.content.uri.ExternalIdentifier;
+import org.dspace.content.uri.dao.ExternalIdentifierDAO;
+import org.dspace.content.uri.dao.ExternalIdentifierDAOFactory;
 import org.dspace.core.ConfigurationManager;
 import org.dspace.core.Constants;
 import org.dspace.core.Context;
 import org.dspace.core.LogManager;
+import org.dspace.core.Utils;
 import org.dspace.eperson.EPerson;
 import org.dspace.eperson.Group;
 import org.dspace.eperson.Subscribe;
@@ -83,22 +85,28 @@ public class URIServlet extends DSpaceServlet
     /** log4j category */
     private static Logger log = Logger.getLogger(DSpaceServlet.class);
 
-    private PersistentIdentifierDAO identifierDAO;
-
     protected void doDSGet(Context context, HttpServletRequest request,
             HttpServletResponse response) throws ServletException, IOException,
             SQLException, AuthorizeException
     {
-        identifierDAO = PersistentIdentifierDAOFactory.getInstance(context);
-
         String uri = null;
         String extraPathInfo = null;
-        PersistentIdentifier identifier = null;
+        ExternalIdentifier identifier = null;
+        ObjectIdentifier oi = null;
         DSpaceObject dso = null;
 
-        // Original path info, of the form "xyz:1234/56"
-        // or "xyz:1234/56/extra/stuff"
+        // Original path info, of the form "/xyz/1234/56"
+        // or "/xyz/1234/56/extra/stuff"
         String path = request.getPathInfo();
+
+        try
+        {
+            path = URLDecoder.decode(path, "UTF-8");
+        }
+        catch (UnsupportedEncodingException uee)
+        {
+            throw new RuntimeException(uee);
+        }
 
         if (path != null)
         {
@@ -108,59 +116,69 @@ public class URIServlet extends DSpaceServlet
             try
             {
                 // Extract the URI
-                path = path.replaceFirst("/", ":");
                 int firstSlash = path.indexOf('/');
-                int secondSlash = path.indexOf('/', firstSlash + 1);
 
-                if (secondSlash != -1)
-                {
-                    // We have extra path info
-                    // FIXME: this is shouldn't exist. if we have extra
-                    // information in the url, it should be parameterised, not
-                    // separated by a slash. If we escaped slashes in
-                    // identifiers to %2F this wouldn't be such an issue, but
-                    // we don't and as such are making assumptions about the
-                    // form of the identifiers.
-                    uri = path.substring(0, secondSlash);
-                    extraPathInfo = path.substring(secondSlash);
-                }
-                else
-                {
+//                if (firstSlash != -1)
+//                {
+//                    // We have extra path info
+//                    // FIXME: this shouldn't exist. if we have extra
+//                    // information in the url, it should be parameterised, not
+//                    // separated by a slash. If we escaped slashes in
+//                    // identifiers to %2F this wouldn't be such an issue, but
+//                    // we don't and as such are making assumptions about the
+//                    // form of the identifiers.
+//                    uri = path.substring(0, firstSlash);
+//                    extraPathInfo = path.substring(firstSlash);
+//                }
+//                else
+//                {
                     // The path is just the URI
                     uri = path;
-                }
+//                }
             }
-            catch (NumberFormatException nfe) { }
+            catch (NumberFormatException nfe)
+            {
+                throw new RuntimeException(nfe);
+            }
         }
 
         // Find out what the value points to
         if (uri != null)
         {
-        	log.info(LogManager.getHeader(context, "debug", "uri:" + uri));   	
-        	Pattern pRevision = Pattern.compile("^(\\d+):v(\\d+)");
-        	Pattern pItem = Pattern.compile("^(\\d+)");
-        	
-        	Matcher mRevision = pRevision.matcher(uri);
-        	Matcher mItem = pItem.matcher(uri);
-        	
-        	if (mRevision.matches())
-        	{
-        		dso = ArchiveManager.getVersionedItem(context,
-        				Integer.parseInt(mRevision.group(1)), Integer.parseInt(mRevision.group(2)));
-        	}
-        	else if (mItem.matches())
-        	{
-        		//log.info(LogManager.getHeader(context, "debug", "Matched Item"));
-        		dso = ArchiveManager.getHeadRevision(context, Integer.parseInt(mItem.group(1)));
-        	}
-        	else
-        	{
-        		//log.info(LogManager.getHeader(context, "", "Didn't Match"));
-	            // The value of URI will be the persistent identifier in canonical
-	            // form, eg: xyz:1234/56
-	            identifier = identifierDAO.retrieve(uri);
-	            dso = ArchiveManager.getObject(context, identifier);
-        	}
+            boolean internal = true;
+            String namespace = uri.substring(0, uri.indexOf(':'));
+            String value = uri.substring(uri.indexOf(':') + 1);
+
+            // The value of URI will be the persistent identifier in canonical
+            // form, eg: xyz:1234/56
+            for (ExternalIdentifier.Type type : ExternalIdentifier.Type.values())
+            {
+                if (type.getNamespace().equals(namespace))
+                {
+                    internal = false;
+                    break;
+                }
+            }
+
+            if (internal)
+            {
+                for (ObjectIdentifier.Type type : ObjectIdentifier.Type.values())
+                {
+                    if (type.getNamespace().equals(namespace))
+                    {
+                        oi = new ObjectIdentifier(type, value);
+                    }
+                }
+            }
+            else
+            {
+                ExternalIdentifierDAO identifierDAO =
+                    ExternalIdentifierDAOFactory.getInstance(context);
+                identifier = identifierDAO.retrieve(uri);
+                oi = identifier.getObjectIdentifier();
+            }
+
+            dso = oi.getObject(context);
         }
 
         if (dso == null)
@@ -171,16 +189,49 @@ public class URIServlet extends DSpaceServlet
 
             return;
         }
-
-        // OK, we have a valid URI. What is it?
-        if (dso.getType() == Constants.ITEM)
+        else
         {
-        	
-            Item item = (Item) dso;
+            processDSpaceObject(context, request, response, dso,
+                    extraPathInfo);
+        }
+    }
 
+    protected void processDSpaceObject(Context context, HttpServletRequest
+            request, HttpServletResponse response, DSpaceObject dso,
+            String extraPathInfo)
+        throws ServletException, IOException, SQLException, AuthorizeException
+    {
+        // OK, we have a valid URI. What is it?
+        if (dso.getType() == Constants.BITSTREAM)
+        {
+            // FIXME: Check for if-modified-since header
+            Bitstream bitstream = (Bitstream) dso;
+
+            log.info(LogManager.getHeader(context, "view_bitstream",
+                    "bitstream_id=" + bitstream.getID()));
+
+            // Pipe the bits
+            InputStream is = bitstream.retrieve();
+         
+                    // Set the response MIME type
+            response.setContentType(bitstream.getFormat().getMIMEType());
+
+            response.setHeader("Content-Length", String
+                    .valueOf(bitstream.getSize()));
+            response.setHeader("Content-disposition", "attachment; filename=" +
+                    bitstream.getName());
+
+            Utils.bufferedCopy(is, response.getOutputStream());
+            is.close();
+            response.getOutputStream().flush();
+        }
+        else if (dso.getType() == Constants.ITEM)
+        {
+            Item item = (Item) dso;
+            
             response.setDateHeader("Last-Modified", item
                     .getLastModified().getTime());
-
+            
             // Check for if-modified-since header
             long modSince = request.getDateHeader("If-Modified-Since");
 
@@ -259,9 +310,10 @@ public class URIServlet extends DSpaceServlet
         {
             // Shouldn't happen. Log and treat as invalid ID
             log.info(LogManager.getHeader(context,
-                    "URI not an item, collection or community", "uri="
-                            + uri));
-            JSPManager.showInvalidIDError(request, response, path, -1);
+                    "URI not an item, collection or community", "identifier="
+                            + dso.getIdentifier().toString()));
+            JSPManager.showInvalidIDError(request, response,
+                    request.getPathInfo(), -1);
 
             return;
         }
@@ -269,7 +321,7 @@ public class URIServlet extends DSpaceServlet
 
     /**
      * Show an item page
-     *
+     * 
      * @param context
      *            Context object
      * @param request
@@ -297,8 +349,8 @@ public class URIServlet extends DSpaceServlet
         // Ensure the user has authorisation
         AuthorizeManager.authorizeAction(context, item, Constants.READ);
 
-        //log.info(LogManager.getHeader(context, "view_item", "uri=" +
-        //            item.getPersistentIdentifier().getCanonicalForm()));
+        log.info(LogManager.getHeader(context, "view_item", "uri=" +
+                    item.getExternalIdentifier().getCanonicalForm()));
 
         // show edit link
         if (item.canEdit())
@@ -336,13 +388,13 @@ public class URIServlet extends DSpaceServlet
         boolean suggestEnable = false;
         if (!ConfigurationManager.getBooleanProperty("webui.suggest.enable"))
         {
-            // do nothing, the suggestLink is allready set to false
+            // do nothing, the suggestLink is allready set to false 
         }
         else
         {
             // it is in general enabled
             suggestEnable= true;
-
+            
             // check for the enable only for logged in users option
             if(!ConfigurationManager.getBooleanProperty("webui.suggest.loggedinusers.only"))
             {
@@ -354,7 +406,7 @@ public class URIServlet extends DSpaceServlet
                 suggestEnable = (context.getCurrentUser() == null ? false : true);
             }
         }
-
+        
         // Set attributes and display
         request.setAttribute("suggest.enable", new Boolean(suggestEnable));
         request.setAttribute("display.all", new Boolean(displayAll));
@@ -365,7 +417,7 @@ public class URIServlet extends DSpaceServlet
 
     /**
      * Show a community home page, or deal with button press on home page
-     *
+     * 
      * @param context
      *            Context object
      * @param request
@@ -380,7 +432,7 @@ public class URIServlet extends DSpaceServlet
             throws ServletException, IOException, SQLException
     {
         // Handle click on a browse or search button
-        if (!handleButton(request, response, community.getURL()))
+        if (!handleButton(request, response, community.getIdentifier().getURL()))
         {
             // No button pressed, display community home page
             log.info(LogManager.getHeader(context, "view_community",
@@ -438,7 +490,7 @@ public class URIServlet extends DSpaceServlet
 
     /**
      * Show a collection home page, or deal with button press on home page
-     *
+     * 
      * @param context
      *            Context object
      * @param request
@@ -456,7 +508,7 @@ public class URIServlet extends DSpaceServlet
         throws ServletException, IOException, SQLException, AuthorizeException
     {
         // Handle click on a browse or search button
-        if (!handleButton(request, response, community.getURL()))
+        if (!handleButton(request, response, community.getIdentifier().getURL()))
         {
             // Will need to know whether to commit to DB
             boolean updated = false;
@@ -566,14 +618,14 @@ public class URIServlet extends DSpaceServlet
     /**
      * Check to see if a browse or search button has been pressed on a community
      * or collection home page. If so, redirect to the appropriate URL.
-     *
+     * 
      * @param request
      *            HTTP request
      * @param response
      *            HTTP response
      * @param identifier
      *            object identifier that points to the collection / community
-     *
+     * 
      * @return true if a browse/search button was pressed and the user was
      *         redirected
      */
@@ -581,6 +633,7 @@ public class URIServlet extends DSpaceServlet
             HttpServletResponse response, URL prefixURL)
         throws IOException
     {
+        log.info(prefixURL.toString());
         String button = UIUtil.getSubmitButton(request, "");
         String location = request.getParameter("location");
         String prefix = "/";
@@ -647,7 +700,7 @@ public class URIServlet extends DSpaceServlet
 
     /**
      * Utility method to obtain the titles for the Items in the given list.
-     *
+     * 
      * @param List
      *            of Items
      * @return array of corresponding titles
@@ -681,7 +734,7 @@ public class URIServlet extends DSpaceServlet
 
     /**
      * Utility method obtain URLs for the most recent items
-     *
+     * 
      * @param context
      *            DSpace context
      * @param items
@@ -696,7 +749,7 @@ public class URIServlet extends DSpaceServlet
         for (int i = 0; i < items.size(); i++)
         {
             Item item = (Item) items.get(i);
-            urls[i] = item.getURL().toString();
+            urls[i] = item.getIdentifier().getURL().toString();
         }
 
         return urls;

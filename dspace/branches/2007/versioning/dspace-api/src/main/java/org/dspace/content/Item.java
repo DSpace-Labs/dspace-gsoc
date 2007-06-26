@@ -48,6 +48,7 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.StringTokenizer;
+import java.util.UUID;
 
 import org.apache.log4j.Logger;
 
@@ -67,14 +68,14 @@ import org.dspace.content.dao.CommunityDAO;         // Naughty!
 import org.dspace.content.dao.CommunityDAOFactory;  // Naughty!
 import org.dspace.content.dao.ItemDAO;              // Naughty!
 import org.dspace.content.dao.ItemDAOFactory;       // Naughty!
-import org.dspace.content.uri.PersistentIdentifier;
+import org.dspace.content.uri.ExternalIdentifier;
 import org.dspace.eperson.EPerson;
 import org.dspace.eperson.Group;
 
 /**
  * Class representing an item in DSpace. Note that everything is held in memory
  * until update() is called on the ItemDAO.
- *
+ * 
  * @author James Rutherford
  * @version $Revision$
  */
@@ -90,19 +91,10 @@ public class Item extends DSpaceObject
     protected CollectionDAO collectionDAO;
     private CommunityDAO communityDAO;
 
-    protected int id;
     protected String identifier;
-    protected List<PersistentIdentifier> identifiers;
     protected boolean inArchive;
     protected boolean withdrawn;
     protected Date lastModified;
-
-    protected int revision;
-    protected int previousItemID;
-    /**
-     * @var originalItemID An integer that connects all revisions of a logical item.
-     */
-    protected int originalItemID;
 
     protected int owningCollectionId;
     protected Collection owningCollection;
@@ -123,25 +115,10 @@ public class Item extends DSpaceObject
         this.collectionDAO = CollectionDAOFactory.getInstance(context);
         this.communityDAO = CommunityDAOFactory.getInstance(context);
 
-        this.identifiers = new ArrayList<PersistentIdentifier>();
+        this.identifiers = new ArrayList<ExternalIdentifier>();
         this.bundles = new ArrayList<Bundle>();
         this.metadata = new ArrayList<DCValue>();
         this.metadataChanged = false;
-    }
-
-    public int getID()
-    {
-        return id;
-    }
-
-    public void setID(int id)
-    {
-        this.id = id;
-    }
-
-    public int getOriginalItemID()
-    {
-        return this.originalItemID;
     }
 
     public void setOriginalItemID(int num)
@@ -150,45 +127,8 @@ public class Item extends DSpaceObject
     }
 
     /**
-     * For those cases where you only want one, and you don't care what sort.
-     */
-    public PersistentIdentifier getPersistentIdentifier()
-    {
-        if (identifiers.size() > 0)
-        {
-            for (PersistentIdentifier pid : identifiers)
-            {
-                return pid;
-            }
-            return null;
-        }
-        else
-        {
-            // Because Items don't necessarily have persistent identifiers
-            // until they hit the archive.
-            log.warn("I don't have any persistent identifiers.\n" + this);
-            return null;
-        }
-    }
-
-    public List<PersistentIdentifier> getPersistentIdentifiers()
-    {
-            return identifiers;
-    }
-
-    public void addPersistentIdentifier(PersistentIdentifier identifier)
-    {
-        this.identifiers.add(identifier);
-    }
-
-    public void setPersistentIdentifiers(List<PersistentIdentifier> identifiers)
-    {
-        this.identifiers = identifiers;
-    }
-
-    /**
      * Find out if the item is part of the main archive
-     *
+     * 
      * @return true if the item is in the main archive
      */
     public boolean isArchived()
@@ -198,7 +138,7 @@ public class Item extends DSpaceObject
 
     /**
      * Only <code>WorkflowItem.archive()</code> should really set this.
-     *
+     * 
      * @param inArchive new value for the flag
      */
     public void setArchived(boolean inArchive)
@@ -208,7 +148,7 @@ public class Item extends DSpaceObject
 
     /**
      * Find out if the item has been withdrawn
-     *
+     * 
      * @return true if the item has been withdrawn
      */
     public boolean isWithdrawn()
@@ -241,30 +181,17 @@ public class Item extends DSpaceObject
 
     /**
      * Get the owning Collection for the item
-     *
+     * 
      * @return Collection that is the owner of the item
      */
     public Collection getOwningCollection()
     {
-        if (owningCollection != null)
-        {
-            return owningCollection;
-        }
-        else if (owningCollectionId != -1)
-        {
-            owningCollection = collectionDAO.retrieve(owningCollectionId);
-            return owningCollection;
-        }
-        else
-        {
-            log.warn("No owning collection information available!");
-            return null;
-        }
+        return owningCollection;
     }
 
     /**
      * List the owning Collection for the item
-     *
+     * 
      * @param c Collection
      */
     public void setOwningCollection(Collection owningCollection)
@@ -277,24 +204,14 @@ public class Item extends DSpaceObject
         this.owningCollectionId = owningCollectionId;
     }
 
-    public int getPreviousItemID()
+    public List<DCValue> getMetadata()
     {
-        return this.previousItemID;
+        return metadata;
     }
 
-    public void setPreviousItemID(int previousItemID)
+    public void setMetadata(List<DCValue> metadata)
     {
-        this.previousItemID = previousItemID;
-    }
-
-    public int getRevision()
-    {
-        return this.revision;
-    }
-
-    public void setRevision(int revision)
-    {
-        this.revision = revision;
+        this.metadata = metadata;
     }
 
     public List<DCValue> getMetadata()
@@ -367,7 +284,7 @@ public class Item extends DSpaceObject
         // Build up list of matching values
         List<DCValue> values = new ArrayList<DCValue>();
 
-        for (DCValue dcv : this.getMetadata())
+        for (DCValue dcv : metadata)
         {
             if (match(schema, element, qualifier, lang, dcv))
             {
@@ -397,7 +314,7 @@ public class Item extends DSpaceObject
     public DCValue[] getMetadata(String mdString)
     {
         StringTokenizer st = new StringTokenizer(mdString, ".");
-
+        
         String[] tokens = { "", "", "" };
         int i = 0;
         while(st.hasMoreTokens())
@@ -425,7 +342,7 @@ public class Item extends DSpaceObject
 
         return values;
     }
-
+    
     /**
      * Add metadata fields. These are appended to existing values.
      * Use <code>clearDC</code> to remove values. The ordering of values
@@ -675,9 +592,7 @@ public class Item extends DSpaceObject
      *
      * FIXME: Will this ever not be the case? Can multiple Items own the same
      * Bundle?
-     *
-     * Yes, Versioning.
-     *
+     * 
      * @param b
      *            the bundle to remove
      */
@@ -851,7 +766,7 @@ public class Item extends DSpaceObject
     /**
      * Withdraw the item from the archive. It is kept in place, and the content
      * and metadata are not deleted, but it is not publicly accessible.
-     *
+     * 
      * @throws AuthorizeException
      * @throws IOException
      */
@@ -863,7 +778,7 @@ public class Item extends DSpaceObject
 
     /**
      * Reinstate a withdrawn item
-     *
+     * 
      * @throws AuthorizeException
      * @throws IOException
      */
@@ -875,7 +790,7 @@ public class Item extends DSpaceObject
 
     /**
      * Return true if the given Collection 'owns' this item.
-     *
+     * 
      * @param c Collection
      * @return true if this Collection owns this item
      */
@@ -902,7 +817,7 @@ public class Item extends DSpaceObject
 
     /**
      * Return type found in Constants
-     *
+     * 
      * @return int Constants.ITEM
      */
     public int getType()
@@ -1196,16 +1111,6 @@ public class Item extends DSpaceObject
 
         // If we get this far, we have a match
         return true;
-    }
-
-    public String toString()
-    {
-        String ret = "Item id:" +
-        this.getID() + " revision:" +
-        this.revision + " prev:" +
-        this.previousItemID + " orig:" +
-        this.originalItemID + "\n";
-        return ret;
     }
 
     /** Deprecated by the introduction of DAOs */

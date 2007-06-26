@@ -53,13 +53,16 @@ import java.util.Vector;
 
 import org.apache.log4j.Logger;
 import org.dspace.content.Collection;
+import org.dspace.content.Community;
+import org.dspace.content.DSpaceObject;
 import org.dspace.content.dao.CollectionDAO;
 import org.dspace.content.dao.CollectionDAOFactory;
-import org.dspace.content.DSpaceObject;
-import org.dspace.content.uri.PersistentIdentifier;
-import org.dspace.content.uri.dao.PersistentIdentifierDAO;
-import org.dspace.content.uri.dao.PersistentIdentifierDAOFactory;
-import org.dspace.core.ArchiveManager;
+import org.dspace.content.dao.CommunityDAO;
+import org.dspace.content.dao.CommunityDAOFactory;
+import org.dspace.content.uri.ObjectIdentifier;
+import org.dspace.content.uri.ExternalIdentifier;
+import org.dspace.content.uri.dao.ExternalIdentifierDAO;
+import org.dspace.content.uri.dao.ExternalIdentifierDAOFactory;
 import org.dspace.core.ConfigurationManager;
 import org.dspace.core.Context;
 import org.dspace.core.LogManager;
@@ -139,9 +142,9 @@ public class DSpaceOAICatalog extends AbstractCatalog
             {
                 String canonicalForm =
                     oaiIdentifier.substring(OAI_ID_PREFIX.length());
-                PersistentIdentifierDAO identifierDAO =
-                    PersistentIdentifierDAOFactory.getInstance(context);
-                PersistentIdentifier identifier =
+                ExternalIdentifierDAO identifierDAO =
+                    ExternalIdentifierDAOFactory.getInstance(context);
+                ExternalIdentifier identifier =
                     identifierDAO.retrieve(canonicalForm);
 
                 itemInfo = Harvest.getSingle(context, identifier, false);
@@ -241,7 +244,7 @@ public class DSpaceOAICatalog extends AbstractCatalog
             context = new Context();
 
             // Get the relevant OAIItemInfo objects to make headers
-            Collection scope = resolveSet(context, set);
+            DSpaceObject scope = resolveSet(context, set);
             List itemInfos = Harvest.harvest(context, scope, from, until, 0, 0, // Everything
                                                                                 // for
                                                                                 // now
@@ -356,9 +359,9 @@ public class DSpaceOAICatalog extends AbstractCatalog
 
                 String canonicalForm =
                     oaiIdentifier.substring(OAI_ID_PREFIX.length());
-                PersistentIdentifierDAO identifierDAO =
-                    PersistentIdentifierDAOFactory.getInstance(context);
-                PersistentIdentifier identifier =
+                ExternalIdentifierDAO identifierDAO =
+                    ExternalIdentifierDAOFactory.getInstance(context);
+                ExternalIdentifier identifier =
                     identifierDAO.retrieve(canonicalForm);
 
                 itemInfo = Harvest.getSingle(context, identifier, true);
@@ -564,7 +567,7 @@ public class DSpaceOAICatalog extends AbstractCatalog
             context = new Context();
 
             // Get the relevant HarvestedItemInfo objects to make headers
-            Collection scope = resolveSet(context, set);
+            DSpaceObject scope = resolveSet(context, set);
             List itemInfos = Harvest.harvest(context, scope, from, until,
                     offset, MAX_RECORDS, // Limit amount returned from one
                                          // request
@@ -672,13 +675,14 @@ public class DSpaceOAICatalog extends AbstractCatalog
         {
             context = new Context();
             CollectionDAO collectionDAO = CollectionDAOFactory.getInstance(context);
-            List<Collection> allCollections = collectionDAO.getCollections();
+            CommunityDAO communityDAO = CommunityDAOFactory.getInstance(context);
 
             StringBuffer spec = null;
-            for (Collection collection : allCollections)
+
+            for (Collection collection : collectionDAO.getCollections())
             {
                 String uri =
-                    collection.getPersistentIdentifier().getCanonicalForm();
+                    collection.getExternalIdentifier().getCanonicalForm();
 
                 spec = new StringBuffer("<set><setSpec>");
                 spec.append(uri.replace(':', '_').replace('/', '_'));
@@ -696,7 +700,34 @@ public class DSpaceOAICatalog extends AbstractCatalog
                     // Warn that there is an error of a null set name
                 	log.info(LogManager.getHeader(null, "oai_error",
                        "null_set_name_for_set_id_" +
-                       collection.getPersistentIdentifier().getCanonicalForm()));
+                       collection.getExternalIdentifier().getCanonicalForm()));
+                }
+                spec.append("</set>");
+                sets.add(spec.toString());
+            }
+
+            for (Community community : communityDAO.getCommunities())
+            {
+                String uri =
+                    community.getExternalIdentifier().getCanonicalForm();
+
+                spec = new StringBuffer("<set><setSpec>hdl_");
+                spec.append(uri.replace(':', '_').replace('/', '_'));
+                spec.append("</setSpec>");
+                String commName = community.getMetadata("name");
+                if(commName != null)
+                {
+                	spec.append("<setName>");
+                	spec.append(Utils.addEntities(commName));
+                	spec.append("</setName>");
+                }
+                else
+                {
+                	spec.append("<setName />");
+                    // Warn that there is an error of a null set name
+                	log.info(LogManager.getHeader(null, "oai_error",
+                       "null_set_name_for_set_id_" +
+                       community.getExternalIdentifier().getCanonicalForm()));
                 }
                 spec.append("</set>");
                 sets.add(spec.toString());
@@ -765,7 +796,7 @@ public class DSpaceOAICatalog extends AbstractCatalog
      * @return the corresponding community or collection, or null if no set
      *         provided
      */
-    private Collection resolveSet(Context context, String set)
+    private DSpaceObject resolveSet(Context context, String set)
             throws SQLException, BadArgumentException
     {
         if (set == null)
@@ -779,7 +810,7 @@ public class DSpaceOAICatalog extends AbstractCatalog
          * set specs are in form xyz_123.456_789 corresponding to
          * xyz:123.456/789
          */
-        for (PersistentIdentifier.Type type : PersistentIdentifier.Type.values())
+        for (ExternalIdentifier.Type type : ExternalIdentifier.Type.values())
         {
             if (set.startsWith(type.getNamespace() + "_"))
             {
@@ -787,18 +818,21 @@ public class DSpaceOAICatalog extends AbstractCatalog
                 // colon, and all subsequent underscores into forward slashes.
                 String uri = set.replaceFirst("_", ":").replace('_', '/');
 
-                PersistentIdentifierDAO identifierDAO =
-                    PersistentIdentifierDAOFactory.getInstance(context);
-                PersistentIdentifier identifier = identifierDAO.retrieve(uri);
+                ExternalIdentifierDAO identifierDAO =
+                    ExternalIdentifierDAOFactory.getInstance(context);
+                ExternalIdentifier identifier = identifierDAO.retrieve(uri);
 
-                o = ArchiveManager.getObject(context, identifier);
+                ObjectIdentifier oi = identifier.getObjectIdentifier();
+                o = oi.getObject(context);
             }
         }
 
-        // If it corresponds to a collection, that's the set we want
-        if ((o != null) && o instanceof Collection)
+        // If it corresponds to a collection or a community, that's the set we
+        // want
+        if ((o != null) &&
+                ((o instanceof Collection) || (o instanceof Community))) 
         {
-            return (Collection) o;
+            return o;
         }
 
         // URI is either non-existent, or corresponds to a non-collection

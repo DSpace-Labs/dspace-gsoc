@@ -57,9 +57,10 @@ import org.dspace.content.Collection;
 import org.dspace.content.DCDate;
 import org.dspace.content.DCValue;
 import org.dspace.content.Item;
-import org.dspace.content.uri.PersistentIdentifier;
-import org.dspace.content.uri.dao.PersistentIdentifierDAO;
-import org.dspace.content.uri.dao.PersistentIdentifierDAOFactory;
+import org.dspace.content.dao.CollectionDAOFactory;
+import org.dspace.content.uri.ExternalIdentifier;
+import org.dspace.content.uri.dao.ExternalIdentifierDAO;
+import org.dspace.content.uri.dao.ExternalIdentifierDAOFactory;
 import org.dspace.core.ConfigurationManager;
 import org.dspace.core.Context;
 import org.dspace.core.Email;
@@ -197,8 +198,9 @@ public class Subscribe
         {
             TableRow row = tri.next();
 
-            collections.add(Collection.find(context, row
-                    .getIntColumn("collection_id")));
+            int id = row.getIntColumn("collection_id");
+            collections.add(
+                    CollectionDAOFactory.getInstance(context).retrieve(id));
         }
 
         tri.close();
@@ -290,8 +292,9 @@ public class Subscribe
                 collections = new ArrayList();
             }
 
-            collections.add(Collection.find(context, row
-                    .getIntColumn("collection_id")));
+            int id = row.getIntColumn("collection_id");
+            collections.add(
+                    CollectionDAOFactory.getInstance(context).retrieve(id));
         }
         
         tri.close();
@@ -328,7 +331,7 @@ public class Subscribe
             List collections) throws IOException, MessagingException,
             SQLException
     {
-        PersistentIdentifier identifier = null;
+        ExternalIdentifier identifier = null;
 
         // Get a resource bundle according to the eperson language preferences
         Locale epersonLocale = new Locale(eperson.getLanguage());

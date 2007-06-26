@@ -44,21 +44,24 @@ import java.io.InputStream;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import org.apache.log4j.Logger;
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.authorize.AuthorizeManager;
-import org.dspace.content.uri.PersistentIdentifier;
-import org.dspace.content.uri.dao.PersistentIdentifierDAO;
-import org.dspace.content.uri.dao.PersistentIdentifierDAOFactory;
+import org.dspace.content.dao.BitstreamDAO;         // Naughty!
+import org.dspace.content.dao.BitstreamDAOFactory;  // Naughty!
+import org.dspace.content.dao.BundleDAO;            // Naughty!
+import org.dspace.content.dao.BundleDAOFactory;     // Naughty!
+import org.dspace.content.uri.ObjectIdentifier;
+import org.dspace.content.uri.ExternalIdentifier;
+import org.dspace.content.uri.dao.ExternalIdentifierDAO;
+import org.dspace.content.uri.dao.ExternalIdentifierDAOFactory;
 import org.dspace.core.ConfigurationManager;
 import org.dspace.core.Constants;
 import org.dspace.core.Context;
 import org.dspace.core.LogManager;
 import org.dspace.storage.bitstore.BitstreamStorageManager;
-import org.dspace.storage.rdbms.DatabaseManager;
-import org.dspace.storage.rdbms.TableRow;
-import org.dspace.storage.rdbms.TableRowIterator;
 
 import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
@@ -80,52 +83,28 @@ public class Bitstream extends DSpaceObject
     /** log4j logger */
     private static Logger log = Logger.getLogger(Bitstream.class);
 
-    /** Our context */
-    private Context bContext;
+    private Context context;
+    private BitstreamDAO dao;
+    private BundleDAO bundleDAO;
 
-    /** The row in the table representing this bitstream */
-    private TableRow bRow;
-
-    /** The bitstream format corresponding to this bitstream */
+    private int sequenceID;
+    private String name;
+    private String source;
+    private String description;
+    private String checksum;
+    private String checksumAlgorithm;
+    private Long sizeBytes;
+    private String userFormatDescription;
     private BitstreamFormat bitstreamFormat;
+    private int storeNumber;
+    private String internalID;
 
-    /** Experimental persistent identifier stuff */
-    private List<PersistentIdentifier> identifiers;
-
-    /**
-     * Private constructor for creating a Bitstream object based on the contents
-     * of a DB table row.
-     *
-     * @param context
-     *            the context this object exists in
-     * @param row
-     *            the corresponding row in the table
-     * @throws SQLException
-     */
-//    Bitstream(Context context, TableRow row) throws SQLException
-    public Bitstream(Context context, TableRow row) throws SQLException
+    public Bitstream(Context context, int id)
     {
-        bContext = context;
-        bRow = row;
-
-        // Get the bitstream format
-        bitstreamFormat = BitstreamFormat.find(context, row
-                .getIntColumn("bitstream_format_id"));
-
-        if (bitstreamFormat == null)
-        {
-            // No format: use "Unknown"
-            bitstreamFormat = BitstreamFormat.findUnknown(context);
-
-            // Panic if we can't find it
-            if (bitstreamFormat == null)
-            {
-                throw new IllegalStateException("No Unknown bitsream format");
-            }
-        }
-
-        // Cache ourselves
-        context.cache(this, row.getIntColumn("bitstream_id"));
+        this.id = id;
+        this.context = context;
+        this.dao = BitstreamDAOFactory.getInstance(context);
+        this.bundleDAO = BundleDAOFactory.getInstance(context);
 
         // Experimental persistent identifier stuff
         PersistentIdentifierDAO identifierDAO =
@@ -133,167 +112,36 @@ public class Bitstream extends DSpaceObject
         this.identifiers = identifierDAO.getPersistentIdentifiers(this);
     }
 
-    /**
-     * Get a bitstream from the database. The bitstream metadata is loaded into
-     * memory.
-     *
-     * @param context
-     *            DSpace context object
-     * @param id
-     *            ID of the bitstream
-     *
-     * @return the bitstream, or null if the ID is invalid.
-     * @throws SQLException
-     */
-    public static Bitstream find(Context context, int id) throws SQLException
-    {
-        // First check the cache
-        Bitstream fromCache = (Bitstream) context
-                .fromCache(Bitstream.class, id);
-
-        if (fromCache != null)
-        {
-            return fromCache;
-        }
-
-        TableRow row = DatabaseManager.find(context, "bitstream", id);
-
-        if (row == null)
-        {
-            if (log.isDebugEnabled())
-            {
-                log.debug(LogManager.getHeader(context, "find_bitstream",
-                        "not_found,bitstream_id=" + id));
-            }
-
-            return null;
-        }
-
-        // not null, return Bitstream
-        if (log.isDebugEnabled())
-        {
-            log.debug(LogManager.getHeader(context, "find_bitstream",
-                    "bitstream_id=" + id));
-        }
-
-        return new Bitstream(context, row);
-    }
-
-    /**
-     * Create a new bitstream, with a new ID. The checksum and file size are
-     * calculated. This method is not public, and does not check authorisation;
-     * other methods such as Bundle.createBitstream() will check authorisation.
-     * The newly created bitstream has the "unknown" format.
-     *
-     * @param context
-     *            DSpace context object
-     * @param is
-     *            the bits to put in the bitstream
-     *
-     * @return the newly created bitstream
-     * @throws IOException
-     * @throws SQLException
-     */
-    static Bitstream create(Context context, InputStream is)
-            throws IOException, SQLException
-    {
-        // Store the bits
-        int bitstreamID = BitstreamStorageManager.store(context, is);
-
-        log.info(LogManager.getHeader(context, "create_bitstream",
-                "bitstream_id=" + bitstreamID));
-
-        // Set the format to "unknown"
-        Bitstream bitstream = find(context, bitstreamID);
-        bitstream.setFormat(null);
-
-        return bitstream;
-    }
-
-    /**
-     * Register a new bitstream, with a new ID.  The checksum and file size
-     * are calculated.  This method is not public, and does not check
-     * authorisation; other methods such as Bundle.createBitstream() will
-     * check authorisation.  The newly created bitstream has the "unknown"
-     * format.
-     *
-     * @param  context DSpace context object
-     * @param assetstore corresponds to an assetstore in dspace.cfg
-     * @param bitstreamPath the path and filename relative to the assetstore
-     * @return  the newly registered bitstream
-     * @throws IOException
-     * @throws SQLException
-     */
-    static Bitstream register(Context context,
-            int assetstore, String bitstreamPath)
-            throws IOException, SQLException
-    {
-        // Store the bits
-        int bitstreamID = BitstreamStorageManager.register(
-                context, assetstore, bitstreamPath);
-
-        log.info(LogManager.getHeader(context,
-            "create_bitstream",
-            "bitstream_id=" + bitstreamID));
-
-        // Set the format to "unknown"
-        Bitstream bitstream = find(context, bitstreamID);
-        bitstream.setFormat(null);
-
-        return bitstream;
-    }
-
-    /**
-     * Get the internal identifier of this bitstream
-     *
-     * @return the internal identifier
-     */
-    public int getID()
-    {
-        return bRow.getIntColumn("bitstream_id");
-    }
-
-    /**
-     * Get the sequence ID of this bitstream
-     *
-     * @return the sequence ID
-     */
     public int getSequenceID()
     {
-        return bRow.getIntColumn("sequence_id");
+        return sequenceID;
     }
 
-    /**
-     * Set the sequence ID of this bitstream
-     *
-     * @param sid
-     *            the ID
-     */
-    public void setSequenceID(int sid)
+    public void setSequenceID(int sequenceID)
     {
-        bRow.setColumn("sequence_id", sid);
+        this.sequenceID = sequenceID;
     }
 
-    /**
-     * Get the name of this bitstream - typically the filename, without any path
-     * information
-     *
-     * @return the name of the bitstream
-     */
+    // FIXME: Do we even want this exposed?
+    public String getInternalID()
+    {
+        return internalID;
+    }
+
+    // FIXME: Do we even want this exposed?
+    public void setInternalID(String internalID)
+    {
+        this.internalID = internalID;
+    }
+
     public String getName()
     {
-        return bRow.getStringColumn("name");
+        return name;
     }
 
-    /**
-     * Set the name of the bitstream
-     *
-     * @param n
-     *            the new name of the bitstream
-     */
-    public void setName(String n)
+    public void setName(String name)
     {
-        bRow.setColumn("name", n);
+        this.name = name;
     }
 
     /**
@@ -305,50 +153,38 @@ public class Bitstream extends DSpaceObject
      */
     public String getSource()
     {
-        return bRow.getStringColumn("source");
+        return source;
     }
 
-    /**
-     * Set the source of the bitstream
-     *
-     * @param n
-     *            the new source of the bitstream
-     */
-    public void setSource(String n)
+    public void setSource(String source)
     {
-        bRow.setColumn("source", n);
+        this.source = source;
     }
 
-    /**
-     * Get the description of this bitstream - optional free text, typically
-     * provided by a user at submission time
-     *
-     * @return the description of the bitstream
-     */
     public String getDescription()
     {
-        return bRow.getStringColumn("description");
+        return description;
     }
 
-    /**
-     * Set the description of the bitstream
-     *
-     * @param n
-     *            the new description of the bitstream
-     */
-    public void setDescription(String n)
+    public void setDescription(String description)
     {
-        bRow.setColumn("description", n);
+        this.description = description;
     }
 
     /**
-     * Get the checksum of the content of the bitstream, for integrity checking
+     * Get the checksum of the content of the bitstream.
      *
      * @return the checksum
      */
     public String getChecksum()
     {
-        return bRow.getStringColumn("checksum");
+        return checksum;
+    }
+
+    // FIXME: Do we even want this exposed?
+    public void setChecksum(String checksum)
+    {
+        this.checksum = checksum;
     }
 
     /**
@@ -358,7 +194,13 @@ public class Bitstream extends DSpaceObject
      */
     public String getChecksumAlgorithm()
     {
-        return bRow.getStringColumn("checksum_algorithm");
+        return checksumAlgorithm;
+    }
+
+    // FIXME: Do we even want this exposed?
+    public void setChecksumAlgorithm(String checksumAlgorithm)
+    {
+        this.checksumAlgorithm = checksumAlgorithm;
     }
 
     /**
@@ -368,23 +210,25 @@ public class Bitstream extends DSpaceObject
      */
     public long getSize()
     {
-        return bRow.getLongColumn("size_bytes");
+        return (sizeBytes == null ? 0 : sizeBytes.longValue());
+    }
+
+    // FIXME: Do we even want this exposed?
+    public void setSize(Long sizeBytes)
+    {
+        this.sizeBytes = sizeBytes;
     }
 
     /**
      * Set the user's format description. This implies that the format of the
      * bitstream is uncertain, and the format is set to "unknown."
      *
-     * @param desc
-     *            the user's description of the format
-     * @throws SQLException
+     * @param desc the user's description of the format
      */
-    public void setUserFormatDescription(String desc) throws SQLException
+    public void setUserFormatDescription(String desc)
     {
-        // FIXME: Would be better if this didn't throw an SQLException,
-        // but we need to find the unknown format!
         setFormat(null);
-        bRow.setColumn("user_format_description", desc);
+        this.userFormatDescription = desc;
     }
 
     /**
@@ -395,7 +239,7 @@ public class Bitstream extends DSpaceObject
      */
     public String getUserFormatDescription()
     {
-        return bRow.getStringColumn("user_format_description");
+        return userFormatDescription;
     }
 
     /**
@@ -409,14 +253,12 @@ public class Bitstream extends DSpaceObject
         if (bitstreamFormat.getShortDescription().equals("Unknown"))
         {
             // Get user description if there is one
-            String desc = bRow.getStringColumn("user_format_description");
-
-            if (desc == null)
+            if (userFormatDescription == null)
             {
                 return "Unknown";
             }
 
-            return desc;
+            return userFormatDescription;
         }
 
         // not null or Unknown
@@ -441,16 +283,20 @@ public class Bitstream extends DSpaceObject
      * @param f
      *            the format of this bitstream, or <code>null</code> for
      *            unknown
-     * @throws SQLException
      */
-    public void setFormat(BitstreamFormat f) throws SQLException
+    public void setFormat(BitstreamFormat f)
     {
-        // FIXME: Would be better if this didn't throw an SQLException,
-        // but we need to find the unknown format!
         if (f == null)
         {
             // Use "Unknown" format
-            bitstreamFormat = BitstreamFormat.findUnknown(bContext);
+            try
+            {
+                bitstreamFormat = BitstreamFormat.findUnknown(context);
+            }
+            catch (SQLException sqle)
+            {
+                throw new RuntimeException(sqle);
+            }
         }
         else
         {
@@ -458,147 +304,120 @@ public class Bitstream extends DSpaceObject
         }
 
         // Remove user type description
-        bRow.setColumnNull("user_format_description");
-
-        // Update the ID in the table row
-        bRow.setColumn("bitstream_format_id", bitstreamFormat.getID());
-    }
-
-    /**
-     * Update the bitstream metadata. Note that the content of the bitstream
-     * cannot be changed - for that you need to create a new bitstream.
-     *
-     * @throws SQLException
-     * @throws AuthorizeException
-     */
-    public void update() throws SQLException, AuthorizeException
-    {
-        // Check authorisation
-        AuthorizeManager.authorizeAction(bContext, this, Constants.WRITE);
-
-        log.info(LogManager.getHeader(bContext, "update_bitstream",
-                "bitstream_id=" + getID()));
-
-        DatabaseManager.update(bContext, bRow);
-    }
-
-    /**
-     * Delete the bitstream, including any mappings to bundles
-     *
-     * @throws SQLException
-     */
-//    void delete() throws SQLException
-    public void delete() throws SQLException
-    {
-        boolean oracle = false;
-        if ("oracle".equals(ConfigurationManager.getProperty("db.name")))
-        {
-            oracle = true;
-        }
-
-        // changed to a check on remove
-        // Check authorisation
-        //AuthorizeManager.authorizeAction(bContext, this, Constants.DELETE);
-        log.info(LogManager.getHeader(bContext, "delete_bitstream",
-                "bitstream_id=" + getID()));
-
-        // Remove from cache
-        bContext.removeCached(this, getID());
-
-        // Remove policies
-        AuthorizeManager.removeAllPolicies(bContext, this);
-
-        // Remove references to primary bitstreams in bundle
-        String query = "update bundle set primary_bitstream_id = ";
-        query += (oracle ? "''" : "Null") + " where primary_bitstream_id = ? ";
-        DatabaseManager.updateQuery(bContext,
-                query, bRow.getIntColumn("bitstream_id"));
-
-        // Remove bitstream itself
-        BitstreamStorageManager.delete(bContext, bRow
-                .getIntColumn("bitstream_id"));
+        userFormatDescription = null;
     }
 
     /**
      * Retrieve the contents of the bitstream
      *
      * @return a stream from which the bitstream can be read.
-     * @throws IOException
-     * @throws SQLException
      * @throws AuthorizeException
      */
-    public InputStream retrieve() throws IOException, SQLException,
-            AuthorizeException
+    public InputStream retrieve() throws AuthorizeException
     {
         // Maybe should return AuthorizeException??
-        AuthorizeManager.authorizeAction(bContext, this, Constants.READ);
+        AuthorizeManager.authorizeAction(context, this, Constants.READ);
 
-        return BitstreamStorageManager.retrieve(bContext, bRow
-                .getIntColumn("bitstream_id"));
-    }
-
-    /**
-     * Get the bundles this bitstream appears in
-     *
-     * @return array of <code>Bundle</code> s this bitstream appears in
-     * @throws SQLException
-     */
-    public Bundle[] getBundles() throws SQLException
-    {
-        // Get the bundle table rows
-        TableRowIterator tri = DatabaseManager.queryTable(bContext, "bundle",
-                "SELECT bundle.* FROM bundle, bundle2bitstream WHERE " +
-                "bundle.bundle_id=bundle2bitstream.bundle_id AND " +
-                "bundle2bitstream.bitstream_id= ? ",
-                 bRow.getIntColumn("bitstream_id"));
-
-        // Build a list of Bundle objects
-        List bundles = new ArrayList();
-
-        while (tri.hasNext())
+        try
         {
-            TableRow r = tri.next();
-
-            // First check the cache
-            Bundle fromCache = (Bundle) bContext.fromCache(Bundle.class, r
-                    .getIntColumn("bundle_id"));
-
-            if (fromCache != null)
-            {
-                bundles.add(fromCache);
-            }
-            else
-            {
-                bundles.add(new Bundle(bContext, r));
-            }
+            return BitstreamStorageManager.retrieve(context, getID());
         }
-
-        // close the TableRowIterator to free up resources
-        tri.close();
-
-        Bundle[] bundleArray = new Bundle[bundles.size()];
-        bundleArray = (Bundle[]) bundles.toArray(bundleArray);
-
-        return bundleArray;
+        catch (IOException ioe)
+        {
+            throw new RuntimeException(ioe);
+        }
+        catch (SQLException sqle)
+        {
+            throw new RuntimeException(sqle);
+        }
     }
-
+    
     /**
      * Determine if this bitstream is registered
      *
      * @return true if the bitstream is registered, false otherwise
      */
-    public boolean isRegisteredBitstream() {
-        return BitstreamStorageManager
-                .isRegisteredBitstream(bRow.getStringColumn("internal_id"));
+    public boolean isRegisteredBitstream()
+    {
+        return BitstreamStorageManager.isRegisteredBitstream(internalID);
     }
-
+    
     /**
      * Get the asset store number where this bitstream is stored
      *
      * @return the asset store number of the bitstream
      */
-    public int getStoreNumber() {
-        return bRow.getIntColumn("store_number");
+    public int getStoreNumber()
+    {
+        return storeNumber;
+    }
+
+    // FIXME: Do we even want this exposed?
+    public void setStoreNumber(int storeNumber)
+    {
+        this.storeNumber = storeNumber;
+    }
+
+    ////////////////////////////////////////////////////////////////////
+    // Utility methods
+    ////////////////////////////////////////////////////////////////////
+
+    public int getType()
+    {
+        return Constants.BITSTREAM;
+    }
+
+    /** Deprecated by the introduction of DAOs */
+    @Deprecated
+    public Bitstream(Context context, org.dspace.storage.rdbms.TableRow row)
+    {
+        this(context, row.getIntColumn("bitstream_id"));
+    }
+
+    @Deprecated
+    public static Bitstream find(Context context, int id)
+    {
+        return BitstreamDAOFactory.getInstance(context).retrieve(id);
+    }
+
+    @Deprecated
+    public static Bitstream find(Context context, UUID uuid)
+    {
+        return BitstreamDAOFactory.getInstance(context).retrieve(uuid);
+    }
+
+    @Deprecated
+    public Bundle[] getBundles()
+    {
+        List<Bundle> bundles = bundleDAO.getBundlesByBitstream(this);
+        return (Bundle[]) bundles.toArray(new Bundle[0]);
+    }
+
+    @Deprecated
+    static Bitstream create(Context context, InputStream is)
+            throws AuthorizeException
+    {
+        return BitstreamDAOFactory.getInstance(context).create(is);
+    }
+
+    @Deprecated
+    static Bitstream register(Context context, int assetstore,
+            String bitstreamPath) throws AuthorizeException
+    {
+        return BitstreamDAOFactory.getInstance(context).register(assetstore,
+                bitstreamPath);
+    }
+
+    @Deprecated
+    public void update() throws AuthorizeException
+    {
+        dao.update(this);
+    }
+
+    @Deprecated
+    void delete() throws AuthorizeException
+    {
+        dao.delete(this.getID());
     }
 
     ////////////////////////////////////////////////////////////////////

@@ -57,10 +57,10 @@ import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.Collection;
 import org.dspace.content.DCValue;
 import org.dspace.content.Item;
-import org.dspace.content.uri.PersistentIdentifier;
-import org.dspace.content.uri.dao.PersistentIdentifierDAO;
-import org.dspace.content.uri.dao.PersistentIdentifierDAOFactory;
-import org.dspace.core.ArchiveManager;
+import org.dspace.content.uri.ObjectIdentifier;
+import org.dspace.content.uri.ExternalIdentifier;
+import org.dspace.content.uri.dao.ExternalIdentifierDAO;
+import org.dspace.content.uri.dao.ExternalIdentifierDAOFactory;
 import org.dspace.core.ConfigurationManager;
 import org.dspace.core.Context;
 import org.dspace.core.Email;
@@ -84,12 +84,13 @@ public class SuggestServlet extends DSpaceServlet
     					   HttpServletResponse response)
         throws ServletException, IOException, SQLException, AuthorizeException
     {
-        PersistentIdentifierDAO identifierDAO =
-            PersistentIdentifierDAOFactory.getInstance(context);
+        ExternalIdentifierDAO identifierDAO =
+            ExternalIdentifierDAOFactory.getInstance(context);
 
         // Obtain information from request
         String uri = request.getParameter("uri");
-        PersistentIdentifier identifier = identifierDAO.retrieve(uri);
+        ExternalIdentifier identifier = identifierDAO.retrieve(uri);
+        ObjectIdentifier oi = identifier.getObjectIdentifier();
         
         // Lookup Item title & collection
         Item item = null;
@@ -98,8 +99,8 @@ public class SuggestServlet extends DSpaceServlet
         String collName = null;
         if (identifier != null)
         {
-            item = (Item) ArchiveManager.getObject(context, identifier);
-            link = item.getURL().toString();
+            item = (Item) oi.getObject(context);
+            link = item.getIdentifier().getURL().toString();
             request.setAttribute("link", link);
 
             if (item != null)

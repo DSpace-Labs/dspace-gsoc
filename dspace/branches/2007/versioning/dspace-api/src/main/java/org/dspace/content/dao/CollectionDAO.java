@@ -43,6 +43,7 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import org.apache.log4j.Logger;
 
@@ -55,8 +56,9 @@ import org.dspace.content.Community;
 import org.dspace.content.Item;
 import org.dspace.content.ItemIterator;
 import org.dspace.content.WorkspaceItem;
-import org.dspace.content.uri.PersistentIdentifier;
-import org.dspace.content.uri.dao.PersistentIdentifierDAO;
+import org.dspace.content.uri.ObjectIdentifier;
+import org.dspace.content.uri.ExternalIdentifier;
+import org.dspace.content.uri.dao.ExternalIdentifierDAO;
 import org.dspace.core.ArchiveManager;
 import org.dspace.core.Constants;
 import org.dspace.core.Context;
@@ -74,8 +76,9 @@ public abstract class CollectionDAO extends ContentDAO
     protected static Logger log = Logger.getLogger(CollectionDAOPostgres.class);
 
     protected Context context;
+    protected BitstreamDAO bitstreamDAO;
     protected ItemDAO itemDAO;
-    protected PersistentIdentifierDAO identifierDAO;
+    protected ExternalIdentifierDAO identifierDAO;
 
     public abstract Collection create() throws AuthorizeException;
 
@@ -84,16 +87,18 @@ public abstract class CollectionDAO extends ContentDAO
     // need access to the item that was created, but we can't reach into the
     // subclass to get it (storing it as a protected member variable would be
     // even more filthy).
-    public Collection create(int id) throws AuthorizeException
+    public Collection create(int id, UUID uuid) throws AuthorizeException
     {
         try
         {
             Collection collection = new Collection(context, id);
 
+            collection.setIdentifier(new ObjectIdentifier(uuid));
+
             // Create a default persistent identifier for this Collection, and
             // add it to the in-memory Colleciton object.
-            PersistentIdentifier identifier = identifierDAO.create(collection);
-            collection.addPersistentIdentifier(identifier);
+            ExternalIdentifier identifier = identifierDAO.create(collection);
+            collection.addExternalIdentifier(identifier);
 
             // create the default authorization policy for collections
             // of 'anonymous' READ
@@ -126,7 +131,8 @@ public abstract class CollectionDAO extends ContentDAO
 
             log.info(LogManager.getHeader(context, "create_collection",
                     "collection_id=" + collection.getID())
-                    + ",uri=" + collection.getPersistentIdentifier().getCanonicalForm());
+                    + ",uri=" +
+                    collection.getExternalIdentifier().getCanonicalForm());
             
             return collection;
         }
@@ -139,6 +145,11 @@ public abstract class CollectionDAO extends ContentDAO
     public Collection retrieve(int id)
     {
         return (Collection) context.fromCache(Collection.class, id);
+    }
+
+    public Collection retrieve(UUID uuid)
+    {
+        return null;
     }
 
     public void update(Collection collection) throws AuthorizeException

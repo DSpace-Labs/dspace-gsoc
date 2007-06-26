@@ -63,13 +63,15 @@ import org.dspace.core.Constants;
 import org.dspace.core.Context;
 import org.dspace.core.I18nUtil;
 import org.dspace.core.LogManager;
+import org.dspace.content.dao.BitstreamDAO;         // Naughty!
+import org.dspace.content.dao.BitstreamDAOFactory;  // Naughty!
 import org.dspace.content.dao.CollectionDAO;        // Naughty!
 import org.dspace.content.dao.CollectionDAOFactory; // Naughty!
 import org.dspace.content.dao.CommunityDAO;         // Naughty!
 import org.dspace.content.dao.CommunityDAOFactory;  // Naughty!
 import org.dspace.content.dao.ItemDAO;              // Naughty!
 import org.dspace.content.dao.ItemDAOFactory;       // Naughty!
-import org.dspace.content.uri.PersistentIdentifier;
+import org.dspace.content.uri.ExternalIdentifier;
 import org.dspace.eperson.Group;
 import org.dspace.history.HistoryManager;
 import org.dspace.search.DSIndexer;
@@ -96,12 +98,11 @@ public class Collection extends DSpaceObject
 
     private Context context;
     private CollectionDAO dao;
+    private BitstreamDAO bitstreamDAO;
     private ItemDAO itemDAO;
     private CommunityDAO communityDAO;
 
-    private int id;
     private String identifier;
-    private List<PersistentIdentifier> identifiers;
     private String license;
     private Bitstream logo;
     private Item templateItem;
@@ -121,53 +122,14 @@ public class Collection extends DSpaceObject
         this.id = id;
         this.context = context;
         this.dao = CollectionDAOFactory.getInstance(context);
+        this.bitstreamDAO = BitstreamDAOFactory.getInstance(context);
         this.itemDAO = ItemDAOFactory.getInstance(context);
         this.communityDAO = CommunityDAOFactory.getInstance(context);
 
-        this.identifiers = new ArrayList<PersistentIdentifier>();
+        this.identifiers = new ArrayList<ExternalIdentifier>();
         this.metadata = new TreeMap<String, String>();
         this.workflowGroups = new Group[3];
     }
-
-    public int getID()
-    {
-        return id;
-    }
-
-    public void setID(int id)
-    {
-        this.id = id;
-    }
-
-    /**
-     * For those cases where you only want one, and you don't care what sort.
-     */
-    public PersistentIdentifier getPersistentIdentifier()
-    {
-        if (identifiers.size() > 0)
-        {
-            return identifiers.get(0);
-        }
-        else
-        {
-            throw new RuntimeException(
-                    "I don't have any persistent identifiers.\n" + this);
-        }
-    }
-
-    public List<PersistentIdentifier> getPersistentIdentifiers()
-    {
-        return identifiers;
-    }
-
-    public void addPersistentIdentifier(PersistentIdentifier identifier)
-    {
-        this.identifiers.add(identifier);
-    }
-
-    public void setPersistentIdentifiers(List<PersistentIdentifier> identifiers)
-    {
-        this.identifiers = identifiers;
     }
 
     public Group getSubmitters()
@@ -339,7 +301,7 @@ public class Collection extends DSpaceObject
             }
             else
             {
-                logo = Bitstream.create(context, is);
+                logo = bitstreamDAO.create(is);
 
                 // now create policy for logo bitstream
                 // to match our READ policy

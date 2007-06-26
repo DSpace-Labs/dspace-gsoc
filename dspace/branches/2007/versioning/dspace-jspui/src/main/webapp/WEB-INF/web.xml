@@ -57,7 +57,7 @@
 
   <context-param>
     <param-name>dspace-config</param-name>
-    <param-value>@@dspace.dir@@/config/dspace.cfg</param-value>
+    <param-value>${dspace.dir}/config/dspace.cfg</param-value>
     <description>
       The location of the main DSpace configuration file
     </description>
@@ -147,11 +147,6 @@
   <servlet>
     <servlet-name>itemmap</servlet-name>
     <servlet-class>org.dspace.app.webui.servlet.admin.ItemMapServlet</servlet-class>
-  </servlet>
-
-  <servlet>
-    <servlet-name>bitstream</servlet-name>
-    <servlet-class>org.dspace.app.webui.servlet.BitstreamServlet</servlet-class>
   </servlet>
 
   <servlet>
@@ -430,11 +425,6 @@
   </servlet-mapping>
 
   <servlet-mapping>
-    <servlet-name>bitstream</servlet-name>
-    <url-pattern>/bitstream/*</url-pattern>
-  </servlet-mapping>
-
-  <servlet-mapping>
     <servlet-name>browse-author</servlet-name>
     <url-pattern>/browse-author</url-pattern>
   </servlet-mapping>
@@ -587,6 +577,7 @@
   <servlet-mapping>
     <servlet-name>openURL</servlet-name>
     <url-pattern>/openURL</url-pattern>
+    <url-pattern>/openurl</url-pattern>
   </servlet-mapping>
 
   <servlet-mapping>

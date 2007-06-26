@@ -73,10 +73,14 @@ import org.dspace.content.FormatIdentifier;
 import org.dspace.content.Item;
 import org.dspace.content.MetadataField;
 import org.dspace.content.MetadataSchema;
-import org.dspace.content.uri.PersistentIdentifier;
-import org.dspace.content.uri.dao.PersistentIdentifierDAO;
-import org.dspace.content.uri.dao.PersistentIdentifierDAOFactory;
-import org.dspace.core.ArchiveManager;
+import org.dspace.content.dao.BitstreamDAOFactory;
+import org.dspace.content.dao.BundleDAOFactory;
+import org.dspace.content.dao.ItemDAO;
+import org.dspace.content.dao.ItemDAOFactory;
+import org.dspace.content.uri.ObjectIdentifier;
+import org.dspace.content.uri.ExternalIdentifier;
+import org.dspace.content.uri.dao.ExternalIdentifierDAO;
+import org.dspace.content.uri.dao.ExternalIdentifierDAOFactory;
 import org.dspace.core.Constants;
 import org.dspace.core.Context;
 import org.dspace.core.LogManager;
@@ -118,7 +122,8 @@ public class EditItemServlet extends DSpaceServlet
             HttpServletResponse response) throws ServletException, IOException,
             SQLException, AuthorizeException
     {
-        identifierDAO = PersistentIdentifierDAOFactory.getInstance(context);
+        ExternalIdentifierDAO identifierDAO =
+            ExternalIdentifierDAOFactory.getInstance(context);
 
         /*
          * GET with no parameters displays "find by URI/id" form parameter
@@ -127,29 +132,30 @@ public class EditItemServlet extends DSpaceServlet
          * are invalid, "find by URI/id" form is displayed again with error
          * message
          */
-        int internalID = UIUtil.getIntParameter(request, "item_id");
+        int itemID = UIUtil.getIntParameter(request, "item_id");
         String uri = request.getParameter("uri");
         boolean showError = false;
 
         // See if an item ID or URI was passed in
-        Item itemToEdit = null;
-
-        if (internalID > 0)
+        Item item = null;
+        if (itemID > 0)
         {
-            itemToEdit = Item.find(context, internalID);
+            ItemDAO itemDAO = ItemDAOFactory.getInstance(context);
+            item = itemDAO.retrieve(itemID);
 
-            showError = (itemToEdit == null);
+            showError = (item == null);
         }
         else if ((uri != null) && !uri.equals(""))
         {
             // resolve uri
-            PersistentIdentifier identifier = identifierDAO.retrieve(uri);
-            DSpaceObject dso = ArchiveManager.getObject(context, identifier);
+            ExternalIdentifier identifier = identifierDAO.retrieve(uri);
+            ObjectIdentifier oi = identifier.getObjectIdentifier();
+            DSpaceObject dso = oi.getObject(context);
 
             // make sure it's an ITEM
             if ((dso != null) && (dso.getType() == Constants.ITEM))
             {
-                itemToEdit = (Item) dso;
+                item = (Item) dso;
                 showError = false;
             }
             else
@@ -159,11 +165,11 @@ public class EditItemServlet extends DSpaceServlet
         }
 
         // Show edit form if appropriate
-        if (itemToEdit != null)
+        if (item != null)
         {
             // now check to see if person can edit item
-            checkEditAuthorization(context, itemToEdit);
-            showEditForm(context, request, response, itemToEdit);
+            checkEditAuthorization(context, item);
+            showEditForm(context, request, response, item);
         }
         else
         {
@@ -180,7 +186,14 @@ public class EditItemServlet extends DSpaceServlet
             HttpServletResponse response) throws ServletException, IOException,
             SQLException, AuthorizeException
     {
-        identifierDAO = PersistentIdentifierDAOFactory.getInstance(context);
+        int itemID = UIUtil.getIntParameter(request, "item_id");
+
+        Item item = null;
+        if (itemID > 0)
+        {
+            ItemDAO itemDAO = ItemDAOFactory.getInstance(context);
+            item = itemDAO.retrieve(itemID);
+        }
 
         // First, see if we have a multipart request (uploading a new bitstream)
         String contentType = request.getContentType();
@@ -189,7 +202,7 @@ public class EditItemServlet extends DSpaceServlet
                 && (contentType.indexOf("multipart/form-data") != -1))
         {
             // This is a multipart request, so it's a file upload
-            processUploadBitstream(context, request, response);
+            processUploadBitstream(context, request, response, item);
 
             return;
         }
@@ -211,9 +224,6 @@ public class EditItemServlet extends DSpaceServlet
          */
         int action = UIUtil.getIntParameter(request, "action");
 
-        Item item = Item.find(context, UIUtil.getIntParameter(request,
-                "item_id"));
- 
         // now check to see if person can edit item
         checkEditAuthorization(context, item);
 
@@ -480,8 +490,10 @@ public class EditItemServlet extends DSpaceServlet
                 int bundleID = Integer.parseInt(st.nextToken());
                 int bitstreamID = Integer.parseInt(st.nextToken());
 
-                Bundle bundle = Bundle.find(context, bundleID);
-                Bitstream bitstream = Bitstream.find(context, bitstreamID);
+                Bundle bundle =
+                    BundleDAOFactory.getInstance(context).retrieve(bundleID);
+                Bitstream bitstream =
+                    BitstreamDAOFactory.getInstance(context).retrieve(bitstreamID);
 
                 // Get the string "(bundleID)_(bitstreamID)" for finding other
                 // parameters related to this bitstream
@@ -534,8 +546,7 @@ public class EditItemServlet extends DSpaceServlet
                     bitstream.setName(name);
                     bitstream.setSource(source);
                     bitstream.setDescription(desc);
-                    bitstream
-                            .setFormat(BitstreamFormat.find(context, formatID));
+                    bitstream.setFormat(BitstreamFormat.find(context, formatID));
 
                     if (primaryBitstreamID > 0)
                     {
@@ -619,16 +630,13 @@ public class EditItemServlet extends DSpaceServlet
      *            current servlet response object
      */
     private void processUploadBitstream(Context context,
-            HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException, SQLException,
-            AuthorizeException
+            HttpServletRequest request, HttpServletResponse response,
+            Item item)
+        throws ServletException, IOException, SQLException, AuthorizeException
     {
         // Wrap multipart request to get the submission info
         FileUploadRequest wrapper = new FileUploadRequest(request);
         Bitstream b = null;
-
-        Item item = Item.find(context, UIUtil.getIntParameter(wrapper,
-                "item_id"));
 
         File temp = wrapper.getFile("file");
 

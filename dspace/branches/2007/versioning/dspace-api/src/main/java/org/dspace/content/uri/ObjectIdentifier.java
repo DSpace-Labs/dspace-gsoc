@@ -39,13 +39,38 @@
  */
 package org.dspace.content.uri;
 
+import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLEncoder;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
+import org.apache.commons.lang.builder.ToStringBuilder;
+import org.apache.commons.lang.builder.ToStringStyle;
+import org.apache.log4j.Logger;
 
+import org.dspace.content.Bitstream;
+import org.dspace.content.Bundle;
+import org.dspace.content.Item;
+import org.dspace.content.Collection;
+import org.dspace.content.Community;
 import org.dspace.content.DSpaceObject;
+import org.dspace.content.dao.BitstreamDAO;
+import org.dspace.content.dao.BitstreamDAOFactory;
+import org.dspace.content.dao.BundleDAO;
+import org.dspace.content.dao.BundleDAOFactory;
+import org.dspace.content.dao.ItemDAO;
+import org.dspace.content.dao.ItemDAOFactory;
+import org.dspace.content.dao.CollectionDAO;
+import org.dspace.content.dao.CollectionDAOFactory;
+import org.dspace.content.dao.CommunityDAO;
+import org.dspace.content.dao.CommunityDAOFactory;
+import org.dspace.core.ConfigurationManager;
 import org.dspace.core.Constants;
 import org.dspace.core.Context;
 
@@ -54,23 +79,174 @@ import org.dspace.core.Context;
  */
 public class ObjectIdentifier
 {
+    private static Logger log = Logger.getLogger(ObjectIdentifier.class);
+
     private int resourceID;
     private int resourceTypeID;
+    private UUID uuid;
+
+    private final Type TYPE;
+
+    public ObjectIdentifier()
+    {
+        this.TYPE = null;
+    }
 
     public ObjectIdentifier(int resourceID, int resourceTypeID)
     {
+        this.TYPE = Type.INTS;
         this.resourceID = resourceID;
         this.resourceTypeID = resourceTypeID;
     }
 
-    public ObjectIdentifier(DSpaceObject dso)
+    public ObjectIdentifier(UUID uuid)
     {
-        this(dso.getID(), dso.getType());
+        this.TYPE = Type.UUID;
+        this.uuid = uuid;
     }
 
-    public ObjectIdentifier(PersistentIdentifier pid)
+    public ObjectIdentifier(Type type, String value)
     {
-        this(pid.getResourceID(), pid.getResourceTypeID());
+        this.TYPE = type;
+        
+        switch (type)
+        {
+            case UUID:
+                // value will be a string representation of a UUID
+                this.uuid = UUID.fromString(value);
+                break;
+            case INTS:
+                // value will be (eg) "3/12"
+                this.resourceID =
+                    Integer.parseInt(value.substring(value.indexOf('/') + 1));
+                this.resourceTypeID =
+                    Integer.parseInt(value.substring(0, value.indexOf('/')));
+                break;
+            default:
+                throw new RuntimeException(":(");
+        }
+    }
+
+    public DSpaceObject getObject(Context context)
+    {
+        CommunityDAO communityDAO = CommunityDAOFactory.getInstance(context);
+        CollectionDAO collectionDAO =
+            CollectionDAOFactory.getInstance(context);
+        ItemDAO itemDAO = ItemDAOFactory.getInstance(context);
+        BundleDAO bundleDAO = BundleDAOFactory.getInstance(context);
+        BitstreamDAO bitstreamDAO = BitstreamDAOFactory.getInstance(context);
+
+        switch (TYPE)
+        {
+            case INTS:
+                switch(resourceTypeID)
+                {
+                    case (Constants.BITSTREAM):
+                        return bitstreamDAO.retrieve(resourceID);
+                    case (Constants.BUNDLE):
+                        return bundleDAO.retrieve(resourceID);
+                    case (Constants.ITEM):
+                        return itemDAO.retrieve(resourceID);
+                    case (Constants.COLLECTION):
+                        return collectionDAO.retrieve(resourceID);
+                    case (Constants.COMMUNITY):
+                        return communityDAO.retrieve(resourceID);
+                    default:
+                        throw new RuntimeException("Not a valid DSpaceObject type");
+                }
+            case UUID:
+                // If we have a UUID, there is no indication of what type of
+                // object it is attached to, so we just keep trying in sequence
+                // until we get something. This isn't an ideal approach, and we
+                // should probably re-order them to minimise lookups.
+                DSpaceObject dso = (Bitstream) bitstreamDAO.retrieve(uuid);
+
+                if (dso == null)
+                {
+                    dso = (Bundle) bundleDAO.retrieve(uuid);
+                }
+                if (dso == null)
+                {
+                    dso = (Item) itemDAO.retrieve(uuid);
+                }
+                if (dso == null)
+                {
+                    dso = (Collection) collectionDAO.retrieve(uuid);
+                }
+                if (dso == null)
+                {
+                    dso = (Community) communityDAO.retrieve(uuid);
+                }
+
+                if (dso == null)
+                {
+                    throw new RuntimeException("Couldn't find " + uuid);
+                }
+                else
+                {
+                    return dso;
+                }
+            default:
+                throw new RuntimeException("Whoops!");
+        }
+    }
+
+    public URL getURL()
+    {
+        String url = ConfigurationManager.getProperty("dspace.url") +
+            "/resource/" + getCanonicalForm();
+
+        try
+        {
+            return new URL(url);
+
+            // FIXME: The only reason I'm not doing this is because of the
+            // issues Tomcat < version 6 has with encoded slashes in URLs (it
+            // just refuses to parse them).
+//          return new URL(base + "resource/" + URLEncoder.encode(value, "UTF-8"));
+//        }
+//        catch (UnsupportedEncodingException uee)
+//        {
+//            throw new RuntimeException(uee);
+        }
+        catch (MalformedURLException murle)
+        {
+            throw new RuntimeException(murle);
+        }
+    }
+
+    public String getCanonicalForm()
+    {
+        String s = TYPE.getNamespace() + ":";
+
+        switch (TYPE)
+        {
+            case INTS:
+                s += resourceTypeID + "/" + resourceID;
+                break;
+            case UUID:
+                s += uuid.toString();
+                break;
+            default:
+                throw new RuntimeException("Whoops!");
+        }
+
+        return s;
+    }
+
+    public enum Type
+    {
+        INTS ("dsi"), // signifies a pair of integers (resource type + id)
+        UUID ("uuid");
+
+        private final String namespace;
+
+        private Type(String namespace)
+        {
+            this.namespace = namespace;
+        }
+
+        public String getNamespace() { return namespace; }
     }
 
     ////////////////////////////////////////////////////////////////////
@@ -79,7 +255,8 @@ public class ObjectIdentifier
 
     public String toString()
     {
-        return resourceTypeID + "/" + resourceID;
+        return ToStringBuilder.reflectionToString(this,
+                ToStringStyle.MULTI_LINE_STYLE);
     }
 
     public boolean equals(Object o)

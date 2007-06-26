@@ -65,10 +65,10 @@ import java.util.regex.Pattern;
 
 import org.dspace.content.DCValue;
 import org.dspace.content.Item;
-import org.dspace.content.uri.PersistentIdentifier;
-import org.dspace.content.uri.dao.PersistentIdentifierDAO;
-import org.dspace.content.uri.dao.PersistentIdentifierDAOFactory;
-import org.dspace.core.ArchiveManager;
+import org.dspace.content.uri.ObjectIdentifier;
+import org.dspace.content.uri.ExternalIdentifier;
+import org.dspace.content.uri.dao.ExternalIdentifierDAO;
+import org.dspace.content.uri.dao.ExternalIdentifierDAOFactory;
 import org.dspace.core.ConfigurationManager;
 import org.dspace.core.Context;
 
@@ -823,10 +823,11 @@ public class ReportGenerator
         // ensure that the URI exists
         try 
         {
-            PersistentIdentifierDAO identifierDAO =
-                PersistentIdentifierDAOFactory.getInstance(context);
-            PersistentIdentifier identifier = identifierDAO.retrieve(uri);
-            item = (Item) ArchiveManager.getObject(context, identifier);
+            ExternalIdentifierDAO identifierDAO =
+                ExternalIdentifierDAOFactory.getInstance(context);
+            ExternalIdentifier identifier = identifierDAO.retrieve(uri);
+            ObjectIdentifier oi = identifier.getObjectIdentifier();
+            item = (Item) oi.getObject(context);
         } 
         catch (Exception e)
         {

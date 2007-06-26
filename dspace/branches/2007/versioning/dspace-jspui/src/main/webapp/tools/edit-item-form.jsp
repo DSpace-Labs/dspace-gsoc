@@ -76,8 +76,8 @@
 
 <%
     Item item = (Item) request.getAttribute("item");
-    String uri = item.getPersistentIdentifier().getCanonicalForm();
-    String link = item.getURL().toString();
+    String uri = item.getExternalIdentifier().getCanonicalForm();
+    String link = item.getIdentifier().getURL().toString();
     Collection[] collections = (Collection[]) request.getAttribute("collections");
     MetadataField[] dcTypes = (MetadataField[])  request.getAttribute("dc.types");
     HashMap metadataFields = (HashMap) request.getAttribute("metadataFields");

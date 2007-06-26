@@ -54,10 +54,12 @@ import org.dspace.authorize.AuthorizeManager;
 import org.dspace.core.Constants;
 import org.dspace.core.Context;
 import org.dspace.core.LogManager;
-import org.dspace.content.dao.BundleDAO;        // Naughty!
-import org.dspace.content.dao.BundleDAOFactory; // Naughty!
-import org.dspace.content.dao.ItemDAO;          // Naughty!
-import org.dspace.content.dao.ItemDAOFactory;   // Naughty!
+import org.dspace.content.dao.BitstreamDAO;         // Naughty!
+import org.dspace.content.dao.BitstreamDAOFactory;  // Naughty!
+import org.dspace.content.dao.BundleDAO;            // Naughty!
+import org.dspace.content.dao.BundleDAOFactory;     // Naughty!
+import org.dspace.content.dao.ItemDAO;              // Naughty!
+import org.dspace.content.dao.ItemDAOFactory;       // Naughty!
 
 /**
  * Class representing bundles of bitstreams stored in the DSpace system
@@ -74,13 +76,13 @@ public class Bundle extends DSpaceObject
 {
     private static Logger log = Logger.getLogger(Bundle.class);
 
-    private int id;
     private String name;
     private int primaryBitstreamId;
     private List<Bitstream> bitstreams;
 
     private Context context;
     private BundleDAO dao;
+    private BitstreamDAO bitstreamDAO;
     private ItemDAO itemDAO;
 
     public Bundle(Context context)
@@ -93,21 +95,12 @@ public class Bundle extends DSpaceObject
         this.id = id;
         this.context = context;
         this.dao = BundleDAOFactory.getInstance(context);
+        this.bitstreamDAO = BitstreamDAOFactory.getInstance(context);
         this.itemDAO = ItemDAOFactory.getInstance(context);
 
         this.name = "";
         this.primaryBitstreamId = -1;
         this.bitstreams = new ArrayList<Bitstream>();
-    }
-
-    public int getID()
-    {
-        return id;
-    }
-
-    public void setID(int id)
-    {
-        this.id = id;
     }
 
     public String getName()
@@ -135,19 +128,20 @@ public class Bundle extends DSpaceObject
         this.primaryBitstreamId = primaryBitstreamId;
     }
 
+    public Bitstream getPrimaryBitstream()
+    {
+        return bitstreamDAO.retrieve(primaryBitstreamId);
+    }
+
     public Bitstream getBitstreamByName(String name)
     {
         Bitstream target = null;
 
-        Iterator i = bitstreams.iterator();
-
-        while (i.hasNext())
+        for (Bitstream bitstream : bitstreams)
         {
-            Bitstream b = (Bitstream) i.next();
-
-            if (name.equals(b.getName()))
+            if (name.equals(bitstream.getName()))
             {
-                target = b;
+                target = bitstream;
                 break;
             }
         }
@@ -170,7 +164,7 @@ public class Bundle extends DSpaceObject
     {
         AuthorizeManager.authorizeAction(context, this, Constants.ADD);
 
-        Bitstream b = Bitstream.create(context, is);
+        Bitstream b = bitstreamDAO.create(is);
 
         // FIXME: Set permissions for bitstream
 
@@ -184,7 +178,7 @@ public class Bundle extends DSpaceObject
     {
         AuthorizeManager.authorizeAction(context, this, Constants.ADD);
 
-        Bitstream b = Bitstream.register(context, assetstore, bitstreamPath);
+        Bitstream b = bitstreamDAO.register(assetstore, bitstreamPath);
 
         // FIXME: Set permissions for bitstream
 

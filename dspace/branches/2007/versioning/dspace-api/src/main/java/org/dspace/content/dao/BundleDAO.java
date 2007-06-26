@@ -41,6 +41,7 @@ package org.dspace.content.dao;
 
 import java.sql.SQLException;
 import java.util.List;
+import java.util.UUID;
 
 import org.apache.log4j.Logger;
 
@@ -52,6 +53,7 @@ import org.dspace.core.LogManager;
 import org.dspace.content.Bitstream;
 import org.dspace.content.Bundle;
 import org.dspace.content.Item;
+import org.dspace.content.uri.ObjectIdentifier;
 
 /**
  * @author James Rutherford
@@ -61,6 +63,8 @@ public abstract class BundleDAO extends ContentDAO
     protected Logger log = Logger.getLogger(BundleDAO.class);
 
     protected Context context;
+    protected BitstreamDAO bitstreamDAO;
+
     public abstract Bundle create() throws AuthorizeException;
 
     // FIXME: This should be called something else, but I can't think of
@@ -68,9 +72,11 @@ public abstract class BundleDAO extends ContentDAO
     // need access to the item that was created, but we can't reach into the
     // subclass to get it (storing it as a protected member variable would be
     // even more filthy).
-    public Bundle create(int id) throws AuthorizeException
+    public Bundle create(int id, UUID uuid) throws AuthorizeException
     {
         Bundle bundle = new Bundle(context, id);
+
+        bundle.setIdentifier(new ObjectIdentifier(uuid));
 
         log.info(LogManager.getHeader(context, "create_bundle", "bundle_id="
                 + bundle.getID()));
@@ -85,6 +91,11 @@ public abstract class BundleDAO extends ContentDAO
         return (Bundle) context.fromCache(Bundle.class, id);
     }
 
+    public Bundle retrieve(UUID uuid)
+    {
+        return null;
+    }
+
     // FIXME: Check authorization? Or do we count on this only ever happening
     // via an Item?
     public void update(Bundle bundle) throws AuthorizeException
@@ -92,7 +103,7 @@ public abstract class BundleDAO extends ContentDAO
         Bitstream[] bitstreams = bundle.getBitstreams();
 
         // Delete any Bitstreams that were removed from the in-memory list
-        for (Bitstream dbBitstream : getBitstreams(bundle))
+        for (Bitstream dbBitstream : bitstreamDAO.getBitstreamsByBundle(bundle))
         {
             boolean deleted = true;
 
@@ -123,7 +134,7 @@ public abstract class BundleDAO extends ContentDAO
     public void delete(int id) throws AuthorizeException
     {
         Bundle bundle = retrieve(id);
-        this.update(bundle); // Sync in-memory object with db before removal
+        this.update(bundle); // Sync in-memory object before removal
 
         // Remove from cache
         context.removeCached(bundle, id);
@@ -140,39 +151,32 @@ public abstract class BundleDAO extends ContentDAO
         AuthorizeManager.removeAllPolicies(context, bundle);
     }
 
-    public abstract List<Bundle> getBundles(Item item);
+    @Deprecated
+    public List<Bundle> getBundles(Item item)
+    {
+        return getBundlesByItem(item);
+    }
 
-    // FIXME: This should really be in BitstreamDAO, but that hasn't been
-    // implemented yet.
-    public abstract List<Bitstream> getBitstreams(Bundle bundle);
+    public abstract List<Bundle> getBundlesByItem(Item item);
+    public abstract List<Bundle> getBundlesByBitstream(Bitstream bitstream);
 
-    // FIXME: I'm not sure if i want this exposed, but we need it accessible in
-    // here and in subclasses.
-    protected void removeBitstreamFromBundle(Bundle bundle,
+    private void removeBitstreamFromBundle(Bundle bundle,
             Bitstream bitstream) throws AuthorizeException
     {
-        try
+        unlink(bundle, bitstream);
+
+        // In the event that the bitstream to remove is actually
+        // the primary bitstream, be sure to unset the primary
+        // bitstream.
+        if (bitstream.getID() == bundle.getPrimaryBitstreamID())
         {
-            unlink(bundle, bitstream);
-
-            // In the event that the bitstream to remove is actually
-            // the primary bitstream, be sure to unset the primary
-            // bitstream.
-            if (bitstream.getID() == bundle.getPrimaryBitstreamID())
-            {
-                bundle.unsetPrimaryBitstreamID();
-            }
-
-            // FIXME: This is slightly inconsistent with the other DAOs
-            if (bitstream.getBundles().length == 0)
-            {
-                // The bitstream is an orphan, delete it
-                bitstream.delete();
-            }
+            bundle.unsetPrimaryBitstreamID();
         }
-        catch (SQLException sqle)
+
+        if (bitstream.getBundles().length == 0)
         {
-            throw new RuntimeException(sqle);
+            // The bitstream is an orphan, delete it
+            bitstreamDAO.delete(bitstream.getID());
         }
     }
 

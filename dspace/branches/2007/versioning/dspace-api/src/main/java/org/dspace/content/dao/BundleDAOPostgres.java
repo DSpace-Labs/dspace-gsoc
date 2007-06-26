@@ -42,6 +42,7 @@ package org.dspace.content.dao;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.authorize.AuthorizeManager;
@@ -50,6 +51,7 @@ import org.dspace.core.Constants;
 import org.dspace.content.Bitstream;
 import org.dspace.content.Bundle;
 import org.dspace.content.Item;
+import org.dspace.content.uri.ObjectIdentifier;
 import org.dspace.storage.rdbms.DatabaseManager;
 import org.dspace.storage.rdbms.TableRow;
 import org.dspace.storage.rdbms.TableRowIterator;
@@ -61,10 +63,8 @@ public class BundleDAOPostgres extends BundleDAO
 {
     public BundleDAOPostgres(Context context)
     {
-        if (context != null)
-        {
-            this.context = context;
-        }
+        this.context = context;
+        this.bitstreamDAO = BitstreamDAOFactory.getInstance(context);
     }
 
     @Override
@@ -72,10 +72,15 @@ public class BundleDAOPostgres extends BundleDAO
     {
         try
         {
+            UUID uuid = UUID.randomUUID();
+
             TableRow row = DatabaseManager.create(context, "bundle");
+            row.setColumn("uuid", uuid.toString());
+            DatabaseManager.update(context, row);
+
             int id = row.getIntColumn("bundle_id");
 
-            return super.create(id);
+            return super.create(id, uuid);
         }
         catch (SQLException sqle)
         {
@@ -86,7 +91,6 @@ public class BundleDAOPostgres extends BundleDAO
     @Override
     public Bundle retrieve(int id)
     {
-        // First check the cache
         Bundle bundle = super.retrieve(id);
 
         if (bundle != null)
@@ -105,12 +109,7 @@ public class BundleDAOPostgres extends BundleDAO
             }
             else
             {
-                bundle = new Bundle(context, id);
-                populateBundleFromTableRow(bundle, row);
-
-                context.cache(bundle, id);
-
-                return bundle;
+                return retrieve(row);
             }
         }
         catch (SQLException sqle)
@@ -120,10 +119,50 @@ public class BundleDAOPostgres extends BundleDAO
     }
 
     @Override
+    public Bundle retrieve(UUID uuid)
+    {
+        Bundle bundle = super.retrieve(uuid);
+
+        if (bundle != null)
+        {
+            return bundle;
+        }
+
+        try
+        {
+            TableRow row = DatabaseManager.findByUnique(context, "bundle",
+                    "uuid", uuid.toString());
+
+            if (row == null)
+            {
+                log.warn("bundle " + uuid + " not found");
+                return null;
+            }
+            else
+            {
+                return retrieve(row);
+            }
+        }
+        catch (SQLException sqle)
+        {
+            throw new RuntimeException(sqle);
+        }
+    }
+
+    private Bundle retrieve(TableRow row)
+    {
+        int id = row.getIntColumn("bundle_id");
+        Bundle bundle = new Bundle(context, id);
+        populateBundleFromTableRow(bundle, row);
+
+        context.cache(bundle, id);
+
+        return bundle;
+    }
+
+    @Override
     public void update(Bundle bundle) throws AuthorizeException
     {
-        super.update(bundle);
-
         super.update(bundle);
 
         try
@@ -188,13 +227,39 @@ public class BundleDAOPostgres extends BundleDAO
     }
 
     @Override
-    public List<Bundle> getBundles(Item item)
+    public List<Bundle> getBundlesByItem(Item item)
     {
         try
         {
             TableRowIterator tri = DatabaseManager.query(context,
                     "SELECT bundle_id FROM item2bundle " +
                     "WHERE item_id = " + item.getID());
+
+            List<Bundle> bundles = new ArrayList<Bundle>();
+
+            for (TableRow row : tri.toList())
+            {
+                int id = row.getIntColumn("bundle_id");
+                bundles.add(retrieve(id));
+            }
+
+            return bundles;
+        }
+        catch (SQLException sqle)
+        {
+            throw new RuntimeException(sqle);
+        }
+    }
+
+    @Override
+    public List<Bundle> getBundlesByBitstream(Bitstream bitstream)
+    {
+        try
+        {
+            TableRowIterator tri = DatabaseManager.query(context,
+                    "SELECT bundle.* FROM bundle, bundle2bitstream " +
+                    "WHERE bundle.bundle_id = bundle2bitstream.bundle_id " +
+                    "AND bundle2bitstream.bitstream_id = " + bitstream.getID());
 
             List<Bundle> bundles = new ArrayList<Bundle>();
 
@@ -276,72 +341,19 @@ public class BundleDAOPostgres extends BundleDAO
         }
     }
 
-    public List<Bitstream> getBitstreams(Bundle bundle)
-    {
-        try
-        {
-            TableRowIterator tri = DatabaseManager.query(context, 
-                    "SELECT bitstream_id FROM bundle2bitstream " +
-                    " WHERE bundle_id = " + bundle.getID());
-
-            List<Bitstream> bitstreams = new ArrayList<Bitstream>();
-
-            // FIXME: This is slightly inconsistent with the other DAOs
-            for (TableRow row : tri.toList())
-            {
-                int id = row.getIntColumn("bitstream_id");
-                bitstreams.add(Bitstream.find(context, id));
-            }
-
-            return bitstreams;
-        }
-        catch (SQLException sqle)
-        {
-            throw new RuntimeException(sqle);
-        }
-    }
-
     ////////////////////////////////////////////////////////////////////
     // Utility methods
     ////////////////////////////////////////////////////////////////////
 
-    private void populateBundleFromTableRow(Bundle bundle, TableRow bundleRow)
+    private void populateBundleFromTableRow(Bundle bundle, TableRow row)
     {
-        try
-        {
-            // Get bitstreams
-            TableRowIterator tri = DatabaseManager.queryTable(
-                    context, "bitstream", "SELECT b.* " +
-                    "FROM bitstream b, bundle2bitstream b2b " +
-                    "WHERE b2b.bitstream_id = b.bitstream_id " +
-                    "AND b2b.bundle_id= ? ",
-                    bundle.getID());
+        UUID uuid = UUID.fromString(row.getStringColumn("uuid"));
+        List <Bitstream> bitstreams =
+            bitstreamDAO.getBitstreamsByBundle(bundle);
 
-            List <Bitstream> bitstreams = new ArrayList<Bitstream>();
-
-            for (TableRow row : tri.toList())
-            {
-                // FIXME: I'd like to do BitstreamDAO.retrieve(id);
-                Bitstream fromCache = (Bitstream) context.fromCache(
-                        Bitstream.class, row.getIntColumn("bitstream_id"));
-
-                if (fromCache != null)
-                {
-                    bitstreams.add(fromCache);
-                }
-                else
-                {
-                    bitstreams.add(new Bitstream(context, row));
-                }
-            }
-
-            bundle.setID(bundleRow.getIntColumn("bundle_id"));
-            bundle.setName(bundleRow.getStringColumn("name"));
-            bundle.setBitstreams(bitstreams);
-        }
-        catch (SQLException sqle)
-        {
-            throw new RuntimeException(sqle);
-        }
+        bundle.setIdentifier(new ObjectIdentifier(uuid));
+        bundle.setName(row.getStringColumn("name"));
+        bundle.setBitstreams(bitstreams);
     }
 }
+
