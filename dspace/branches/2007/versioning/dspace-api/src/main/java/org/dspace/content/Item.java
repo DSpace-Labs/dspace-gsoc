@@ -96,6 +96,13 @@ public class Item extends DSpaceObject
     protected boolean withdrawn;
     protected Date lastModified;
 
+    protected int revision;
+    protected int previousItemID;
+    /**
+     * @var originalItemID An integer that connects all revisions of a logical item.
+     */
+    protected int originalItemID;
+
     protected int owningCollectionId;
     protected Collection owningCollection;
     protected int submitterId;
@@ -119,6 +126,21 @@ public class Item extends DSpaceObject
         this.bundles = new ArrayList<Bundle>();
         this.metadata = new ArrayList<DCValue>();
         this.metadataChanged = false;
+    }
+
+    public int getID()
+    {
+        return id;
+    }
+
+    public void setID(int id)
+    {
+        this.id = id;
+    }
+
+    public int getOriginalItemID()
+    {
+        return this.originalItemID;
     }
 
     public void setOriginalItemID(int num)
@@ -204,14 +226,24 @@ public class Item extends DSpaceObject
         this.owningCollectionId = owningCollectionId;
     }
 
-    public List<DCValue> getMetadata()
+    public int getPreviousItemID()
     {
-        return metadata;
+        return this.previousItemID;
     }
 
-    public void setMetadata(List<DCValue> metadata)
+    public void setPreviousItemID(int previousItemID)
     {
-        this.metadata = metadata;
+        this.previousItemID = previousItemID;
+    }
+
+    public int getRevision()
+    {
+        return this.revision;
+    }
+
+    public void setRevision(int revision)
+    {
+        this.revision = revision;
     }
 
     public List<DCValue> getMetadata()
@@ -592,7 +624,9 @@ public class Item extends DSpaceObject
      *
      * FIXME: Will this ever not be the case? Can multiple Items own the same
      * Bundle?
-     * 
+     *
+     * Yes, Versioning.
+     *
      * @param b
      *            the bundle to remove
      */
@@ -1111,6 +1145,16 @@ public class Item extends DSpaceObject
 
         // If we get this far, we have a match
         return true;
+    }
+
+    public String toString()
+    {
+        String ret = "Item id:" +
+        this.getID() + " revision:" +
+        this.revision + " prev:" +
+        this.previousItemID + " orig:" +
+        this.originalItemID + "\n";
+        return ret;
     }
 
     /** Deprecated by the introduction of DAOs */
