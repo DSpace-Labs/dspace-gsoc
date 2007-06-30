@@ -106,6 +106,7 @@ public class ArchiveManager
      * Creates a Item in the database that maintains all the same
      * attributes and metadata as the Item it supplants with a new
      * revision number and a link to the given Item as the previousRevision
+     * a new bitstream is not created
      *
      * @param item The Item to create a new version of
      */
@@ -575,6 +576,21 @@ public class ArchiveManager
 
     /**
      * CLI for Versioning
+     * 
+     * Using the CLI on ArchiveManager
+	 *
+     * Add {dspace.dir}/bin to your path or cd {dspace.dir}/bin
+     * dsrun org.dspace.core.ArchiveManager [opts] 
+	 *
+	 * Options
+     * -i [item id] Allows for the specification of an item by id
+     * -u [email or id of eperson] Allows for the use of Authorization and specifying a user 
+     * -p print the given item's (-i [id]) item_id, revision, previous_revision
+     * -a print the same item data as -p for all items
+     * -m print the given item's metadata
+     * -z print the given item's persistent identifiers
+     * -r create a new revision of the given item using the given user (-u [email or id]) 
+     * 
      * Should be extenisble for other actions.
      */
     public static void main(String[] argv)
@@ -662,7 +678,11 @@ public class ArchiveManager
             throw new RuntimeException(e);
         }
     }
-
+    
+    /**
+     * Prints out the list of items using item.toString()
+     * @param items List<Item>
+     */
     private void printItems(List<Item> items)
     {
         for (Item i : items)
@@ -671,6 +691,11 @@ public class ArchiveManager
         }
     }
 
+    /**
+     * Prints out the Item's metadata twice in two forms
+     * 
+     * @param item Item
+     */
     private void printItemMetadata(Item item)
     {
         System.out.println(item.getMetadata().toString());
@@ -679,7 +704,12 @@ public class ArchiveManager
             System.out.println(o.toString());
         }
     }
-
+    
+    /**
+     * Prints out all the persistent Identifiers for the given Item
+     * 
+     * @param item item
+     */
     private void printPersistentIdentifiers(Item item)
     {
     	System.out.println("one pi: " + item.getExternalIdentifier().getCanonicalForm());
@@ -691,7 +721,8 @@ public class ArchiveManager
     }
 
     /**
-     *  Takes in a bundle and makes a deep copy of it.
+     *  Takes in a bundle and makes a deep copy of it. 
+     *  Without duping bitstreams.
      *
      *  @param bundle
      */

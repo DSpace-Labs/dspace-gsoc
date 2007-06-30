@@ -171,6 +171,16 @@ public class ItemDAOPostgres extends ItemDAO
         }
     }
     
+    /**
+     * This method is a refactoring move to encapsulate the
+     * functionality of creating an ItemProxy and populating
+     * it, getting the item's external identifiers and caching
+     * the item.
+     * 
+     * @return item
+     * @param id integer id of an Item in the db
+     * @param row a java TableRow class instance that serves as an ORM layer
+     */
     private Item populate(int id, TableRow row) throws SQLException
     {
     	if (row == null)
