@@ -95,8 +95,13 @@ public class Item extends DSpaceObject
     protected boolean inArchive;
     protected boolean withdrawn;
     protected Date lastModified;
-
+    /**
+     * @var revision int that holds a revision number of this item in a logical versioned item
+     */
     protected int revision;
+    /**
+     * @var previousItemID int that holds the database id of the previous item in this logical item's revision history
+     */
     protected int previousItemID;
     /**
      * @var originalItemID An integer that connects all revisions of a logical item.

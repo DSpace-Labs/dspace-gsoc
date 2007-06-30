@@ -153,8 +153,11 @@ public class InstallItem
         // set in_archive=true
         item.setArchived(true);
 
-        // set the itemNumber as this item's id (root in a linear succession)
+        // set the originalItemID as this item's id (root in a linear succession)
         item.setOriginalItemID(item.getID());
+        
+        // set the revision to 1
+        item.setRevision(1);
 
         // save changes ;-)
         itemDAO.update(item);
