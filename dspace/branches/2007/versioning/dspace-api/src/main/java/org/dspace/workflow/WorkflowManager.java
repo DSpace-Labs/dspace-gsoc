@@ -59,6 +59,8 @@ import org.dspace.content.DCDate;
 import org.dspace.content.DCValue;
 import org.dspace.content.InstallItem;
 import org.dspace.content.Item;
+import org.dspace.content.dao.ItemDAO;              // Naughty!
+import org.dspace.content.dao.ItemDAOFactory;       // Naughty!
 import org.dspace.content.WorkspaceItem;
 import org.dspace.core.ConfigurationManager;
 import org.dspace.core.Context;
@@ -201,6 +203,57 @@ public class WorkflowManager
         // remove the WorkspaceItem
         wsi.deleteWrapper();
 
+        // now get the worflow started
+        doState(c, wfi, WFSTATE_STEP1POOL, null);
+
+        // Return the workflow item
+        return wfi;
+    }
+    
+    /**
+     * startWorkflow() begins a workflow - in a single transaction
+     * turn it into a WorkflowItem.
+     * 
+     * @param c
+     *            Context
+     * @param item
+     *            The Item to put in a workflow item (for versioning)
+     * @return The resulting workflow item
+     */
+    public static WorkflowItem start(Context c, Item item)
+            throws SQLException, AuthorizeException, IOException
+    {
+        // FIXME Check auth
+        Item myitem = item;
+        ItemDAO dao = ItemDAOFactory.getInstance(c);
+        Collection collection = item.getOwningCollection();
+
+        log.info(LogManager.getHeader(c, "start_workflow", 
+        		"item_id=" + myitem.getID() + "collection_id="
+                + collection.getID()));
+
+        // record the start of the workflow w/provenance message
+        recordStart(c, myitem);
+
+        // create the WorkflowItem
+        TableRow row = DatabaseManager.create(c, "workflowitem");
+        row.setColumn("item_id", myitem.getID());
+        row.setColumn("collection_id", collection.getID());
+
+        WorkflowItem wfi = new WorkflowItem(c, row);
+
+       // wfi.setMultipleFiles(wsi.hasMultipleFiles());
+       // wfi.setMultipleTitles(wsi.hasMultipleTitles());
+        wfi.setPublishedBefore(true);
+
+        // Write history creation event
+        HistoryManager.saveHistory(c, wfi, HistoryManager.CREATE, c
+                .getCurrentUser(), c.getExtraLogInfo());
+
+        //make sure the item isn't in the archive
+        myitem.setArchived(false);
+        dao.update(myitem);
+        
         // now get the worflow started
         doState(c, wfi, WFSTATE_STEP1POOL, null);
 
