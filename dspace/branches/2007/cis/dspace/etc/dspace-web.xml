@@ -68,9 +68,15 @@
     <param-value>Messages</param-value>
   </context-param>
 
+<!-- Listener calling the certificate-generation process  -->
+  <listener>
+    <listener-class>
+      org.dspace.cis.CisTimerListener
+    </listener-class>
+  </listener>
 
+  
   <!-- Filters -->
-
   <filter>
     <filter-name>admin-only</filter-name>
     <filter-class>org.dspace.app.webui.filter.AdminOnlyFilter</filter-class>

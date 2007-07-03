@@ -1,6 +1,6 @@
 package org.dspace.cis;
 
-//import java.util.Calendar;
+import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Date;
@@ -70,7 +70,7 @@ public class CertificateGenerator extends TimerTask {
 		List<HashvalueofItem> hashvalues = new ArrayList<HashvalueofItem>();
 		HashvalueofItem[] hashvaluesOfItem;
 		DigestFactory dF = new DigestFactory();
-		List certificates = new ArrayList();
+//		List certificates = new ArrayList();
 		TableRow bitstreamTR = null;
 		Item item = null;
 		Bundle bundle = null;
@@ -114,7 +114,12 @@ public class CertificateGenerator extends TimerTask {
 				cer.setHandle(item.getHandle());
 				cer.setFrom(from);
 				cer.setTo(to);
-				// setAssistValues(cer, i, hashvaluesOfItem);
+				setAssistValues(cer, i, hashvaluesOfItem, dF);
+				try {
+					cer.archive();
+				} catch (IOException e) {
+					log.error("Some exception occured in certificate archive procedure.");
+				}
 			}
 
 		} catch (SQLException e) {
