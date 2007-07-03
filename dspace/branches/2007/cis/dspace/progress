@@ -6,3 +6,8 @@ database						+ timeinterval
 database#bitstreamformatregistry
 								+ text/xml, Certificate, true(internal)							
 org.dspace.content.InstallItem  + createHash(Item item, Context c)
+org.dspace.content.Bundle		- update() throws AuthorizeException
+								+ addBitstreamWithoutAuthorization(Bitstream b)
+								
+org.dspace.content.Item			+ addBundleWithoutAuthorization(Bundle b)
+								+ createBundleWithoutAuthorization(String name)	
