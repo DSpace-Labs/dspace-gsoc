@@ -35,11 +35,10 @@ public class ExportToRIS {
 		//Context context = new Context();
 		
 		//get handles and process them
-		int i = 1; while (i < args.length){
+		for (int i = 1; i < args.length; i++){
 			System.out.print("Processing " + args[i]+"...");
 			outfile.print(args[i]);
-			outfile.println();
-			i++;			
+			outfile.println();	
 		}   
 		//end the line
 		System.out.println();
