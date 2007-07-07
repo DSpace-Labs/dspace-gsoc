@@ -7,9 +7,8 @@ import java.sql.SQLException;
 import java.util.Iterator;
 import java.util.List;
 
-import org.apache.log4j.Logger;
+//import org.apache.log4j.Logger;
 import org.dspace.content.DSpaceObject;
-import org.dspace.content.crosswalk.CrosswalkObjectNotSupported;
 import org.dspace.core.Constants;
 import org.dspace.core.Context;
 import org.dspace.handle.HandleManager;
@@ -23,7 +22,7 @@ public class TESTMEExportToRIS {
 
 	public static void main(String[] args) throws SQLException {
 		/** log4j category */
-		Logger log = Logger.getLogger(TESTMEExportToRIS.class); //private static gives me an error--huh?
+		//Logger log = Logger.getLogger(TESTMEExportToRIS.class); //private static gives me an error--huh?
 		//TODO: use log.warn and write to log
 
 		//get outfilename
