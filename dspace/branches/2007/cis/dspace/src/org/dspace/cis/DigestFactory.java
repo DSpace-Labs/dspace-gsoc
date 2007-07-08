@@ -12,7 +12,7 @@ import java.sql.SQLException;
 
 import org.apache.log4j.Logger;
 import org.dspace.content.*;
-import org.dspace.core.ConfigurationManager;
+//import org.dspace.core.ConfigurationManager;
 import org.dspace.core.Utils;
 /**
  * a digest method factory
@@ -85,6 +85,7 @@ public class DigestFactory
     {
 
         String filePath = org.dspace.cis.Utils.getBitstreamFilePath(bitstream);
+        filePath += bitstream.getInternalID();
 
         return digestWithFilePath(filePath);
 
@@ -248,12 +249,12 @@ public class DigestFactory
 //         
 //     }
 
-	public HashAlgorithms getPRIMITIVE() {
-		return PRIMITIVE;
-	}
+    public HashAlgorithms getPRIMITIVE() {
+        return PRIMITIVE;
+    }
 
-	public void setPRIMITIVE(HashAlgorithms primitive) {
-		PRIMITIVE = primitive;
-	}
+    public void setPRIMITIVE(HashAlgorithms primitive) {
+        PRIMITIVE = primitive;
+    }
 
 }
