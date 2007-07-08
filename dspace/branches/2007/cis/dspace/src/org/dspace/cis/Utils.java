@@ -9,17 +9,21 @@ import java.util.List;
 
 import org.dspace.content.Bitstream;
 import org.dspace.core.ConfigurationManager;
+
 //import org.dspace.core.Context;
 //import org.dspace.storage.rdbms.DatabaseManager;
 //import org.dspace.storage.rdbms.TableRowIterator;
 
-public class Utils {
-    
-    //the number of milliseconds of an hour
+public class Utils
+{
+
+    // the number of milliseconds of an hour
     private static final int MILLISECONDS_OF_AN_HOUR = 3600000;
+
     // 271752 is the number of hours from 00:00:00 CST 1970 to 00:00:00 CST
     // 2001
     private static final int HOURS_OFFSET = 271752;
+
     /**
      * Return the intermediate path derived from the internal_id. This method
      * splits the id into groups which become subdirectories.
@@ -28,7 +32,8 @@ public class Utils {
      *            The internal_id
      * @return The path based on the id without leading or trailing separators
      */
-    public static String getIntermediatePath(String iInternalId) {
+    public static String getIntermediatePath(String iInternalId)
+    {
         // These settings control the way an identifier is hashed into
         // directory and file names
         //
@@ -44,15 +49,17 @@ public class Utils {
         int directoryLevels = 3;
 
         StringBuffer buf = new StringBuffer();
-        for (int i = 0; i < directoryLevels; i++) {
+        for (int i = 0; i < directoryLevels; i++)
+        {
             int digits = i * digitsPerLevel;
-            if (i > 0) {
+            if (i > 0)
+            {
                 buf.append(File.separator);
             }
             buf.append(iInternalId.substring(digits, digits + digitsPerLevel));
         }
         buf.append(File.separator);
-//      buf.append(iInternalId);
+        // buf.append(iInternalId);
         return buf.toString();
     }
 
@@ -62,20 +69,25 @@ public class Utils {
      *            the input bitstream
      * @return file's path that the bitstream represents
      */
-    public static String getBitstreamFilePath(Bitstream bitstream) {
+    public static String getBitstreamFilePath(Bitstream bitstream)
+    {
         String sAssetstoreDir;
         // Get the store to use
         int storeNumber = bitstream.getStoreNumber();
 
         // Default to zero ('assetstore.dir') for backwards compatibility
-        if (storeNumber == -1) {
+        if (storeNumber == -1)
+        {
             storeNumber = 0;
         }
-        if (storeNumber == 0) {
+        if (storeNumber == 0)
+        {
             // 'assetstore.dir' is always store number 0
             sAssetstoreDir = ConfigurationManager.getProperty("assetstore.dir");
             // else backup store numbers
-        } else {
+        }
+        else
+        {
             sAssetstoreDir = ConfigurationManager.getProperty("assetstore.dir"
                     + "." + (new Integer(storeNumber)).toString());
         }
@@ -97,7 +109,8 @@ public class Utils {
      * <code>to<code> are set by current time
      *
      */
-    public static Date[] getInterval() {
+    public static Date[] getInterval()
+    {
         Date[] interval = new Date[2];
         Calendar c = Calendar.getInstance();
         int year = c.get(Calendar.YEAR);
@@ -119,20 +132,19 @@ public class Utils {
         return interval;
     }
 
-    
     /**
      * Get from time of the time-interval of a given time.
      */
     public static Date getFrom(Date date)
     {
-       
+
         long milliseds = date.getTime();
         long tmp = milliseds % (MILLISECONDS_OF_AN_HOUR);
         milliseds = milliseds - tmp;
         Date result = new Date(milliseds);
         return result;
     }
-    
+
     /**
      * Get to time of the time-interval of a given time.
      */
@@ -144,16 +156,16 @@ public class Utils {
         Date result = new Date(milliseds);
         return result;
     }
-     
+
     /**
      * The timeInterval_id is number of hours since Mon Jan 01 00:00:00 CST 2001
      */
     public static int getTimeInterval_id(Date date)
     {
         Long tmp = new Long(date.getTime());
-        
+
         tmp = tmp / MILLISECONDS_OF_AN_HOUR - HOURS_OFFSET;
-        
+
         return (new Long(tmp)).intValue();
     }
 
@@ -162,16 +174,17 @@ public class Utils {
      */
     public static Date getLastFrom(Date date)
     {
-       
+
         long milliseds = date.getTime();
         long tmp = milliseds % (MILLISECONDS_OF_AN_HOUR);
         milliseds = milliseds - tmp - MILLISECONDS_OF_AN_HOUR;
         Date result = new Date(milliseds);
         return result;
     }
-    
+
     /**
      * Get to time of the time-interval in previous of a given time.
+     * 
      * @param date
      * @return
      */
@@ -196,9 +209,10 @@ public class Utils {
      * @param dF
      * @return
      */
-    public static String witHash(List<String> hashvalues, DigestFactory dF) {
+    public static String witHash(List<String> hashvalues, DigestFactory dF)
+    {
         /** temp values to help traversing the hashvalues */
-        // Here we can't just use hashvalues.toArray(), or this will kill the 
+        // Here we can't just use hashvalues.toArray(), or this will kill the
         // certificate-generation thread. Haven't find the reason yet.
         int size = hashvalues.size();
         String[] tmpArray = new String[size];
@@ -208,16 +222,19 @@ public class Utils {
         }
         List<String> tmpList = new ArrayList<String>();
         String tmpString = null;
-        while (tmpArray.length != 1) {
+        while (tmpArray.length != 1)
+        {
             /** if the size of the temp array is an even */
-            if (tmpArray.length % 2 == 0) {
-                for (int i = 0; i < tmpArray.length / 2; i++) {
+            if (tmpArray.length % 2 == 0)
+            {
+                for (int i = 0; i < tmpArray.length / 2; i++)
+                {
                     tmpString = dF.digest(tmpArray[2 * i])
                             + dF.digest(tmpArray[2 * i + 1]);
                     tmpList.add(dF.digest(tmpString));
                 }
-//              tmpArray = (String[]) tmpList.toArray();
-//                tmpArray = (String[]) listToArray(tmpList);
+                // tmpArray = (String[]) tmpList.toArray();
+                // tmpArray = (String[]) listToArray(tmpList);
                 size = tmpList.size();
                 tmpArray = new String[size];
                 for (int i = 0; i < size; i++)
@@ -225,15 +242,18 @@ public class Utils {
                     tmpArray[i] = tmpList.get(i);
                 }
                 tmpList.clear();
-            } else {
-                for (int i = 0; i < (tmpArray.length - 1) / 2; i++) {
+            }
+            else
+            {
+                for (int i = 0; i < (tmpArray.length - 1) / 2; i++)
+                {
                     tmpString = dF.digest(tmpArray[2 * i])
                             + dF.digest(tmpArray[2 * i + 1]);
                     tmpList.add(dF.digest(tmpString));
                 }
                 tmpList.add(tmpArray[tmpArray.length - 1]);
-//              tmpArray = (String[]) tmpList.toArray();
-//                tmpArray = (String[]) listToArray(tmpList);
+                // tmpArray = (String[]) tmpList.toArray();
+                // tmpArray = (String[]) listToArray(tmpList);
                 size = tmpList.size();
                 tmpArray = new String[size];
                 for (int i = 0; i < size; i++)
@@ -247,11 +267,12 @@ public class Utils {
         tmpString = tmpArray[0];
         return tmpString;
     }
-    
+
     /**
      * A help method implement the function of <code>list.toArray()</code>.
-     * Use that function would kill the certificate-generation thread.
-     * Haven't find out the reason yet.
+     * Use that function would kill the certificate-generation thread. Haven't
+     * find out the reason yet.
+     * 
      * @param list
      * @return
      */
@@ -265,26 +286,26 @@ public class Utils {
         }
         return result;
     }
-//  public static void main(String[] args) {
-//      int timeInterval_id = TimeInterval.getTimeInterval_id(new Date());
-//      System.out.println("The time_interval_ID is " + timeInterval_id);
-//      Context context;
-//      try {
-//          context = new Context();
-//          TableRowIterator tR = DatabaseManager.query(context,
-//                  "select * from Hashvalueifitem where time_interval_id = "
-//                          + timeInterval_id);
-//          if (!tR.hasNext()) {
-//              System.out.println("No entries return!");
-//          }
-//          while (tR.hasNext()) {
-//              System.out.println(tR.next().getStringColumn("hashvalue"));
-//          }
-//
-//      } catch (SQLException e) {
-//          // TODO Auto-generated catch block
-//          e.printStackTrace();
-//      }
-//
-//  }
+    // public static void main(String[] args) {
+    // int timeInterval_id = TimeInterval.getTimeInterval_id(new Date());
+    // System.out.println("The time_interval_ID is " + timeInterval_id);
+    // Context context;
+    // try {
+    // context = new Context();
+    // TableRowIterator tR = DatabaseManager.query(context,
+    // "select * from Hashvalueifitem where time_interval_id = "
+    // + timeInterval_id);
+    // if (!tR.hasNext()) {
+    // System.out.println("No entries return!");
+    // }
+    // while (tR.hasNext()) {
+    // System.out.println(tR.next().getStringColumn("hashvalue"));
+    // }
+    //
+    // } catch (SQLException e) {
+    // // TODO Auto-generated catch block
+    // e.printStackTrace();
+    // }
+    //
+    // }
 }

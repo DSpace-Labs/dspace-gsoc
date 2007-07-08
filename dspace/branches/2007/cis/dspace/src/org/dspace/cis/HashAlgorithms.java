@@ -1,11 +1,11 @@
 package org.dspace.cis;
 
 /**
- * a type-safe enum for one-way hashing algorithms' names 
- * the private constructor will forbid us from constructing extra instances
- * only <code>MD2</code>, <code>MD5</code>, <code>SHA-1</code>, 
- * <code>SHA-256</code>, <code>SHA-384</code>
- * and <code>512</code> accepted
+ * a type-safe enum for one-way hashing algorithms' names the private
+ * constructor will forbid us from constructing extra instances only
+ * <code>MD2</code>, <code>MD5</code>, <code>SHA-1</code>,
+ * <code>SHA-256</code>, <code>SHA-384</code> and <code>512</code>
+ * accepted
  * 
  * @author Jiahui Wang
  * 
