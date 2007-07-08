@@ -14,10 +14,11 @@ import org.apache.log4j.Logger;
 import org.dspace.content.*;
 //import org.dspace.core.ConfigurationManager;
 import org.dspace.core.Utils;
+
 /**
- * a digest method factory
- * including a number of over-load functions making hash-values
- * the input of the function <code>digest</code> could be one of these:
+ * a digest method factory including a number of over-load functions making
+ * hash-values the input of the function <code>digest</code> could be one of
+ * these:
  * <li>String</li>
  * <li>Bitstream</li>
  * <li>Bundle</li>
@@ -25,8 +26,9 @@ import org.dspace.core.Utils;
  * <li>DCValue</li>
  * <li>DCValue[]</li>
  * <li>Item</li>
+ * 
  * @author Jiahui Wang
- *
+ * 
  */
 public class DigestFactory
 {
@@ -145,8 +147,6 @@ public class DigestFactory
         // return intermediatePath;
     }
 
-
-
     /**
      * the procedure of the hundle's hash value generation could be described
      * like this:
@@ -240,20 +240,23 @@ public class DigestFactory
         return digest(tmp);
 
     }
-//     public static void main(String[] argv){
-//             
-//     DigestFactory df = new DigestFactory();
-//     String resu =
-//     df.digestWithFilePath("D:\\dspace\\assetstore\\10\\42\\03\\104203510823337032602227731452764060832");
-//     System.out.println(resu);
-//         
-//     }
 
-    public HashAlgorithms getPRIMITIVE() {
+    // public static void main(String[] argv){
+    //             
+    // DigestFactory df = new DigestFactory();
+    // String resu =
+    // df.digestWithFilePath("D:\\dspace\\assetstore\\10\\42\\03\\104203510823337032602227731452764060832");
+    // System.out.println(resu);
+    //         
+    // }
+
+    public HashAlgorithms getPRIMITIVE()
+    {
         return PRIMITIVE;
     }
 
-    public void setPRIMITIVE(HashAlgorithms primitive) {
+    public void setPRIMITIVE(HashAlgorithms primitive)
+    {
         PRIMITIVE = primitive;
     }
 

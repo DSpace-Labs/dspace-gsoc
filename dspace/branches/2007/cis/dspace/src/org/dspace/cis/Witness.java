@@ -15,7 +15,8 @@ import org.dspace.storage.rdbms.TableRowIterator;
  * @author Administrator
  * 
  */
-public class Witness {
+public class Witness
+{
 
     private int witness_id;
 
@@ -27,56 +28,67 @@ public class Witness {
 
     /** Our context */
     private Context ourContext;
-    
-//    public Witness(int timeIntervalID, String hashvalue, String hash_algorithm, Context context)
-//    {
-//        this.time_interval_id = timeIntervalID;
-//        this.hashvalue = hashvalue;
-//        this.hash_algorithm = hash_algorithm;
-//        this.ourContext = context;
-//    }
 
-    public String getHash_algorithm() {
+    // public Witness(int timeIntervalID, String hashvalue, String
+    // hash_algorithm, Context context)
+    // {
+    // this.time_interval_id = timeIntervalID;
+    // this.hashvalue = hashvalue;
+    // this.hash_algorithm = hash_algorithm;
+    // this.ourContext = context;
+    // }
+
+    public String getHash_algorithm()
+    {
         return hash_algorithm;
     }
 
-    public Witness setHash_algorithm(String hash_algorithm) {
+    public Witness setHash_algorithm(String hash_algorithm)
+    {
         this.hash_algorithm = hash_algorithm;
         return this;
     }
 
-    public String getHashvalue() {
+    public String getHashvalue()
+    {
         return hashvalue;
     }
 
-    public Witness setHashvalue(String hashvalue) {
+    public Witness setHashvalue(String hashvalue)
+    {
         this.hashvalue = hashvalue;
         return this;
     }
 
-    public int getTime_interval_id() {
+    public int getTime_interval_id()
+    {
         return time_interval_id;
     }
 
-    public Witness setTime_interval_id(int time_interval_id) {
+    public Witness setTime_interval_id(int time_interval_id)
+    {
         this.time_interval_id = time_interval_id;
         return this;
     }
 
-    public int getWitness_id() {
+    public int getWitness_id()
+    {
         return witness_id;
     }
 
-    public Witness setWitness_id(int witness_id) {
+    public Witness setWitness_id(int witness_id)
+    {
         this.witness_id = witness_id;
         return this;
     }
 
-    public Context getOurContext() {
+    public Context getOurContext()
+    {
         return ourContext;
     }
 
-    public Witness setOurContext(Context ourContext) {
+    public Witness setOurContext(Context ourContext)
+    {
         this.ourContext = ourContext;
         return this;
     }
@@ -86,7 +98,8 @@ public class Witness {
      * 
      * @throws SQLException
      */
-    public void archive() throws SQLException {
+    public void archive() throws SQLException
+    {
         TableRow tR = DatabaseManager.row("witness");
         // tR.setColumn("witness_id", this.witness_id);
         tR.setColumn("time_interval_id", this.time_interval_id);
@@ -106,7 +119,8 @@ public class Witness {
      * @throws SQLException
      */
     public Witness buildWithInterval(Context c, int timeinterval_id)
-            throws SQLException {
+            throws SQLException
+    {
 
         Witness result = new Witness();
 
@@ -133,7 +147,8 @@ public class Witness {
      * @throws SQLException
      */
     private List<String> hashValuesOfInterval(Context c, int timeinterval_id)
-            throws SQLException {
+            throws SQLException
+    {
 
         /** execute the sql command to get the TableRowIterator as a result */
         String query = "SELECT * FROM hashvalueofitem WHERE time_interval_id= ?";
@@ -142,7 +157,8 @@ public class Witness {
 
         /** hold all the hash values in the time_interval */
         List<String> hashvalues = new ArrayList<String>();
-        while (tri.hasNext()) {
+        while (tri.hasNext())
+        {
             TableRow tR = tri.next();
             String hashvalue = tR.getStringColumn("hashvalue");
             hashvalues.add(hashvalue);
@@ -162,7 +178,8 @@ public class Witness {
      * @throws SQLException
      */
     public String witHash(Context c, int timeinterval_id, int from, int to)
-            throws SQLException {
+            throws SQLException
+    {
 
         List<String> hashvalues = hashValuesOfInterval(c, timeinterval_id)
                 .subList(from, to);
