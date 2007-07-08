@@ -68,13 +68,6 @@
     <param-value>Messages</param-value>
   </context-param>
 
-<!-- Listener calling the certificate-generation process  -->
-  <listener>
-    <listener-class>
-      org.dspace.cis.CisTimerListener
-    </listener-class>
-  </listener>
-
   
   <!-- Filters -->
   <filter>
@@ -130,6 +123,15 @@
     <url-pattern>/view-workspaceitem</url-pattern>
   </filter-mapping>
 
+
+<!-- Listener calling the certificate-generation process  -->
+  <listener>
+    <listener-class>
+      org.dspace.cis.CisTimerListener
+    </listener-class>
+  </listener>
+  
+  
   <!-- Servlets -->
 
   <!-- DSpace configuration initialisation.  This needs to be loaded before

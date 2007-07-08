@@ -151,7 +151,7 @@ public class RequestInfo
         }
 
         /**
-         * This class converts an interator into an enumerator. This is done
+         * This class converts an iterator into an enumerator. This is done
          * because we have the parameters as a Map (JDK 1.2 style), but for some
          * weird reason the HttpServletRequest interface returns an Enumeration
          * from getParameterNames() (JDK1.0 style.) JDK apparently offers no way
