@@ -3,7 +3,6 @@ package org.dspace.citations;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.*;
 
 //import org.apache.log4j.Logger;
 import org.dspace.content.Item;
@@ -13,6 +12,7 @@ import org.dspace.core.PluginManager;
 import org.dspace.handle.HandleManager;
 import org.dspace.content.crosswalk.*;
 
+import org.jdom.Document;
 import org.jdom.Element;
 import org.jdom.output.XMLOutputter;
 import org.jdom.transform.XSLTransformer;
@@ -79,27 +79,21 @@ public class TESTMEExportToRIS {
 			{
 				try
 				{
-					List dimlist = dip.disseminateList(myItem);
 					XMLOutputter x = new XMLOutputter();
-					Iterator it = dimlist.iterator();
-					while (it.hasNext()) {
-						System.out.println(x.outputString((Element)it.next()));
-					}
 					
-					//get our List of Elements into a 
-					XSLTransformer tempstylesheet = new XSLTransformer("addXMLWrapper.xsl");
-					List wrapped = tempstylesheet.transform(dimlist);
 					
-					//transform and print to screen
+					Element dimel = dip.disseminateElement(myItem);
+					Document mydoc = dimel.getDocument(); 
+						
+					//transform with specified STYLESHEET
 					XSLTransformer finalstylesheet = new XSLTransformer(STYLESHEET);
-					List styled = finalstylesheet.transform(wrapped); 					
-					//System.out.println(styled.toString()); //for testing 
+					Document styled = finalstylesheet.transform(mydoc); 					
 
 					//print styled output
 					PrintWriter outfile = 
 						new PrintWriter (new FileOutputStream(outfilename));
 					x.output(styled, outfile);
-					outfile.flush();
+					//outfile.flush();
 					outfile.close();
 				}
 				catch (IOException e)
