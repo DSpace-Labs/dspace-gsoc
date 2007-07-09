@@ -65,6 +65,9 @@ import org.dspace.handle.HandleManager;
 import org.dspace.search.DSQuery;
 import org.dspace.search.QueryArgs;
 import org.dspace.search.QueryResults;
+import org.dspace.statistics.LogEvent;
+import org.dspace.statistics.StatEvent;
+import org.dspace.statistics.StatsLogger;
 
 /**
  * Servlet for handling a simple search.
@@ -78,7 +81,7 @@ import org.dspace.search.QueryResults;
  * The value of the "location" parameter should be ALL (which means no
  * location), a the ID of a community (e.g. "123"), or a community ID, then a
  * slash, then a collection ID, e.g. "123/456".
- * 
+ *
  * @author Robert Tansley
  * @version $Id: SimpleSearchServlet.java,v 1.17 2004/12/15 15:21:10 jimdowning
  *          Exp $
@@ -123,6 +126,15 @@ public class SimpleSearchServlet extends DSpaceServlet
         {
             query = qArgs.buildQuery(request);
             advancedQuery = qArgs.buildHTTPQuery(request);
+        }
+
+        //Statistics log
+        if (query!=null)
+        {
+        	LogEvent logEvent=new LogEvent();
+        	logEvent.setType(StatEvent.SEARCH);
+        	logEvent.setQuery(query);
+        	StatsLogger.logEvent(logEvent);
         }
 
         // Ensure the query is non-null
