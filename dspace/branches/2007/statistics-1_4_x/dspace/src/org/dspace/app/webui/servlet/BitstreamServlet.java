@@ -65,6 +65,9 @@ import org.dspace.core.Context;
 import org.dspace.core.LogManager;
 import org.dspace.core.Utils;
 import org.dspace.handle.HandleManager;
+import org.dspace.statistics.LogEvent;
+import org.dspace.statistics.StatEvent;
+import org.dspace.statistics.StatsLogger;
 
 /**
  * Servlet for retrieving bitstreams. The bits are simply piped to the user. If
@@ -72,7 +75,7 @@ import org.dspace.handle.HandleManager;
  * is returned if the containing item has not been modified since that date.
  * <P>
  * <code>/bitstream/handle/sequence_id/filename</code>
- * 
+ *
  * @author Robert Tansley
  * @version $Revision$
  */
@@ -133,15 +136,15 @@ public class BitstreamServlet extends DSpaceServlet
         {
             sequenceID = -1;
         }
-        
+
         // Now try and retrieve the item
         DSpaceObject dso = HandleManager.resolveToObject(context, handle);
-        
+
         // Make sure we have valid item and sequence number
         if (dso != null && dso.getType() == Constants.ITEM && sequenceID >= 0)
         {
             item = (Item) dso;
-        
+
             if (item.isWithdrawn())
             {
                 log.info(LogManager.getHeader(context, "view_bitstream",
@@ -184,12 +187,22 @@ public class BitstreamServlet extends DSpaceServlet
         log.info(LogManager.getHeader(context, "view_bitstream",
                 "bitstream_id=" + bitstream.getID()));
 
+        // Statistics log
+    	LogEvent logEvent=new LogEvent();
+    	logEvent.setType(StatEvent.FILE_VIEW);
+    	logEvent.setId(bitstream.getID());
+    	logEvent.setHost(request.getRemoteHost());
+    	logEvent.setTimestamp(System.currentTimeMillis());
+    	logEvent.setUserLanguage(request.getLocale().getLanguage());
+    	logEvent.setReferer(request.getHeader("referer"));
+    	StatsLogger.logEvent(logEvent);
+
         // Modification date
         // TODO: Currently the date of the item, since we don't have dates
         // for files
         response.setDateHeader("Last-Modified", item.getLastModified()
                 .getTime());
-        
+
         // Check for if-modified-since header
         long modSince = request.getDateHeader("If-Modified-Since");
 
@@ -200,10 +213,10 @@ public class BitstreamServlet extends DSpaceServlet
             response.setStatus(HttpServletResponse.SC_NOT_MODIFIED);
             return;
         }
-        
+
         // Pipe the bits
         InputStream is = bitstream.retrieve();
-     
+
 				// Set the response MIME type
         response.setContentType(bitstream.getFormat().getMIMEType());
 

@@ -69,6 +69,9 @@ import org.dspace.eperson.EPerson;
 import org.dspace.eperson.Group;
 import org.dspace.eperson.Subscribe;
 import org.dspace.handle.HandleManager;
+import org.dspace.statistics.LogEvent;
+import org.dspace.statistics.StatEvent;
+import org.dspace.statistics.StatsLogger;
 
 /**
  * Servlet for handling requests within a community or collection. The Handle is
@@ -80,7 +83,7 @@ import org.dspace.handle.HandleManager;
  * <P>
  * would be forwarded to <code>/simple-search</code>. If there is nothing
  * after the Handle, the community or collection home page is shown.
- * 
+ *
  * @author Robert Tansley
  * @version $Revision$
  */
@@ -148,11 +151,21 @@ public class HandleServlet extends DSpaceServlet
         // OK, we have a valid Handle. What is it?
         if (dso.getType() == Constants.ITEM)
         {
-            Item item = (Item) dso;
-            
+        	Item item = (Item) dso;
+
+        	// Statistics log
+        	LogEvent logEvent=new LogEvent();
+        	logEvent.setType(StatEvent.ITEM_VIEW);
+        	logEvent.setId(item.getID());
+        	logEvent.setHost(request.getRemoteHost());
+        	logEvent.setTimestamp(System.currentTimeMillis());
+        	logEvent.setUserLanguage(request.getLocale().getLanguage());
+        	logEvent.setReferer(request.getHeader("referer"));
+        	StatsLogger.logEvent(logEvent);
+
             response.setDateHeader("Last-Modified", item
                     .getLastModified().getTime());
-            
+
             // Check for if-modified-since header
             long modSince = request.getDateHeader("If-Modified-Since");
 
@@ -171,6 +184,16 @@ public class HandleServlet extends DSpaceServlet
         else if (dso.getType() == Constants.COLLECTION)
         {
             Collection c = (Collection) dso;
+
+            // Statistics log
+        	LogEvent logEvent=new LogEvent();
+        	logEvent.setType(StatEvent.COLLECTION_VIEW);
+        	logEvent.setId(c.getID());
+        	logEvent.setHost(request.getRemoteHost());
+        	logEvent.setTimestamp(System.currentTimeMillis());
+        	logEvent.setUserLanguage(request.getLocale().getLanguage());
+        	logEvent.setReferer(request.getHeader("referer"));
+        	StatsLogger.logEvent(logEvent);
 
             // Store collection location in request
             request.setAttribute("dspace.collection", c);
@@ -207,6 +230,16 @@ public class HandleServlet extends DSpaceServlet
         {
             Community c = (Community) dso;
 
+            // Statistics log
+        	LogEvent logEvent=new LogEvent();
+        	logEvent.setType(StatEvent.COMMUNITY_VIEW);
+        	logEvent.setId(c.getID());
+        	logEvent.setHost(request.getRemoteHost());
+        	logEvent.setTimestamp(System.currentTimeMillis());
+        	logEvent.setUserLanguage(request.getLocale().getLanguage());
+        	logEvent.setReferer(request.getHeader("referer"));
+        	StatsLogger.logEvent(logEvent);
+
             // Store collection location in request
             request.setAttribute("dspace.community", c);
 
@@ -241,7 +274,7 @@ public class HandleServlet extends DSpaceServlet
 
     /**
      * Show an item page
-     * 
+     *
      * @param context
      *            Context object
      * @param request
@@ -309,13 +342,13 @@ public class HandleServlet extends DSpaceServlet
         boolean suggestEnable = false;
         if (!ConfigurationManager.getBooleanProperty("webui.suggest.enable"))
         {
-            // do nothing, the suggestLink is allready set to false 
+            // do nothing, the suggestLink is allready set to false
         }
         else
         {
             // it is in general enabled
             suggestEnable= true;
-            
+
             // check for the enable only for logged in users option
             if(!ConfigurationManager.getBooleanProperty("webui.suggest.loggedinusers.only"))
             {
@@ -327,7 +360,7 @@ public class HandleServlet extends DSpaceServlet
                 suggestEnable = (context.getCurrentUser() == null ? false : true);
             }
         }
-        
+
         // Set attributes and display
         request.setAttribute("suggest.enable", new Boolean(suggestEnable));
         request.setAttribute("display.all", new Boolean(displayAll));
@@ -338,7 +371,7 @@ public class HandleServlet extends DSpaceServlet
 
     /**
      * Show a community home page, or deal with button press on home page
-     * 
+     *
      * @param context
      *            Context object
      * @param request
@@ -411,7 +444,7 @@ public class HandleServlet extends DSpaceServlet
 
     /**
      * Show a collection home page, or deal with button press on home page
-     * 
+     *
      * @param context
      *            Context object
      * @param request
@@ -539,14 +572,14 @@ public class HandleServlet extends DSpaceServlet
     /**
      * Check to see if a browse or search button has been pressed on a community
      * or collection home page. If so, redirect to the appropriate URL.
-     * 
+     *
      * @param request
      *            HTTP request
      * @param response
      *            HTTP response
      * @param handle
      *            Handle of the community/collection home page
-     * 
+     *
      * @return true if a browse/search button was pressed and the user was
      *         redirected
      */
@@ -621,7 +654,7 @@ public class HandleServlet extends DSpaceServlet
 
     /**
      * Utility method to obtain the titles for the Items in the given list.
-     * 
+     *
      * @param List
      *            of Items
      * @return array of corresponding titles
@@ -655,7 +688,7 @@ public class HandleServlet extends DSpaceServlet
 
     /**
      * Utility method obtain URLs for the most recent items
-     * 
+     *
      * @param context
      *            DSpace context
      * @param items
