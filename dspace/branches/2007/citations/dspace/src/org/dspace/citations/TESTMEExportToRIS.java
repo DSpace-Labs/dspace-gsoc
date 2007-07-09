@@ -86,10 +86,14 @@ public class TESTMEExportToRIS {
 						System.out.println(x.outputString((Element)it.next()));
 					}
 					
+					//get our List of Elements into a 
+					XSLTransformer tempstylesheet = new XSLTransformer("addXMLWrapper.xsl");
+					List wrapped = tempstylesheet.transform(dimlist);
+					
 					//transform and print to screen
-					XSLTransformer newstylesheet = new XSLTransformer(STYLESHEET);
-					List styled = newstylesheet.transform(dimlist); 					
-					System.out.println(styled.toString()); //for testing 
+					XSLTransformer finalstylesheet = new XSLTransformer(STYLESHEET);
+					List styled = finalstylesheet.transform(wrapped); 					
+					//System.out.println(styled.toString()); //for testing 
 
 					//print styled output
 					PrintWriter outfile = 
