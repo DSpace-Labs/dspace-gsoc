@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 
 //import org.apache.log4j.Logger;
+import org.dspace.content.DSpaceObject;
 import org.dspace.content.Item;
 import org.dspace.core.Constants;
 import org.dspace.core.Context;
@@ -47,7 +48,7 @@ public class TESTMEExportToRIS {
 		//		get outfilename
 		String outfilename = args[0];
 
-		Item myItem = null;
+		DSpaceObject myItem = null;
 		Context context = new Context();
 		context.setIgnoreAuthorization(true);
 
@@ -58,8 +59,7 @@ public class TESTMEExportToRIS {
 			// first, is myIDString a handle?
 			if (myIDString.indexOf('/') != -1)
 			{
-				//TODO: Prevent Cast Error Exception on (myItem.getType() != Constants.ITEM))
-				myItem = (Item) HandleManager.resolveToObject(context, myIDString); 
+				myItem = HandleManager.resolveToObject(context, myIDString); 
 
 				if ((myItem == null) || (myItem.getType() != Constants.ITEM))
 				{
