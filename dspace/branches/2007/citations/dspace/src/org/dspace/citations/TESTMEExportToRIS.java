@@ -19,7 +19,6 @@ import org.jdom.output.XMLOutputter;
 import org.jdom.transform.XSLTransformer;
 
 
-
 public class TESTMEExportToRIS {
 
 	/**
@@ -47,60 +46,59 @@ public class TESTMEExportToRIS {
 
 		//		get outfilename
 		String outfilename = args[0];
+		PrintWriter outfile = 
+			new PrintWriter (new FileOutputStream(outfilename));
+		try
+		{
+			XMLOutputter x = new XMLOutputter();
+			Context context = new Context();
+			context.setIgnoreAuthorization(true);
 
-		DSpaceObject myItem = null;
-		Context context = new Context();
-		context.setIgnoreAuthorization(true);
-
-		//get Item ID's and process them
-		for (int i = 1; i < args.length; i++){
-			String myIDString = args[i]; //Expected user to input handles
-
-			// first, is myIDString a handle?
-			if (myIDString.indexOf('/') != -1)
+			//get Item ID's and process them
+			for (int i = 1; i < args.length; i++)
 			{
-				myItem = HandleManager.resolveToObject(context, myIDString); 
+				DSpaceObject myItem = null;  //We only process Items but cannot guarantee what we'll get when we look up user input
+				String myIDString = args[i]; //Expected user to input item IDs
 
-				if ((myItem == null) || (myItem.getType() != Constants.ITEM))
+				// first, is myIDString a handle?
+				if (myIDString.indexOf('/') != -1)
 				{
-					myItem = null;
+					myItem = HandleManager.resolveToObject(context, myIDString); 
+
+					if ((myItem == null) || (myItem.getType() != Constants.ITEM))
+					{
+						myItem = null;
+					}
 				}
-			}
-			else 
-			{
-				myItem = Item.find(context, Integer.parseInt(myIDString));
-			}
-
-			if (myItem == null)
-			{
-				System.out
-				.println("Error, item cannot be found: " + myIDString);}
-			else
-			{
-				try
+				else 
 				{
-					XMLOutputter x = new XMLOutputter();
-					
-					
+					myItem = Item.find(context, Integer.parseInt(myIDString));
+				}
+
+				if (myItem == null)
+				{
+					System.out
+					.println("Error, item cannot be found: " + myIDString);}
+				else
+				{
 					Element dimel = dip.disseminateElement(myItem);
 					Document mydoc = dimel.getDocument(); 
-						
+
+					//FIXME: get extra XMLDocument declaration on multiple inputs
 					//transform with specified STYLESHEET
 					XSLTransformer finalstylesheet = new XSLTransformer(STYLESHEET);
 					Document styled = finalstylesheet.transform(mydoc); 					
 
-					//print styled output
-					PrintWriter outfile = 
-						new PrintWriter (new FileOutputStream(outfilename));
+					//print styled output		
 					x.output(styled, outfile);
-					//outfile.flush();
-					outfile.close();
-				}
-				catch (IOException e)
-				{
-					e.printStackTrace();
 				}
 			}
+			//outfile.flush();
+			outfile.close();
+		}
+		catch (IOException e)
+		{
+			e.printStackTrace();
 		}
 	}
 }
