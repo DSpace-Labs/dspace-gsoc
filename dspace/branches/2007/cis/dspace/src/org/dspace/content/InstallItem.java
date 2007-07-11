@@ -204,7 +204,7 @@ public class InstallItem
     	HashvalueofItem hash = new HashvalueofItem(c);
     	DigestFactory df = new DigestFactory();
     	String hashValue = df.digest(item);
-    	hash.setTime_interval_id(Utils.getTimeInterval_id(new Date()));
+    	hash.setTime_interval_id(CisUtils.getTimeInterval_id(new Date()));
     	hash.setHash_Algorithm(df.getPRIMITIVE().toString());
     	hash.setHashValue(hashValue);
     	hash.setItem_id(item.getID());

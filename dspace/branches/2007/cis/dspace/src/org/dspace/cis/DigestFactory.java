@@ -86,7 +86,7 @@ public class DigestFactory
     public String digest(Bitstream bitstream)
     {
 
-        String filePath = org.dspace.cis.Utils.getBitstreamFilePath(bitstream);
+        String filePath = org.dspace.cis.CisUtils.getBitstreamFilePath(bitstream);
         filePath += bitstream.getInternalID();
 
         return digestWithFilePath(filePath);
