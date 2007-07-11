@@ -128,7 +128,7 @@ public class Witness
 
         DigestFactory dF = new DigestFactory();
 
-        String tmpString = Utils.witHash(hashvalues, dF);
+        String tmpString = CisUtils.witHash(hashvalues, dF);
 
         result.setHash_algorithm(dF.getPRIMITIVE().toString());
         result.setHashvalue(tmpString);
@@ -186,7 +186,7 @@ public class Witness
 
         DigestFactory dF = new DigestFactory();
 
-        return Utils.witHash(hashvalues, dF);
+        return CisUtils.witHash(hashvalues, dF);
     }
 
 }

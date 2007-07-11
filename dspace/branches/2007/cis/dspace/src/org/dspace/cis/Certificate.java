@@ -1,25 +1,22 @@
 package org.dspace.cis;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
-//import java.util.Calendar;
+import java.util.Collections;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
-import org.dspace.core.Context;
-//import org.dspace.core.Utils;
-import org.dspace.cis.Utils;
 import org.dspace.content.Bitstream;
+import org.dspace.core.Context;
 import org.dspace.storage.rdbms.TableRow;
 import org.jdom.Document;
 import org.jdom.Element;
 import org.jdom.output.Format;
 import org.jdom.output.XMLOutputter;
-
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
 
 /**
  * A Certificate should like this:
@@ -125,6 +122,15 @@ public class Certificate extends Bitstream
     {
         return (AssistHash[]) witnesses.toArray();
     }
+    
+    /**
+     * Reverse the witnesses.
+     *
+     */
+    public void reverse()
+    {
+        Collections.reverse(witnesses);
+    }
 
     /**
      * Write this certificate in a .xml file and save it in the file system.
@@ -189,7 +195,7 @@ public class Certificate extends Bitstream
         // timeInterval.addContent(to);
         // root.addContent(timeInterval);
         // Element digestTime = new Element("Last Modified Time");
-        Element digestTime = new Element("Time");
+        Element digestTime = new Element("LastModifiedTime");
         digestTime.addContent(this.lastModifiedTime.toString());
         root.addContent(digestTime);
         Iterator it = this.witnesses.iterator();
@@ -207,7 +213,7 @@ public class Certificate extends Bitstream
         Format format = Format.getPrettyFormat();
         format.setEncoding("UTF-8");
         outputter.setFormat(format);
-        String destPath = Utils.getBitstreamFilePath(this);
+        String destPath = CisUtils.getBitstreamFilePath(this);
         // File file = new File(destPath);
         new File(destPath).mkdirs();
         FileWriter writer = new FileWriter(destPath + "\\"

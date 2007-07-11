@@ -34,9 +34,9 @@ public class TimeInterval
     // }
     public TimeInterval(Date date/* , Context ourContext */)
     {
-        timeInterval_id = Utils.getTimeInterval_id(date);
-        from = Utils.getFrom(date);
-        to = Utils.getTo(date);
+        timeInterval_id = CisUtils.getTimeInterval_id(date);
+        from = CisUtils.getFrom(date);
+        to = CisUtils.getTo(date);
         // this.ourContext = ourContext;
     }
 

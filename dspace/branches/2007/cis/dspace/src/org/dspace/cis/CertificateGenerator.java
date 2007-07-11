@@ -65,7 +65,7 @@ public class CertificateGenerator extends TimerTask
         // interval.
         // Get the last hour's time interval ID
         Date date = new Date();
-        int timeInterval_id = org.dspace.cis.Utils.getTimeInterval_id(date) - 1;
+        int timeInterval_id = CisUtils.getTimeInterval_id(date) - 1;
         List<HashvalueofItem> hashvaluesOfItemList = new ArrayList<HashvalueofItem>();
         List<String> hashvalues = new ArrayList<String>();
         HashvalueofItem[] hashvaluesOfItemArray = null;
@@ -75,15 +75,13 @@ public class CertificateGenerator extends TimerTask
         Item item = null;
         Bundle bundle = null;
         Bitstream bitstream = null;
-        // Date from = org.dspace.cis.Utils.getLastFrom(date);
-        // Date to = org.dspace.cis.Utils.getLastTo(date);
 
         try
         {
             context = new Context();
             TableRowIterator tri = DatabaseManager.query(context,
                     "select * from hashvalueofitem where time_interval_id = '"
-                            + timeInterval_id + "'");
+                            + timeInterval_id + "' order by hashvalue_id");
             while (tri.hasNext())
             {
                 bitstreamTR = tri.next();
@@ -126,10 +124,10 @@ public class CertificateGenerator extends TimerTask
                 // function name, and archive it.
                 cer.setAlgorithm(dF.getPRIMITIVE().toString());
                 cer.setHandle(item.getHandle());
-                // cer.setFrom(from);
-                // cer.setTo(to);
                 cer.setLastModifiedTime(item.getLastModified());
                 setAssistValues(cer, i, hashvaluesOfItemArray, dF);
+                cer.reverse();
+                addLastWitness(cer, timeInterval_id);
                 // Write the certificate in file system.
                 try
                 {
@@ -167,16 +165,17 @@ public class CertificateGenerator extends TimerTask
         TableRowIterator tr = DatabaseManager.query(context,
                 "select hashvalue from witness where time_interval_id = '"
                         + lastWitTimeIntervalID + "'");
-        // It's the first time-interval since cis was set up.
+        // If it's not the first time-interval since cis was set up.
+        String lastWitValue = "";
         if (tr.hasNext())
         {
-            hashvalues.add(tr.next().getStringColumn("hashvalue"));
+            lastWitValue = tr.next().getStringColumn("hashvalue");
         }
 
         Witness wit = new Witness().setHash_algorithm(
                 dF.getPRIMITIVE().toString()).setHashvalue(
-                org.dspace.cis.Utils.witHash(hashvalues, dF)).setOurContext(
-                context).setTime_interval_id(timeInterval_id);
+                dF.digest(lastWitValue + CisUtils.witHash(hashvalues, dF)))
+                .setOurContext(context).setTime_interval_id(timeInterval_id);
         wit.archive();
     }
 
@@ -194,6 +193,7 @@ public class CertificateGenerator extends TimerTask
     {
         bitstreamTR.setColumn("bitstream_format_id", CERTIFICATE_FORMAT_ID);
         bitstreamTR.setColumn("internal_id", Utils.generateKey());
+        bitstreamTR.setColumn("name", "CERTIFICATE");
         bitstreamTR.setColumn("deleted", false);
         bitstreamTR.setColumn("store_number", ConfigurationManager
                 .getIntProperty("assetstore.incoming"));
@@ -250,7 +250,7 @@ public class CertificateGenerator extends TimerTask
         {
             HashvalueofItem[] tmpArray = null;
             List<HashvalueofItem> tmpList = new ArrayList<HashvalueofItem>();
-            if (index <= max2N(length))
+            if (index + 1 <= max2N(length))
             {
                 if (length > max2N(length))
                 {
@@ -260,7 +260,7 @@ public class CertificateGenerator extends TimerTask
                                     length, df), AssistHashPos.RIGHT));
                 }
 
-                setAssistValuesWithBound(cer, index, hashvaluesOfItem, 1,
+                setAssistValuesWithBounds(cer, index, hashvaluesOfItem, 1,
                         max2N(length), df);
             }
             else
@@ -271,11 +271,15 @@ public class CertificateGenerator extends TimerTask
                 {
                     tmpList.add(hashvaluesOfItem[i]);
                 }
-                tmpArray = (HashvalueofItem[]) tmpList.toArray();
+                int size = tmpList.size();
+                tmpArray = new HashvalueofItem[size];
+                for (int i = 0; i < size; i++)
+                {
+                    tmpArray[i] = tmpList.get(i);
+                }
                 setAssistValues(cer, index - max2N(length), tmpArray, df);
             }
         }
-        addLastWitness(cer);
     }
 
     /**
@@ -286,19 +290,15 @@ public class CertificateGenerator extends TimerTask
      * @param cer
      * @throws SQLException
      */
-    private void addLastWitness(Certificate cer) throws SQLException
+    private void addLastWitness(Certificate cer, int timeInterval_id)
+            throws SQLException
     {
-        int lastWitTimeIntervalID = org.dspace.cis.Utils.getTimeInterval_id(cer
-                .getLastModifiedTime());
+        int lastWitTimeIntervalID = timeInterval_id - 1;
         TableRowIterator tr = DatabaseManager.query(context,
                 "select hashvalue from witness where time_interval_id = '"
                         + lastWitTimeIntervalID + "'");
-        // It's the first time-interval since cis was set up.
-        if (!tr.hasNext())
-        {
-            return;
-        }
-        else
+        // If it's not the first time-interval since cis was set up.
+        if (tr.hasNext())
         {
             cer.addWitness(new AssistHash(tr.next()
                     .getStringColumn("hashvalue"), AssistHashPos.LEFT));
@@ -324,13 +324,13 @@ public class CertificateGenerator extends TimerTask
      *            the <code>DigestFactory</code> instance used to digest.
      */
 
-    private void setAssistValuesWithBound(Certificate cer, int index,
+    private void setAssistValuesWithBounds(Certificate cer, int index,
             HashvalueofItem[] hashvaluesOfItem, int from, int to,
             DigestFactory df)
     {
         if (from + 1 == to)
         {
-            if (from == index)
+            if (from == index + 1)
             {
                 cer.addWitness(new AssistHash(hashvaluesOfItem[to - 1]
                         .getHashValue(), AssistHashPos.RIGHT));
@@ -341,19 +341,19 @@ public class CertificateGenerator extends TimerTask
                         .getHashValue(), AssistHashPos.LEFT));
             }
         }
-        else if (from + to - 1 / 2 < index)
+        else if ((from + to - 1) / 2 < index + 1)
         {
-            cer.addWitness(new AssistHash(catHash(hashvaluesOfItem, from, from
-                    + to - 1 / 2, df), AssistHashPos.LEFT));
-            setAssistValuesWithBound(cer, index, hashvaluesOfItem, from + to
-                    + 1 / 2, to, df);
+            cer.addWitness(new AssistHash(catHash(hashvaluesOfItem, from, (from
+                    + to - 1) / 2, df), AssistHashPos.LEFT));
+            setAssistValuesWithBounds(cer, index, hashvaluesOfItem, (from + to
+                    + 1) / 2, to, df);
         }
         else
         {
-            cer.addWitness(new AssistHash(catHash(hashvaluesOfItem, from + to
-                    + 1 / 2, to, df), AssistHashPos.RIGHT));
-            setAssistValuesWithBound(cer, index, hashvaluesOfItem, from, from
-                    + to - 1 / 2, df);
+            cer.addWitness(new AssistHash(catHash(hashvaluesOfItem, (from + to
+                    + 1) / 2, to, df), AssistHashPos.RIGHT));
+            setAssistValuesWithBounds(cer, index, hashvaluesOfItem, from, (from
+                    + to - 1) / 2, df);
         }
 
     }
@@ -390,7 +390,7 @@ public class CertificateGenerator extends TimerTask
             hashvalues.add(hashvaluesOfItem[i].getHashValue());
         }
 
-        return org.dspace.cis.Utils.witHash(hashvalues, df);
+        return CisUtils.witHash(hashvalues, df);
         // if (from + 1 == to) {
         // return df.digest(hashvaluesOfItem[from - 1].getHashValue()
         // + hashvaluesOfItem[from].getHashValue());

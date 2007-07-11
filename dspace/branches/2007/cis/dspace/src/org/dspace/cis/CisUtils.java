@@ -14,7 +14,7 @@ import org.dspace.core.ConfigurationManager;
 //import org.dspace.storage.rdbms.DatabaseManager;
 //import org.dspace.storage.rdbms.TableRowIterator;
 
-public class Utils
+public class CisUtils
 {
 
     // the number of milliseconds of an hour
@@ -229,9 +229,9 @@ public class Utils
             {
                 for (int i = 0; i < tmpArray.length / 2; i++)
                 {
-                    tmpString = dF.digest(tmpArray[2 * i])
-                            + dF.digest(tmpArray[2 * i + 1]);
-                    tmpList.add(dF.digest(tmpString));
+                    tmpString = dF.digest(tmpArray[2 * i]
+                            + tmpArray[2 * i + 1]);
+                    tmpList.add(tmpString);
                 }
                 // tmpArray = (String[]) tmpList.toArray();
                 // tmpArray = (String[]) listToArray(tmpList);
@@ -247,9 +247,9 @@ public class Utils
             {
                 for (int i = 0; i < (tmpArray.length - 1) / 2; i++)
                 {
-                    tmpString = dF.digest(tmpArray[2 * i])
-                            + dF.digest(tmpArray[2 * i + 1]);
-                    tmpList.add(dF.digest(tmpString));
+                    tmpString = dF.digest(tmpArray[2 * i]
+                            + tmpArray[2 * i + 1]);
+                    tmpList.add(tmpString);
                 }
                 tmpList.add(tmpArray[tmpArray.length - 1]);
                 // tmpArray = (String[]) tmpList.toArray();
