@@ -48,7 +48,6 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.StringTokenizer;
-import java.util.UUID;
 
 import org.apache.log4j.Logger;
 
@@ -71,6 +70,8 @@ import org.dspace.content.dao.ItemDAOFactory;       // Naughty!
 import org.dspace.content.uri.ExternalIdentifier;
 import org.dspace.eperson.EPerson;
 import org.dspace.eperson.Group;
+import org.dspace.eperson.dao.EPersonDAO;           // Naughty!
+import org.dspace.eperson.dao.EPersonDAOFactory;    // Naughty!
 
 /**
  * Class representing an item in DSpace. Note that everything is held in memory
@@ -89,7 +90,8 @@ public class Item extends DSpaceObject
     protected ItemDAO dao;
     protected BundleDAO bundleDAO;
     protected CollectionDAO collectionDAO;
-    private CommunityDAO communityDAO;
+    protected CommunityDAO communityDAO;
+    protected EPersonDAO epersonDAO;
 
     protected String identifier;
     protected boolean inArchive;
@@ -126,6 +128,7 @@ public class Item extends DSpaceObject
         this.bundleDAO = BundleDAOFactory.getInstance(context);
         this.collectionDAO = CollectionDAOFactory.getInstance(context);
         this.communityDAO = CommunityDAOFactory.getInstance(context);
+        this.epersonDAO = EPersonDAOFactory.getInstance(context);
 
         this.identifiers = new ArrayList<ExternalIdentifier>();
         this.bundles = new ArrayList<Bundle>();
@@ -511,14 +514,7 @@ public class Item extends DSpaceObject
     {
         this.submitterId = submitterId;
 
-        try
-        {
-            submitter = EPerson.find(context, submitterId);
-        }
-        catch (SQLException sqle)
-        {
-            throw new RuntimeException(sqle);
-        }
+        submitter = epersonDAO.retrieve(submitterId);
     }
 
     /**

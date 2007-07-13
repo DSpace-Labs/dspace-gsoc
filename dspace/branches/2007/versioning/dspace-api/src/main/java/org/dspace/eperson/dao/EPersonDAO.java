@@ -46,10 +46,14 @@ import org.apache.log4j.Logger;
 
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.authorize.AuthorizeManager;
+import org.dspace.core.Constants;
 import org.dspace.core.Context;
 import org.dspace.core.LogManager;
 import org.dspace.eperson.EPerson;
+import org.dspace.eperson.EPerson.EPersonMetadataField;
+import org.dspace.eperson.EPersonDeletionException;
 import org.dspace.content.uri.ObjectIdentifier;
+import org.dspace.history.HistoryManager;
 
 /**
  * @author James Rutherford
@@ -60,7 +64,17 @@ public abstract class EPersonDAO
 
     protected Context context;
 
-    public abstract EPerson create() throws AuthorizeException;
+    public EPerson create() throws AuthorizeException
+    {
+        // authorized?
+        if (!AuthorizeManager.isAdmin(context))
+        {
+            throw new AuthorizeException(
+                    "You must be an admin to create an EPerson");
+        }
+
+        return null;
+    }
 
     // FIXME: This should be called something else, but I can't think of
     // anything suitable. The reason this can't go in create() is because we
@@ -69,14 +83,18 @@ public abstract class EPersonDAO
     // even more filthy).
     public EPerson create(int id, UUID uuid) throws AuthorizeException
     {
-//        EPerson eperson = new EPerson(context, id);
-//
-//        eperson.setIdentifier(new ObjectIdentifier(uuid));
-//
-//        update(eperson);
-//
-//        return eperson;
-        return null;
+        EPerson eperson = new EPerson(context, id);
+
+        log.info(LogManager.getHeader(context, "create_eperson", "eperson_id="
+                    + id));
+
+        HistoryManager.saveHistory(context, eperson, HistoryManager.REMOVE,
+                context.getCurrentUser(), context.getExtraLogInfo());
+
+        eperson.setIdentifier(new ObjectIdentifier(uuid));
+        update(eperson);
+
+        return eperson;
     }
 
     public EPerson retrieve(int id)
@@ -89,12 +107,56 @@ public abstract class EPersonDAO
         return null;
     }
 
-    public void update(EPerson eperson) throws AuthorizeException
+    public EPerson retrieve(EPersonMetadataField field, String value)
     {
+        if ((field != EPersonMetadataField.EMAIL) &&
+            (field != EPersonMetadataField.NETID))
+        {
+            throw new IllegalArgumentException(field + " isn't allowed here");
+        }
+
+        return null;
     }
 
-    public void delete(int id) throws AuthorizeException
+    public void update(EPerson eperson) throws AuthorizeException
     {
+        // Check authorisation - if you're not the eperson
+        // see if the authorization system says you can
+        if (!context.ignoreAuthorization() && (
+                    (context.getCurrentUser() == null) ||
+                    (eperson.getID() != context.getCurrentUser().getID())))
+        {
+            AuthorizeManager.authorizeAction(context, eperson, Constants.WRITE);
+        }
+
+        log.info(LogManager.getHeader(context, "update_eperson",
+                "eperson_id=" + eperson.getID()));
+
+        HistoryManager.saveHistory(context, eperson, HistoryManager.MODIFY,
+                context.getCurrentUser(), context.getExtraLogInfo());
+    }
+
+    public void delete(int id)
+        throws AuthorizeException, EPersonDeletionException
+    {
+        EPerson eperson = retrieve(id);
+        update(eperson); // Sync in-memory object before removal
+
+        // authorized?
+        if (!AuthorizeManager.isAdmin(context))
+        {
+            throw new AuthorizeException(
+                    "You must be an admin to delete an EPerson");
+        }
+
+        HistoryManager.saveHistory(context, eperson, HistoryManager.REMOVE,
+                context.getCurrentUser(), context.getExtraLogInfo());
+
+        // Remove from cache
+        context.removeCached(eperson, id);
+
+        log.info(LogManager.getHeader(context, "delete_eperson",
+                "eperson_id=" + id));
     }
 
     public List<EPerson> getEPeople()
