@@ -625,14 +625,7 @@ public class CollectionDAOPostgres extends CollectionDAO
             return null;
         }
 
-        try
-        {
-            return Group.find(context, row.getIntColumn(col));
-        }
-        catch (SQLException sqle)
-        {
-            throw new RuntimeException(sqle);
-        }
+        return Group.find(context, row.getIntColumn(col));
     }
 }
 
