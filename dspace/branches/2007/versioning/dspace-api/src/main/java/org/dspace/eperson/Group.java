@@ -104,6 +104,11 @@ public class Group extends DSpaceObject
     {
         return name;
     }
+    
+    public String toString()
+    {
+        return name;
+    }
 
     public void setName(String name)
     {

@@ -76,6 +76,13 @@ import org.dspace.content.uri.dao.ExternalIdentifierDAOFactory;
 import org.dspace.eperson.EPerson;
 import org.dspace.history.HistoryManager;
 import org.dspace.search.DSIndexer;
+import org.dspace.eperson.Group;
+
+// debug, probably can be removed
+import org.dspace.eperson.EPerson;
+import org.dspace.eperson.dao.EPersonDAO;
+import org.dspace.eperson.dao.EPersonDAOFactory;
+
 
 /**
  * This class could really do with a CLI...
@@ -610,6 +617,7 @@ public class ArchiveManager
             options.addOption("u", "user", true, "eperson email address or id");
             options.addOption("i", "item_id", true, "id of the item");
             options.addOption("z", "identifiers", false, "print the presistent ids");
+            options.addOption("g", "group", false, "print the group info");
             CommandLine line = parser.parse(options, argv);
 
 
@@ -617,6 +625,10 @@ public class ArchiveManager
             if (line.hasOption("a"))
             {
                 am.printItems(itemDAO.getItems());
+            }
+            else if (line.hasOption('g')) 
+            {
+                am.printGroups(Group.findAll(c, 1)));
             }
             else if (line.hasOption("m") && line.hasOption("i"))
             {
@@ -688,6 +700,18 @@ public class ArchiveManager
         for (Item i : items)
         {
             System.out.println(i.toString());
+        }
+    }
+    
+    /**
+     * Prints out the list of groups using toString()
+     * @param g Group[]
+     */
+    private void printGroups(Group[] groups)
+    {
+        for (Group g : groups)
+        {
+            System.out.println("Group: " + g.toString());
         }
     }
 
