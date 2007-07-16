@@ -59,22 +59,22 @@ public class CisTimerListener implements ServletContextListener
         // try
         // {
         // Make sure that the first task is happened at a whole number time.
-        // Calendar currentTime = Calendar.getInstance();
-        // currentTime.setTime(new Date());
-        //
-        // int currentHour = currentTime.get(Calendar.HOUR);
-        //
-        // currentTime.set(Calendar.HOUR, currentHour + 1);
-        // currentTime.set(Calendar.MINUTE, 0);
-        // currentTime.set(Calendar.SECOND, 0);
-        // currentTime.set(Calendar.MILLISECOND, 0);
-        //
-        // Date nextHour = currentTime.getTime();
+        Calendar currentTime = Calendar.getInstance();
+        currentTime.setTime(new Date());
+
+        int currentHour = currentTime.get(Calendar.HOUR);
+
+        currentTime.set(Calendar.HOUR, currentHour + 1);
+        currentTime.set(Calendar.MINUTE, 0);
+        currentTime.set(Calendar.SECOND, 0);
+        currentTime.set(Calendar.MILLISECOND, 0);
+
+        Date nextHour = currentTime.getTime();
 
         log.info("The cis-timer-listener has been started.");
 
         timer.scheduleAtFixedRate(new CertificateGenerator(),
-        /* nextHour */new Date(), HOUR_INTERVAL);
+                nextHour/*new Date()*/, HOUR_INTERVAL);
 
         log.info("The task has been added to the cis-timer-listener.");
 

@@ -215,6 +215,8 @@ public class CisUtils
         // Here we can't just use hashvalues.toArray(), or this will kill the
         // certificate-generation thread. Haven't find the reason yet.
         int size = hashvalues.size();
+        if (size == 0)
+            return "";
         String[] tmpArray = new String[size];
         for (int i = 0; i < size; i++)
         {
