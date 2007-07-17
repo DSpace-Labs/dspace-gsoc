@@ -16,7 +16,8 @@ import org.dspace.statistics.StatEvent;
 import org.dspace.storage.rdbms.DatabaseManager;
 import org.dspace.storage.rdbms.TableRow;
 
-import java.util.ArrayList;;
+import java.util.ArrayList;
+import org.dspace.statistics.dao.*;
 
 /**
  * Listener class to dispatch statistics events
@@ -32,6 +33,8 @@ public class JMSDispatcher implements MessageListener {
 	private Context context;
 	private DatabaseManager db;
 	private String TABLE_SEARCH="search_stats";
+	private SearchItem searchItem;
+	private SearchItemDAO searchItemDAO;
 
     public JMSDispatcher() {
     	try {
@@ -48,6 +51,13 @@ public class JMSDispatcher implements MessageListener {
 				logEvent=(LogEvent)objectMessage.getObject();
 				if (logEvent.getType()==StatEvent.SEARCH) {
 					log.info("Search Event: "+logEvent.getQuery());
+					try {
+						searchItemDAO=StatisticsDAOFactory.getSearchItemDAOFactory(context);
+						searchItem=searchItemDAO.create();
+						searchItem.setQuery(logEvent.getQuery());
+						searchItemDAO.commit(searchItem);
+					} catch (SearchItemException e) {
+					}
 	    		}
 				else if (logEvent.getType()==StatEvent.LOGIN) {
 					log.info("Login Event: "+logEvent.getUserLogin());
