@@ -115,6 +115,8 @@ public class ArchiveManager
      * revision number and a link to the given Item as the previousRevision
      * a new bitstream is not created
      *
+     * This Item is ready to be put into the Workspace or a Workflow
+     *
      * @param item The Item to create a new version of
      */
     public static Item newVersionOfItem(Context context, Item originalItem)
@@ -136,7 +138,7 @@ public class ArchiveManager
             identifier = identifierDAO.create(item);
             String uri = identifier.getURI().toString();
 
-            item.setArchived(originalItem.isArchived());
+            item.setArchived(false);
             item.setWithdrawn(originalItem.isWithdrawn());
             // Done by ItemDAO.update ... item.setLastModified();
 
@@ -158,9 +160,6 @@ public class ArchiveManager
                 item.addBundle(am.dupeBundle(context, bundle));
             }
 
-//          create collection2item mapping
-            originalItem.getOwningCollection().addItem(item);
-
             itemDAO.update(item);
 
             return item;
@@ -169,6 +168,21 @@ public class ArchiveManager
         {
             throw new RuntimeException(e);
         }
+    }
+    
+    /**
+     * Makes the Item visible by adding it to its collection
+     *
+     * @param item The Item to create a new version of
+     */
+    public static Item installVersionedItem(Context context, Item newItem) throws AuthorizeException
+    {
+        ItemDAO itemDAO = ItemDAOFactory.getInstance(context);
+        
+        // create collection2item mapping
+        newItem.getOwningCollection().addItem(newItem);
+        itemDAO.update(newItem);
+        return newItem;
     }
 
     /**
@@ -628,7 +642,7 @@ public class ArchiveManager
             }
             else if (line.hasOption('g')) 
             {
-                am.printGroups(Group.findAll(c, 1)));
+                am.printGroups(Group.findAll(c, 1));
             }
             else if (line.hasOption("m") && line.hasOption("i"))
             {
