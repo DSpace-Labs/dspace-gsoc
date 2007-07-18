@@ -36,13 +36,16 @@ public class SearchItemDAOImpl implements SearchItemDAO{
 		TableRow row;
 		try {
 			row = DatabaseManager.create(context, "search_stats");
+			log.info("Dice "+row.getIntColumn("search_stats_id"));
 			//row.setColumn("search_stats_id", row.getIntColumn("search_stats_id"));
 	        row.setColumn("last_modified", new Date());
 	        row.setColumn("query", si.getQuery());
-	        DatabaseManager.update(context, row);
+	        int res=DatabaseManager.update(context, row);
+
+	        log.info("Dice dopo"+res);
 			return true;
 		} catch (SQLException e) {
-			return false;
+			throw new SearchItemException(e);
 		}
 
 	}
