@@ -6,7 +6,8 @@ public class SearchItem {
 	private String query = null;
 	private Date timestamp;
 	private SearchItemDAO dao;
-
+	private int count = 0;
+	
 	public SearchItem(SearchItemDAO dao) {
 		this.dao=dao;
 	}
@@ -41,6 +42,14 @@ public class SearchItem {
 
 	public SearchItemDAO getDao() {
 		return dao;
+	}
+
+	public void setCount(int count) {
+		this.count = count;
+	}
+
+	public int getCount() {
+		return count;
 	}
 
 
