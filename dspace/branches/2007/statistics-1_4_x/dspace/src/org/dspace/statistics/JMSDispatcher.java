@@ -57,6 +57,7 @@ public class JMSDispatcher implements MessageListener {
 						searchItem.setQuery(logEvent.getQuery());
 						searchItemDAO.commit(searchItem);
 					} catch (SearchItemException e) {
+						log.error("Error in saving Search Event: "+e.toString());
 					}
 	    		}
 				else if (logEvent.getType()==StatEvent.LOGIN) {
