@@ -169,6 +169,95 @@ public abstract class WorkspaceItemDAO extends ContentDAO
 
         return wsi;
     }
+    
+    /**
+     * Create a new workspace item, with a new ID. This is FROM an existing Item.
+     * This is to allow for new versions of Items to be tucked back into Workspaces.
+     * 
+     * @param item Item
+     * @return WorkspaceItem The new workspace item.
+     */
+    public abstract WorkspaceItem create(Item item)
+        throws AuthorizeException;
+
+    /**
+     * Create a new workspace item, with a new ID. This is FROM an existing Item.
+     * This is to allow for new versions of Items to be tucked back into Workspaces.
+     * 
+     * @param item Item
+     * @return WorkspaceItem The new workspace item.
+     */
+    protected WorkspaceItem create(WorkspaceItem wsi, Item item, Collection collection)
+        throws AuthorizeException
+    {
+        // Check the user has permission to ADD to the collection
+        AuthorizeManager.authorizeAction(context, collection, Constants.ADD);
+
+        EPerson currentUser = context.getCurrentUser();
+
+        // Create an item
+        ItemDAO itemDAO = ItemDAOFactory.getInstance(context);
+        item.setSubmitter(currentUser);
+
+        // Now create the policies for the submitter and workflow users to
+        // modify item and contents (contents = bitstreams, bundles)
+        // FIXME: hardcoded workflow steps
+        Group stepGroups[] = {
+            collection.getWorkflowGroup(1),
+            collection.getWorkflowGroup(2),
+            collection.getWorkflowGroup(3)
+        };
+
+        int actions[] = {
+            Constants.READ,
+            Constants.WRITE,
+            Constants.ADD,
+            Constants.REMOVE
+        };
+
+        try
+        {
+            // Give read, write, add, and remove privileges to the current user
+            for (int action : actions)
+            {
+                AuthorizeManager.addPolicy(context, item, action, currentUser);
+            }
+
+            // Give read, write, add, and remove privileges to the various
+            // workflow groups (if any).
+            for (Group stepGroup : stepGroups)
+            {
+                if (stepGroup != null)
+                {
+                    for (int action : actions)
+                    {
+                        AuthorizeManager.addPolicy(context, item, action,
+                                stepGroup);
+                    }
+                }
+            }
+        }
+        catch (SQLException sqle)
+        {
+            throw new RuntimeException(sqle);
+        }
+
+        itemDAO.update(item);
+
+        wsi.setItem(item);
+        wsi.setCollection(collection);
+        update(wsi);
+
+        log.info(LogManager.getHeader(context, "create_workspace_item",
+                "workspace_item_id=" + wsi.getID() +
+                "item_id=" + item.getID() +
+                "collection_id=" + collection.getID()));
+
+        HistoryManager.saveHistory(context, wsi, HistoryManager.CREATE,
+                context.getCurrentUser(), context.getExtraLogInfo());
+
+        return wsi;
+    }
 
     public WorkspaceItem retrieve(int id)
     {
