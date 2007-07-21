@@ -30,23 +30,5 @@
 --
 -- DUMP YOUR DATABASE DUMP YOUR DATABASE DUMP YOUR DATABASE DUMP YOUR DATABASE
 ALTER TABLE Item ADD revision integer;
-ALTER TABLE Item ADD previous_revision integer; -- An item_id
-ALTER TABLE Item ADD item_number integer;
-
-CREATE OR REPLACE FUNCTION get_next_revision(id integer) RETURNS integer AS $$
-DECLARE
-  rev integer;
-BEGIN
-  SELECT INTO rev revision
-  FROM Item
-  WHERE item_id = id;
-
-    IF rev < 0 OR rev IS NULL
-    THEN
-        UPDATE Item set revision = 1 WHERE item_id = id;
-        RETURN 2;
-    ELSE
-      RETURN 1 + rev;
-  END IF;
-END;
-$$ LANGUAGE plpgsql;
+ALTER TABLE Item ADD previous_item_id integer; -- An item_id
+ALTER TABLE Item ADD original_item_id integer;

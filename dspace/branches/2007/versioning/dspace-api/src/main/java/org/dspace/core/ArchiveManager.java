@@ -73,6 +73,8 @@ import org.dspace.content.dao.CommunityDAOFactory;
 import org.dspace.content.uri.ExternalIdentifier;
 import org.dspace.content.uri.dao.ExternalIdentifierDAO;
 import org.dspace.content.uri.dao.ExternalIdentifierDAOFactory;
+import org.dspace.content.dao.WorkspaceItemDAO;
+import org.dspace.content.dao.WorkspaceItemDAOFactory;
 import org.dspace.eperson.EPerson;
 import org.dspace.history.HistoryManager;
 import org.dspace.search.DSIndexer;
@@ -125,18 +127,9 @@ public class ArchiveManager
         {
             ArchiveManager am = new ArchiveManager();
             ItemDAO itemDAO = ItemDAOFactory.getInstance(context);
+            WorkspaceItemDAO wsiDAO = WorkspaceItemDAOFactory.getInstance(context);
             Item item = itemDAO.create();
             Item head = itemDAO.getHeadRevision(originalItem.getOriginalItemID());
-            ExternalIdentifierDAO identifierDAO =
-            ExternalIdentifierDAOFactory.getInstance(context);
-            ExternalIdentifier identifier;
-
-            // Persistent Identfier Stuff
-            // Create persistent identifier. Note that this will create an
-            // identifier of the default type (as specified in the
-            // configuration).
-            identifier = identifierDAO.create(item);
-            String uri = identifier.getURI().toString();
 
             item.setArchived(false);
             item.setWithdrawn(originalItem.isWithdrawn());
@@ -153,7 +146,7 @@ public class ArchiveManager
             item.setMetadata(originalItem.getMetadata());
             // Add uri as identifier.uri DC value
             item.clearMetadata("dc", "identifier", "uri", null);
-            item.addMetadata("dc", "identifier", "uri", null, uri);
+            
 
             for (Bundle bundle : originalItem.getBundles())
             {
@@ -161,28 +154,13 @@ public class ArchiveManager
             }
 
             itemDAO.update(item);
-
+            wsiDAO.create(item);
             return item;
         }
         catch (Exception e)
         {
             throw new RuntimeException(e);
         }
-    }
-    
-    /**
-     * Makes the Item visible by adding it to its collection
-     *
-     * @param item The Item to create a new version of
-     */
-    public static Item installVersionedItem(Context context, Item newItem) throws AuthorizeException
-    {
-        ItemDAO itemDAO = ItemDAOFactory.getInstance(context);
-        
-        // create collection2item mapping
-        newItem.getOwningCollection().addItem(newItem);
-        itemDAO.update(newItem);
-        return newItem;
     }
 
     /**

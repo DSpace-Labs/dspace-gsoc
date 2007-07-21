@@ -243,8 +243,8 @@ public class WorkflowManager
 
         WorkflowItem wfi = new WorkflowItem(c, row);
 
-        wfi.setMultipleFiles(wsi.hasMultipleFiles(true));
-        wfi.setMultipleTitles(wsi.hasMultipleTitles(true));
+        wfi.setMultipleFiles(true);
+        wfi.setMultipleTitles(true);
         wfi.setPublishedBefore(true);
 
         // Write history creation event

@@ -78,20 +78,42 @@ public class WorkspaceItemDAOPostgres extends WorkspaceItemDAO
 
         try
         {
-            TableRow row = DatabaseManager.create(context, "workspaceitem");
-            row.setColumn("uuid", uuid.toString());
-            DatabaseManager.update(context, row);
-
-            int id = row.getIntColumn("workspace_item_id");
-            WorkspaceItem wsi = new WorkspaceItem(context, id);
-            wsi.setIdentifier(new ObjectIdentifier(uuid));
-
+            WorkspaceItem wsi = this.createWorkspaceItem();
             return super.create(wsi, collection, template);
         }
         catch (SQLException sqle)
         {
             throw new RuntimeException(sqle);
         }
+    }
+    
+    public WorkspaceItem create(Item item)
+        throws AuthorizeException
+    {
+        try
+        {
+            WorkspaceItem wsi = this.createWorkspaceItem();
+            return super.create(wsi, item, item.getOwningCollection());
+        }
+        catch (SQLException sqle)
+        {
+            throw new RuntimeException(sqle);
+        }
+    }
+    
+    private WorkspaceItem createWorkspaceItem() throws SQLException
+    {
+        UUID uuid = UUID.randomUUID();
+        
+        TableRow row = DatabaseManager.create(context, "workspaceitem");
+        row.setColumn("uuid", uuid.toString());
+        DatabaseManager.update(context, row);
+
+        int id = row.getIntColumn("workspace_item_id");
+        WorkspaceItem wsi = new WorkspaceItem(context, id);
+        wsi.setIdentifier(new ObjectIdentifier(uuid));
+        
+        return wsi;
     }
 
     public WorkspaceItem retrieve(int id)
