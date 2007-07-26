@@ -630,7 +630,13 @@ public class ItemDAOPostgres extends ItemDAO
         int revision = row.getIntColumn("revision");
         int previousItemID = row.getIntColumn("previous_item_id");
         int originalItemID = row.getIntColumn("original_item_id");
-
+        
+        if (item.getID() == 0) 
+        {
+            int id = row.getIntColumn("item_id");
+            item.setID(id);
+        }
+        
         item.setIdentifier(new ObjectIdentifier(uuid));
         item.setSubmitter(submitterId);
         item.setOwningCollectionId(owningCollectionId);
