@@ -158,7 +158,8 @@ public class InstallItem
         {
             //TODO We really need to figure out how to handle the external IDs here
         } 
-        else 
+        
+        if (item.getOriginalItemID() == 0)
         {
             // set the originalItemID as this item's id (root in a linear succession)
             item.setOriginalItemID(item.getID());

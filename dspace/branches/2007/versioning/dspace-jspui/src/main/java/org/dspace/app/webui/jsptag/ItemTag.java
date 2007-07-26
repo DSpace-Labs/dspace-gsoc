@@ -59,6 +59,7 @@ import org.dspace.content.Bitstream;
 import org.dspace.content.Bundle;
 import org.dspace.content.Collection;
 import org.dspace.content.DCDate;
+import org.dspace.content.uri.ExternalIdentifier;
 import org.dspace.content.DCValue;
 import org.dspace.content.Item;
 import org.dspace.content.uri.ExternalIdentifier;
@@ -547,6 +548,7 @@ public class ItemTag extends TagSupport
             boolean html = false;
             // FIXME: This is inconsistent with other URLs, and will leave
             // commas in the URL :(
+
             String uri = null;
             ExternalIdentifier identifier = item.getExternalIdentifier();
             if (identifier != null)

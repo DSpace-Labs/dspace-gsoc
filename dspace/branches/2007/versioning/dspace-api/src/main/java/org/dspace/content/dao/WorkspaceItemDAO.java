@@ -236,7 +236,7 @@ public abstract class WorkspaceItemDAO extends ContentDAO
                 }
             }
         }
-        catch (SQLException sqle)
+        catch (java.sql.SQLException sqle)
         {
             throw new RuntimeException(sqle);
         }

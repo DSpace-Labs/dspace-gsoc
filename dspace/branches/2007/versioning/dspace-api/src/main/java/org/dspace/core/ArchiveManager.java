@@ -139,6 +139,7 @@ public class ArchiveManager
 
             item.setRevision(head.getRevision()+1);
             item.setPreviousItemID(head.getID());
+            //System.out.println("Head: " + head.toString());
 
             item.setOwningCollectionId(originalItem.getOwningCollection().getID());
             item.setSubmitter(originalItem.getSubmitter().getID());
