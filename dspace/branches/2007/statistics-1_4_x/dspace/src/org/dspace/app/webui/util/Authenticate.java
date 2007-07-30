@@ -55,12 +55,15 @@ import org.dspace.core.LogManager;
 import org.dspace.eperson.EPerson;
 import org.dspace.eperson.AuthenticationManager;
 import org.dspace.eperson.AuthenticationMethod;
+import org.dspace.statistics.StatsLogger;
+import org.dspace.statistics.event.AuthenticationEvent;
+import org.dspace.statistics.event.LogEvent;
 
 /**
  * Methods for authenticating the user. This is DSpace platform code, as opposed
  * to the site-specific authentication code, that resides in implementations of
  * the <code>org.dspace.eperson.AuthenticationMethod</code> interface.
- * 
+ *
  * @author Robert Tansley
  * @version $Revision$
  */
@@ -75,7 +78,7 @@ public class Authenticate
      * redirect resulting from successful authentication, a request object
      * corresponding to the original request that prompted authentication is
      * returned. Otherwise, the request passed in is returned.
-     * 
+     *
      * @param request
      *            the incoming HTTP request
      * @return the HTTP request the DSpace system should deal with
@@ -125,7 +128,7 @@ public class Authenticate
      * Resume a previously interrupted request. This is invoked when a user has
      * been successfully authenticated. The request which led to authentication
      * will be resumed.
-     * 
+     *
      * @param request
      *            <em>current</em> HTTP request
      * @param response
@@ -159,7 +162,7 @@ public class Authenticate
      * Start the authentication process. This packages up the request that led
      * to authentication being required, and then invokes the site-specific
      * authentication method.
-     * 
+     *
      * If it returns true, the user was authenticated without any
      * redirection (e.g. by an X.509 certificate or other implicit method) so
      * the process that called this can continue and send its own response.
@@ -239,7 +242,7 @@ public class Authenticate
 
     /**
      * Store information about the current user in the request and context
-     * 
+     *
      * @param context
      *            DSpace context
      * @param request
@@ -253,9 +256,9 @@ public class Authenticate
         HttpSession session = request.getSession();
 
         context.setCurrentUser(eperson);
-        
+
         boolean isAdmin = false;
-        
+
         try
         {
             isAdmin = AuthorizeManager.isAdmin(context);
@@ -264,11 +267,11 @@ public class Authenticate
         {
             log.warn("Unable to use AuthorizeManager " + se);
         }
-        finally 
+        finally
         {
             request.setAttribute("is.admin", new Boolean(isAdmin));
         }
-    
+
 
         // We store the current user in the request as an EPerson object...
         request.setAttribute("dspace.current.user", eperson);
@@ -286,7 +289,7 @@ public class Authenticate
 
     /**
      * Log the user out
-     * 
+     *
      * @param context
      *            DSpace context
      * @param request
@@ -296,9 +299,17 @@ public class Authenticate
     {
         HttpSession session = request.getSession();
 
+        LogEvent logEvent = new LogEvent();
+    	logEvent.setType(AuthenticationEvent.LOGOUT);
+    	logEvent.setAttribute("username", context.getCurrentUser().getEmail());
+    	logEvent.setAttribute("ip", request.getRemoteAddr());
+    	StatsLogger.logEvent(logEvent);
+
         context.setCurrentUser(null);
         request.removeAttribute("is.admin");
         request.removeAttribute("dspace.current.user");
         session.removeAttribute("dspace.current.user.id");
+
+
     }
 }
