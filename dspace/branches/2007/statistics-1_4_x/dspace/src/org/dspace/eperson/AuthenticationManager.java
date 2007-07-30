@@ -59,9 +59,11 @@ import org.dspace.core.PluginManager;
 import org.dspace.core.LogManager;
 import org.dspace.eperson.EPerson;
 import org.dspace.eperson.AuthenticationMethod;
-import org.dspace.statistics.LogEvent;
 import org.dspace.statistics.StatEvent;
 import org.dspace.statistics.StatsLogger;
+import org.dspace.statistics.event.AuthenticationEvent;
+import org.dspace.statistics.event.LogEvent;
+import org.dspace.statistics.event.SearchEvent;
 
 /**
  * Access point for the stackable authentication methods.
@@ -208,11 +210,11 @@ public class AuthenticationManager
                 }
                 if (ret == AuthenticationMethod.SUCCESS) {
                 	//Statistics log
-                	LogEvent logEvent=new LogEvent();
-                	logEvent.setType(StatEvent.LOGIN);
-                	logEvent.setUserLogin(username);
+                	LogEvent logEvent = new LogEvent();
+                	logEvent.setType(AuthenticationEvent.LOGIN);
+                	logEvent.setAttribute("username", username);
+                	logEvent.setAttribute("ip", request.getRemoteAddr());
                 	StatsLogger.logEvent(logEvent);
-
                 	return ret;
                 }
                 if (ret < bestRet)
