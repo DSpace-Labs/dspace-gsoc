@@ -2,8 +2,13 @@ package org.dspace.statistics.dao;
 import org.dspace.core.Context;
 
 public class StatisticsDAOFactory {
-	public static SearchItemDAO getSearchItemDAOFactory(Context context)
+	public static SearchEventDAO getSearchEventDAO(Context context)
     {
-            return new SearchItemDAOImpl(context);
+            return new SearchEventDAO(context);
+    }
+
+	public static AuthenticationEventDAO getAuthenticationEventDAO(Context context)
+    {
+            return new AuthenticationEventDAO(context);
     }
 }

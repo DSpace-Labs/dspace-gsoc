@@ -11,6 +11,7 @@ import org.apache.log4j.Logger;
 
 import org.dspace.core.ConfigurationManager;
 import org.dspace.core.Context;
+import org.dspace.core.PluginManager;
 import org.dspace.statistics.StatEvent;
 
 import org.dspace.storage.rdbms.DatabaseManager;
@@ -18,6 +19,7 @@ import org.dspace.storage.rdbms.TableRow;
 
 import java.util.ArrayList;
 import org.dspace.statistics.dao.*;
+import org.dspace.statistics.event.LogEvent;
 
 /**
  * Listener class to dispatch statistics events
@@ -32,10 +34,7 @@ public class JMSDispatcher implements MessageListener {
 	private LogEvent logEvent;
 	private Context context;
 	private DatabaseManager db;
-	private String TABLE_SEARCH="search_stats";
-	private SearchItem searchItem;
-	private SearchItemDAO searchItemDAO;
-
+	
     public JMSDispatcher() {
     	try {
 			this.context=new Context();
@@ -49,56 +48,11 @@ public class JMSDispatcher implements MessageListener {
     		ObjectMessage objectMessage=(ObjectMessage)message;
     		try {
 				logEvent=(LogEvent)objectMessage.getObject();
-				if (logEvent.getType()==StatEvent.SEARCH) {
-					log.info("Search Event: "+logEvent.getQuery());
-					try {
-						searchItemDAO=StatisticsDAOFactory.getSearchItemDAOFactory(context);
-						searchItem=searchItemDAO.create();
-						searchItem.setQuery(logEvent.getQuery());
-						searchItemDAO.commit(searchItem);
-						if (context != null && context.isValid())
-					    {
-							context.commit();
-					    }
-					} catch (SearchItemException e) {
-						log.error("Error in saving Search Event: "+e.toString());
-					}
-					catch (SQLException e) {
-						log.error("Error in saving Search Event: "+e.toString());
-					}
-	    		}
-				else if (logEvent.getType()==StatEvent.LOGIN) {
-					log.info("Login Event: "+logEvent.getUserLogin());
-				}
-				else if (logEvent.getType()==StatEvent.ITEM_VIEW) {
-					log.info("Item View Event: ID "+logEvent.getId());
-					log.info("Item View Event: HOST "+logEvent.getHost());
-					log.info("Item View Event: TIMESTAMP "+logEvent.getTimestamp());
-					log.info("Item View Event: USERLANGUAGE "+logEvent.getUserLanguage());
-					log.info("Item View Event: REFERER "+logEvent.getReferer());
-				}
-				else if (logEvent.getType()==StatEvent.COLLECTION_VIEW) {
-					log.info("Collection View Event: ID "+logEvent.getId());
-					log.info("Collection View Event: HOST "+logEvent.getHost());
-					log.info("Collection View Event: TIMESTAMP "+logEvent.getTimestamp());
-					log.info("Collection View Event: USERLANGUAGE "+logEvent.getUserLanguage());
-					log.info("Collection View Event: REFERER "+logEvent.getReferer());
-				}
-				else if (logEvent.getType()==StatEvent.COMMUNITY_VIEW) {
-					log.info("Community View Event: ID "+logEvent.getId());
-					log.info("Community View Event: HOST "+logEvent.getHost());
-					log.info("Community View Event: TIMESTAMP "+logEvent.getTimestamp());
-					log.info("Community View Event: USERLANGUAGE "+logEvent.getUserLanguage());
-					log.info("Community View Event: REFERER "+logEvent.getReferer());
-				}
-				else if (logEvent.getType()==StatEvent.FILE_VIEW) {
-					log.info("File View Event: ID "+logEvent.getId());
-					log.info("File View Event: HOST "+logEvent.getHost());
-					log.info("File View Event: TIMESTAMP "+logEvent.getTimestamp());
-					log.info("File View Event: USERLANGUAGE "+logEvent.getUserLanguage());
-					log.info("File View Event: REFERER "+logEvent.getReferer());
-				}
-
+				log.info("Trattasi di "+logEvent.getType());
+				StatisticalEventHandler handler =(StatisticalEventHandler)PluginManager.getNamedPlugin(StatisticalEventHandler.class,logEvent.getType());
+				handler.setContext(context);
+				handler.setLogEvent(logEvent);
+				handler.process();
 			} catch (JMSException e1) {
 				log.error(e1.toString());
 			}

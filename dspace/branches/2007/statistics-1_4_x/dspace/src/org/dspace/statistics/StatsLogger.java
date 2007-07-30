@@ -1,5 +1,7 @@
 package org.dspace.statistics;
 
+import org.dspace.statistics.event.LogEvent;
+
 /**
  * Statistics logger, which other kinds of logger
  *
