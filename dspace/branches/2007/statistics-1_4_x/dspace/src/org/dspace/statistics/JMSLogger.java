@@ -13,6 +13,7 @@ import javax.naming.InitialContext;
 import javax.naming.NamingException;
 
 import org.apache.log4j.Logger;
+import org.dspace.statistics.event.LogEvent;
 
 /**
  * JMS based logger
