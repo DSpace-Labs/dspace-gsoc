@@ -69,9 +69,9 @@ import org.dspace.eperson.EPerson;
 import org.dspace.eperson.Group;
 import org.dspace.eperson.Subscribe;
 import org.dspace.handle.HandleManager;
-import org.dspace.statistics.LogEvent;
 import org.dspace.statistics.StatEvent;
 import org.dspace.statistics.StatsLogger;
+import org.dspace.statistics.event.LogEvent;
 
 /**
  * Servlet for handling requests within a community or collection. The Handle is
@@ -154,14 +154,14 @@ public class HandleServlet extends DSpaceServlet
         	Item item = (Item) dso;
 
         	// Statistics log
-        	LogEvent logEvent=new LogEvent();
+        	/*LogEvent logEvent=new LogEvent();
         	logEvent.setType(StatEvent.ITEM_VIEW);
         	logEvent.setId(item.getID());
         	logEvent.setHost(request.getRemoteHost());
         	logEvent.setTimestamp(System.currentTimeMillis());
         	logEvent.setUserLanguage(request.getLocale().getLanguage());
         	logEvent.setReferer(request.getHeader("referer"));
-        	StatsLogger.logEvent(logEvent);
+        	StatsLogger.logEvent(logEvent);*/
 
             response.setDateHeader("Last-Modified", item
                     .getLastModified().getTime());
@@ -186,14 +186,14 @@ public class HandleServlet extends DSpaceServlet
             Collection c = (Collection) dso;
 
             // Statistics log
-        	LogEvent logEvent=new LogEvent();
+        	/*LogEvent logEvent=new LogEvent();
         	logEvent.setType(StatEvent.COLLECTION_VIEW);
         	logEvent.setId(c.getID());
         	logEvent.setHost(request.getRemoteHost());
         	logEvent.setTimestamp(System.currentTimeMillis());
         	logEvent.setUserLanguage(request.getLocale().getLanguage());
         	logEvent.setReferer(request.getHeader("referer"));
-        	StatsLogger.logEvent(logEvent);
+        	StatsLogger.logEvent(logEvent);*/
 
             // Store collection location in request
             request.setAttribute("dspace.collection", c);
@@ -231,14 +231,14 @@ public class HandleServlet extends DSpaceServlet
             Community c = (Community) dso;
 
             // Statistics log
-        	LogEvent logEvent=new LogEvent();
+        	/*LogEvent logEvent=new LogEvent();
         	logEvent.setType(StatEvent.COMMUNITY_VIEW);
         	logEvent.setId(c.getID());
         	logEvent.setHost(request.getRemoteHost());
         	logEvent.setTimestamp(System.currentTimeMillis());
         	logEvent.setUserLanguage(request.getLocale().getLanguage());
         	logEvent.setReferer(request.getHeader("referer"));
-        	StatsLogger.logEvent(logEvent);
+        	StatsLogger.logEvent(logEvent);*/
 
             // Store collection location in request
             request.setAttribute("dspace.community", c);
