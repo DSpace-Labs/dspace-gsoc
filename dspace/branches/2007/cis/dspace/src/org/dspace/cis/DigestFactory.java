@@ -5,6 +5,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Arrays;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -220,11 +221,17 @@ public class DigestFactory
         DCValue[] dcvalues = item.getMetadata(Item.ANY, Item.ANY, Item.ANY,
                 Item.ANY);
 
-        // get all bundles of the item
+        // get all non-certificate bundles of the item
         Bundle[] bundles = null;
+        
+        // Sort the dcvalues by their properties.
+        Arrays.sort(dcvalues);
+        
         try
         {
-            bundles = item.getBundles();
+            bundles = item.getBundlesWithoutCertificate();
+            // Sort the bundles by their names.
+            Arrays.sort(bundles);
         }
         catch (SQLException e)
         {
@@ -233,9 +240,7 @@ public class DigestFactory
             return null;
         }
 
-        String tmp = null;
-
-        tmp = digest(dcvalues) + digest(bundles);
+        String tmp = digest(dcvalues) + digest(bundles);
 
         return digest(tmp);
 

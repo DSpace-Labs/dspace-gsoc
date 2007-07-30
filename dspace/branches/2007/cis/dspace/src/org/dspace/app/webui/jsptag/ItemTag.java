@@ -527,9 +527,16 @@ public class ItemTag extends TagSupport
 
         try
         {
-        	Bundle[] bundles = item.getBundles("ORIGINAL");
-
-        	if (bundles.length == 0)
+//        	Bundle[] bundles = item.getBundles("ORIGINAL");
+        	
+        	// FIXME Here we should only display the latest certificate, not all certificates
+        	Bundle[] originalBundles = item.getBundles("ORIGINAL");
+            Bundle[] certificateBundles = item.getBundles("CERTIFICATE");
+            Bundle[] bundles = new Bundle[originalBundles.length + certificateBundles.length];
+            System.arraycopy(originalBundles, 0, bundles, 0, originalBundles.length);
+            System.arraycopy(certificateBundles, 0, bundles, originalBundles.length, certificateBundles.length);
+        	
+            if (bundles.length == 0)
         	{
         		out.println("<p>"
         				+ LocaleSupport.getLocalizedMessage(pageContext,

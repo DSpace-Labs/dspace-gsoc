@@ -1,13 +1,14 @@
 org.dspace.content.Bitstream 	+ getInternalID()
-database						+ timeinterval
-								+ witness
-								+ hashvalueofitem
-								+ hashvalueofitem_seq
-database#bitstreamformatregistry
-								+ text/xml, Certificate, true(internal)							
+
+etc								+ database_schema_cis.sql
+config.registries.dublin-core-types.xml
+								+ text/certificate
 org.dspace.content.InstallItem  + createHash(Item item, Context c)
 org.dspace.content.Bundle		- update() throws AuthorizeException
 								+ addBitstreamWithoutAuthorization(Bitstream b)
 								
 org.dspace.content.Item			+ addBundleWithoutAuthorization(Bundle b)
 								+ createBundleWithoutAuthorization(String name)	
+								
+org.dspace.content.DCValue		+ public int compareTo(Object other)
+org.dspace.content.Bundle		+ public int compareTo(Object other)

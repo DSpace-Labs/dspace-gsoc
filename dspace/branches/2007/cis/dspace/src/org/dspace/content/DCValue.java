@@ -47,20 +47,30 @@ package org.dspace.content;
  * @author Martin Hald
  * @version $Revision$
  */
-public class DCValue
+public class DCValue implements Comparable
 {
-    /** The DC element */
-    public String element;
+	/** The DC element */
+	public String element;
 
-    /** The DC qualifier, or <code>null</code> if unqualified */
-    public String qualifier;
+	/** The DC qualifier, or <code>null</code> if unqualified */
+	public String qualifier;
 
-    /** The value of the field */
-    public String value;
+	/** The value of the field */
+	public String value;
 
-    /** The language of the field, may be <code>null</code> */
-    public String language;
+	/** The language of the field, may be <code>null</code> */
+	public String language;
 
-    /** The schema name of the metadata element */
-    public String schema;
+	/** The schema name of the metadata element */
+	public String schema;
+
+	public int compareTo(Object other) {
+		String thisParts = this.element + this.qualifier + this.value
+				+ this.language + this.schema;
+		String otherParts = ((DCValue) other).element
+				+ ((DCValue) other).qualifier + ((DCValue) other).value
+				+ ((DCValue) other).language + ((DCValue) other).schema;
+		return thisParts.compareTo(otherParts);
+	}
+
 }

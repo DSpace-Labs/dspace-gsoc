@@ -1,14 +1,22 @@
 package org.dspace.cis;
 
 import java.io.File;
-//import java.sql.SQLException;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.text.DateFormat;
+import java.sql.SQLException;
+import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 
-import org.dspace.content.Bitstream;
-import org.dspace.core.ConfigurationManager;
+import org.dspace.content.*;
+import org.dspace.core.*;
+import org.dspace.storage.rdbms.DatabaseManager;
+import org.dspace.storage.rdbms.TableRow;
+import org.jdom.JDOMException;
 
 //import org.dspace.core.Context;
 //import org.dspace.storage.rdbms.DatabaseManager;
@@ -18,11 +26,11 @@ public class CisUtils
 {
 
     // the number of milliseconds of an hour
-    private static final int MILLISECONDS_OF_AN_HOUR = 3600000;
+    private static final long MILLISECONDS_OF_AN_HOUR = 3600000;
 
     // 271752 is the number of hours from 00:00:00 CST 1970 to 00:00:00 CST
     // 2001
-    private static final int HOURS_OFFSET = 271752;
+    private static final long HOURS_OFFSET = 271752;
 
     /**
      * Return the intermediate path derived from the internal_id. This method
@@ -162,7 +170,7 @@ public class CisUtils
      */
     public static int getTimeInterval_id(Date date)
     {
-        Long tmp = new Long(date.getTime());
+        long tmp = date.getTime();
 
         tmp = tmp / MILLISECONDS_OF_AN_HOUR - HOURS_OFFSET;
 
@@ -209,7 +217,7 @@ public class CisUtils
      * @param dF
      * @return
      */
-    public static String witHash(List<String> hashvalues, DigestFactory dF)
+    public static String witHash(List hashvalues, DigestFactory dF)
     {
         /** temp values to help traversing the hashvalues */
         // Here we can't just use hashvalues.toArray(), or this will kill the
@@ -220,9 +228,9 @@ public class CisUtils
         String[] tmpArray = new String[size];
         for (int i = 0; i < size; i++)
         {
-            tmpArray[i] = hashvalues.get(i);
+            tmpArray[i] = (String) hashvalues.get(i);
         }
-        List<String> tmpList = new ArrayList<String>();
+        List tmpList = new ArrayList();
         String tmpString = null;
         while (tmpArray.length != 1)
         {
@@ -231,8 +239,8 @@ public class CisUtils
             {
                 for (int i = 0; i < tmpArray.length / 2; i++)
                 {
-                    tmpString = dF.digest(tmpArray[2 * i]
-                            + tmpArray[2 * i + 1]);
+                    tmpString = dF
+                            .digest(tmpArray[2 * i] + tmpArray[2 * i + 1]);
                     tmpList.add(tmpString);
                 }
                 // tmpArray = (String[]) tmpList.toArray();
@@ -241,7 +249,7 @@ public class CisUtils
                 tmpArray = new String[size];
                 for (int i = 0; i < size; i++)
                 {
-                    tmpArray[i] = tmpList.get(i);
+                    tmpArray[i] = (String) tmpList.get(i);
                 }
                 tmpList.clear();
             }
@@ -249,8 +257,8 @@ public class CisUtils
             {
                 for (int i = 0; i < (tmpArray.length - 1) / 2; i++)
                 {
-                    tmpString = dF.digest(tmpArray[2 * i]
-                            + tmpArray[2 * i + 1]);
+                    tmpString = dF
+                            .digest(tmpArray[2 * i] + tmpArray[2 * i + 1]);
                     tmpList.add(tmpString);
                 }
                 tmpList.add(tmpArray[tmpArray.length - 1]);
@@ -260,7 +268,7 @@ public class CisUtils
                 tmpArray = new String[size];
                 for (int i = 0; i < size; i++)
                 {
-                    tmpArray[i] = tmpList.get(i);
+                    tmpArray[i] = (String) tmpList.get(i);
                 }
                 tmpList.clear();
             }
@@ -288,7 +296,87 @@ public class CisUtils
         }
         return result;
     }
-    // public static void main(String[] args) {
+
+    /**
+     * Validate a given item and its certificate.
+     * 
+     * @param path
+     *            the certificate's path
+     * @return whether or not the item and its certificate are authentic.
+     * @throws SQLException
+     * @throws ParseException
+     * @throws IOException
+     * @throws JDOMException
+     * @throws FileNotFoundException
+     */
+    public static boolean validate(String path, Item item, Context context)
+            throws SQLException, FileNotFoundException, JDOMException,
+            IOException, ParseException
+    {
+        // Get the Certificate instance from the given file path.
+        Certificate cer = Certificate.readFile(path, context);
+        // Get the DigestFactory instance with the certificate's algorithm.
+        DigestFactory df = new DigestFactory(cer.getAlgorithm());
+        // Get the item's hashvalue.
+        String hashvalue = getHashvalue(item, df);
+        // Get the witnesses from the certificate.
+        AssistHash[] witnesses = cer.getWitnesses();
+        // Combine the item's hashvalue and witnesses in the Merkle-tree's way.
+        for (int i = 0; i < witnesses.length; i++)
+        {
+            if (witnesses[i].getPos() == AssistHashPos.LEFT)
+            {
+                hashvalue = df.digest(witnesses[i].getHashvalue() + hashvalue);
+            }
+            else
+            {
+                hashvalue = df.digest(hashvalue + witnesses[i].getHashvalue());
+            }
+        }
+        // Get the witness stored in database in order to compare it with the
+        // one just generated.
+        int timeIntervalID = getTimeInterval_id(cer.getLastModifiedTime());
+        TableRow tr = DatabaseManager.querySingle(context,
+                "SELECT hashvalue FROM witness WHERE time_interval_id = ?",
+                timeIntervalID);
+        String storedWitness = tr.getStringColumn("hashvalue");
+        // If the two are the same, that means both the item and its certificate
+        // are authentic.
+        return hashvalue.equals(storedWitness) ? true : false;
+    }
+
+    /**
+     * Get the hashvalue of the given item. The item is subtracted with its
+     * certificate bundle (retrieve the item's status right before
+     * certificate-generation process). The result hashvalue is then compared
+     * with the one stored in database. This function is used to determine
+     * whether or not the item is authentic.
+     * 
+     * @param item
+     *            the item whose hashvalue is to retrieved
+     * @param df
+     *            The DigestFactory instance which is to digest the item
+     * @return the given item's hashvalue.
+     * @throws SQLException
+     */
+    public static String getHashvalue(Item item, DigestFactory df)
+            throws SQLException
+    {
+        DCValue[] dcvalues = item.getMetadata(Item.ANY, Item.ANY, Item.ANY,
+                Item.ANY);
+        Bundle[] bundlesWithoutCertificate = item
+                .getBundlesWithoutCertificate();
+
+        // Sort dcvalues and bundles.
+        Arrays.sort(dcvalues);
+        Arrays.sort(bundlesWithoutCertificate);
+
+        String tmp = df.digest(dcvalues) + df.digest(bundlesWithoutCertificate);
+
+        return df.digest(tmp);
+    }
+    // public static void main(String[] args) throws SQLException {
+
     // int timeInterval_id = TimeInterval.getTimeInterval_id(new Date());
     // System.out.println("The time_interval_ID is " + timeInterval_id);
     // Context context;

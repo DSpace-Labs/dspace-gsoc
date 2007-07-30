@@ -124,7 +124,7 @@ public class Witness
 
         Witness result = new Witness();
 
-        List<String> hashvalues = hashValuesOfInterval(c, timeinterval_id);
+        List hashvalues = hashValuesOfInterval(c, timeinterval_id);
 
         DigestFactory dF = new DigestFactory();
 
@@ -146,7 +146,7 @@ public class Witness
      * @return
      * @throws SQLException
      */
-    private List<String> hashValuesOfInterval(Context c, int timeinterval_id)
+    private List hashValuesOfInterval(Context c, int timeinterval_id)
             throws SQLException
     {
 
@@ -156,7 +156,7 @@ public class Witness
                 query, timeinterval_id);
 
         /** hold all the hash values in the time_interval */
-        List<String> hashvalues = new ArrayList<String>();
+        List hashvalues = new ArrayList();
         while (tri.hasNext())
         {
             TableRow tR = tri.next();
@@ -181,7 +181,7 @@ public class Witness
             throws SQLException
     {
 
-        List<String> hashvalues = hashValuesOfInterval(c, timeinterval_id)
+        List hashvalues = hashValuesOfInterval(c, timeinterval_id)
                 .subList(from, to);
 
         DigestFactory dF = new DigestFactory();

@@ -158,7 +158,7 @@ public class InstallItem
         // the defaults from the collection
         item.inheritCollectionDefaultPolicies(is.getCollection());
         
-        createHash(item, c);
+        createHash(Item.find(c, item.getID()), c);
 
         return item;
     }

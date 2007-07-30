@@ -1824,7 +1824,7 @@ public class Item extends DSpaceObject {
 	 * Create a bundle in this item without authorization, with immediate effect
 	 * 
 	 * @param name
-	 *            bundle name (ORIGINAL/TEXT/THUMBNAIL)
+	 *            bundle name (CERTIFICATE)
 	 * @return the newly created bundle
 	 * @throws SQLException
 	 * @throws AuthorizeException
@@ -1874,6 +1874,28 @@ public class Item extends DSpaceObject {
 		mappingRow.setColumn("item_id", getID());
 		mappingRow.setColumn("bundle_id", b.getID());
 		DatabaseManager.update(ourContext, mappingRow);
+	}
+
+	/**
+	 * Get the non-certificate bundles in this item.
+	 * 
+	 * @return the bundles in an unordered array
+	 */
+	public Bundle[] getBundlesWithoutCertificate() throws SQLException {
+		Bundle[] bundleArray = this.getBundles();
+		List bundlesWithoutCertificateList = new ArrayList();
+		for (int i = 0; i < bundleArray.length; i++)
+		{
+			if (!bundleArray[i].getName().equals("CERTIFICATE"))
+				bundlesWithoutCertificateList.add(bundleArray[i]);
+		}
+
+		Bundle[] bundles = new Bundle[bundlesWithoutCertificateList.size()];
+		for (int i = 0; i < bundlesWithoutCertificateList.size(); i++)
+		{
+			bundles[i] = (Bundle)bundlesWithoutCertificateList.get(i);
+		}
+		return bundles;
 	}
 	
 }

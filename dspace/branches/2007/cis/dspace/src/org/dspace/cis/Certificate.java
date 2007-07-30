@@ -1,9 +1,13 @@
 package org.dspace.cis;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.text.DateFormat;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -12,9 +16,12 @@ import java.util.List;
 
 import org.dspace.content.Bitstream;
 import org.dspace.core.Context;
+import org.dspace.storage.rdbms.DatabaseManager;
 import org.dspace.storage.rdbms.TableRow;
 import org.jdom.Document;
 import org.jdom.Element;
+import org.jdom.JDOMException;
+import org.jdom.input.SAXBuilder;
 import org.jdom.output.Format;
 import org.jdom.output.XMLOutputter;
 
@@ -38,13 +45,13 @@ import org.jdom.output.XMLOutputter;
 public class Certificate extends Bitstream
 {
     /** Algorithm name for this certificate. */
-    private String algorithm;
+    private HashAlgorithms algorithm;
 
     /** Handle of the item this certificate belongs to. */
     private String handle;
 
     /** List of witnesses of this certificate. */
-    private List<AssistHash> witnesses = null;
+    private List witnesses = null;
 
     // /** Starting time of this certificate's time interval. */
     // public Date from;
@@ -58,7 +65,7 @@ public class Certificate extends Bitstream
     public Certificate(Context bContext, TableRow bRow) throws SQLException
     {
         super(bContext, bRow);
-        witnesses = new ArrayList<AssistHash>();
+        witnesses = new ArrayList();
     }
 
     // public Certificate() {
@@ -67,14 +74,30 @@ public class Certificate extends Bitstream
     // witnesses = new ArrayList<AssistHash>();
     // }
 
-    public String getAlgorithm()
+    public HashAlgorithms getAlgorithm()
     {
         return algorithm;
     }
 
+    public String getAlgorithmName()
+    {
+        return algorithm.toString();
+    }
+
     public void setAlgorithm(String algorithm)
     {
-        this.algorithm = algorithm;
+        if (algorithm.equals("MD2"))
+            this.algorithm = HashAlgorithms.MD2;
+        else if (algorithm.equals("SHA-1"))
+            this.algorithm = HashAlgorithms.SHA1;
+        else if (algorithm.equals("SHA-256"))
+            this.algorithm = HashAlgorithms.SHA256;
+        else if (algorithm.equals("SHA-384"))
+            this.algorithm = HashAlgorithms.SHA384;
+        else if (algorithm.equals("SHA-512"))
+            this.algorithm = HashAlgorithms.SHA512;
+        else
+            this.algorithm = HashAlgorithms.MD5;
     }
 
     public void setHandle(String handle)
@@ -120,12 +143,18 @@ public class Certificate extends Bitstream
 
     public AssistHash[] getWitnesses()
     {
-        return (AssistHash[]) witnesses.toArray();
+        // return (AssistHash[]) witnesses.toArray();
+        AssistHash[] wit = new AssistHash[this.witnesses.size()];
+        for (int i = 0; i < witnesses.size(); i++)
+        {
+            wit[i] = (AssistHash) this.witnesses.get(i);
+        }
+        return wit;
     }
-    
+
     /**
      * Reverse the witnesses.
-     *
+     * 
      */
     public void reverse()
     {
@@ -184,17 +213,8 @@ public class Certificate extends Bitstream
     {
         Document doc = new Document();
         Element root = new Element("certificate");
-        root.setAttribute("algorithm", this.algorithm);
+        root.setAttribute("algorithm", this.algorithm.toString());
         root.setAttribute("handle", this.handle);
-        // Element timeInterval = new Element("time-interval");
-        // Element from = new Element("from");
-        // from.addContent(this.from.toString());
-        // Element to = new Element("to");
-        // to.addContent(this.to.toString());
-        // timeInterval.addContent(from);
-        // timeInterval.addContent(to);
-        // root.addContent(timeInterval);
-        // Element digestTime = new Element("Last Modified Time");
         Element digestTime = new Element("LastModifiedTime");
         digestTime.addContent(this.lastModifiedTime.toString());
         root.addContent(digestTime);
@@ -214,15 +234,118 @@ public class Certificate extends Bitstream
         format.setEncoding("UTF-8");
         outputter.setFormat(format);
         String destPath = CisUtils.getBitstreamFilePath(this);
-        // File file = new File(destPath);
+        // Make ths directory for certificate
         new File(destPath).mkdirs();
-        FileWriter writer = new FileWriter(destPath + "\\"
+        FileWriter writer = new FileWriter(destPath + File.separator
                 + this.getInternalID());
         outputter.output(doc, writer);
         writer.close();
     }
 
+    /**
+     * Instantiate a <code>Certificate</code> instance by reading a
+     * certificate file.
+     * 
+     * @param path
+     *            the certificate file's path
+     * @param context
+     *            the context
+     * @return the <code>Certificate</code> instance
+     * @throws FileNotFoundException
+     * @throws JDOMException
+     * @throws IOException
+     * @throws SQLException
+     * @throws ParseException
+     */
+    public static Certificate readFile(String path, Context context)
+            throws FileNotFoundException, JDOMException, IOException,
+            SQLException, ParseException
+    {
+        // Get the certificate instance responding to the file.
+        String internal_id = (new File(path)).getName();
+        TableRow tr = DatabaseManager.findByUnique(context, "bitstream",
+                "internal_id", internal_id);
+        Certificate cer = new Certificate(context, tr);
+
+        // Prepare to read the certificate file (xml document).
+        SAXBuilder sb = new SAXBuilder();
+        Document doc = sb.build(new FileInputStream(path));
+        Element root = doc.getRootElement();
+        // Set handle and algorithm
+        cer.setHandle(root.getAttributeValue("handle"));
+        cer.setAlgorithm(root.getAttributeValue("algorithm"));
+        // Set last modified time.
+        DateFormat df = DateFormat.getDateTimeInstance();
+        cer
+                .setLastModifiedTime(df.parse(root
+                        .getChildText("LastModifiedTime")));
+        // Set witness hash values.
+        List elements = root.getChildren("witness");
+        String pos = null;
+        for (int i = 0; i < elements.size(); i++)
+        {
+            pos = ((Element) elements.get(i)).getAttributeValue("position");
+            if (pos.equals("LEFT"))
+            {
+                cer.addWitness(new AssistHash(((Element) elements.get(i))
+                        .getText(), AssistHashPos.LEFT));
+            }
+            else
+            {
+                cer.addWitness(new AssistHash(((Element) elements.get(i))
+                        .getText(), AssistHashPos.RIGHT));
+            }
+        }
+        return cer;
+    }
+
     // public static void main(String[] argv) throws IOException {
+    // File file = new
+    // File("/dspace/assetstore/36/47/31/36473117764695350162253083493927900144");
+    // if (!file.exists())
+    // {
+    // System.out.println("The path is wrong");
+    // return;
+    // }
+    // System.out.println("The file's name is" + file.getName());
+    // SAXBuilder sb = new SAXBuilder();
+    // Document doc;
+    // try
+    // {
+    // doc = sb.build(new FileInputStream(file));
+    // Element root = doc.getRootElement();
+    // DateFormat df = DateFormat.getDateTimeInstance();
+    // System.out.println(root.getChildText("LastModifiedTime"));
+    // Date date = df.parse(root.getChildText("LastModifiedTime"));
+    // System.out.println(date);
+    // List elements = root.getChildren("witness");
+    // AssistHash ah = null;
+    // List witnesses = new ArrayList();
+    // for (int i = 0; i < elements.size(); i++)
+    // {
+    // String pos = ((Element)elements.get(i)).getAttributeValue("position");
+    // if (pos.equals("LEFT"))
+    // {
+    // ah = new AssistHash(((Element)elements.get(i)).getText(),
+    // AssistHashPos.LEFT);
+    // } else {
+    // ah = new AssistHash(((Element)elements.get(i)).getText(),
+    // AssistHashPos.RIGHT);
+    // }
+    // witnesses.add(ah);
+    // }
+    // for (int i = 0; i < witnesses.size(); i++)
+    // {
+    // System.out.println(((AssistHash)witnesses.get(i)).getPos().toString() +
+    // ":" + ((AssistHash)witnesses.get(i)).getHashvalue());
+    // }
+    // }
+    // catch (Exception e)
+    // {
+    // // TODO Auto-generated catch block
+    // e.printStackTrace();
+    // }
+
     // Document doc = new Document();
     // Element root = new Element("certificate");
     // root.setAttribute("algorithm", "MD5");

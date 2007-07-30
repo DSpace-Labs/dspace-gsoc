@@ -56,7 +56,6 @@ public class CertificateGenerator extends TimerTask
     /** log4j logger */
     private static Logger log = Logger.getLogger(CertificateGenerator.class);
 
-    @Override
     public void run()
     {
 
@@ -66,8 +65,8 @@ public class CertificateGenerator extends TimerTask
         // Get the last hour's time interval ID
         Date date = new Date();
         int timeInterval_id = CisUtils.getTimeInterval_id(date) - 1;
-        List<HashvalueofItem> hashvaluesOfItemList = new ArrayList<HashvalueofItem>();
-        List<String> hashvalues = new ArrayList<String>();
+        List hashvaluesOfItemList = new ArrayList();
+        List hashvalues = new ArrayList();
         HashvalueofItem[] hashvaluesOfItemArray = null;
         DigestFactory dF = new DigestFactory();
         // List certificates = new ArrayList();
@@ -75,6 +74,17 @@ public class CertificateGenerator extends TimerTask
         Item item = null;
         Bundle bundle = null;
         Bitstream bitstream = null;
+        
+//    	 Context context;
+//    	try {
+//    		context = new Context();
+//    		item = Item.find(context, 2);
+//            boolean isAuthentic = CisUtils.validate("/dspace/assetstore/14/76/19/147619542129842268361014467977202592071", item, context);
+//            System.out.println(isAuthentic);
+//        } catch (Exception e) {
+//    		e.printStackTrace();
+//    	}
+    	
 
         try
         {
@@ -100,7 +110,7 @@ public class CertificateGenerator extends TimerTask
             hashvaluesOfItemArray = new HashvalueofItem[size];
             for (int i = 0; i < size; i++)
             {
-                hashvaluesOfItemArray[i] = hashvaluesOfItemList.get(i);
+                hashvaluesOfItemArray[i] = (HashvalueofItem)hashvaluesOfItemList.get(i);
             }
 
             for (int i = 0; i < hashvaluesOfItemArray.length; i++)
@@ -158,7 +168,7 @@ public class CertificateGenerator extends TimerTask
      * @param dF
      * @throws SQLException
      */
-    private void createWitness(int timeInterval_id, List<String> hashvalues,
+    private void createWitness(int timeInterval_id, List hashvalues,
             DigestFactory dF) throws SQLException
     {
         int lastWitTimeIntervalID = timeInterval_id - 1;
@@ -249,7 +259,7 @@ public class CertificateGenerator extends TimerTask
         if (length > 1)
         {
             HashvalueofItem[] tmpArray = null;
-            List<HashvalueofItem> tmpList = new ArrayList<HashvalueofItem>();
+            List tmpList = new ArrayList();
             if (index + 1 <= max2N(length))
             {
                 if (length > max2N(length))
@@ -275,7 +285,7 @@ public class CertificateGenerator extends TimerTask
                 tmpArray = new HashvalueofItem[size];
                 for (int i = 0; i < size; i++)
                 {
-                    tmpArray[i] = tmpList.get(i);
+                    tmpArray[i] = (HashvalueofItem)tmpList.get(i);
                 }
                 setAssistValues(cer, index - max2N(length), tmpArray, df);
             }
@@ -384,7 +394,7 @@ public class CertificateGenerator extends TimerTask
     private String catHash(HashvalueofItem[] hashvaluesOfItem, int from,
             int to, DigestFactory df)
     {
-        List<String> hashvalues = new ArrayList<String>();
+        List hashvalues = new ArrayList();
         for (int i = from - 1; i <= to - 1; i++)
         {
             hashvalues.add(hashvaluesOfItem[i].getHashValue());
