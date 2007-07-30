@@ -379,5 +379,14 @@
     <internal>false</internal>
     <extension>pcd</extension>
   </bitstream-type>
+  
+      <!-- Used by cis: do not remove -->
+  <bitstream-type>
+    <mimetype>text/certificate</mimetype>
+    <short_description>Certificate</short_description>
+    <description>certificates for items</description>
+    <support_level>1</support_level>
+    <internal>false</internal>
+  </bitstream-type>
 
 </dspace-bitstream-types>

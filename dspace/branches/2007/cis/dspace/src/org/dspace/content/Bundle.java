@@ -68,7 +68,7 @@ import org.dspace.storage.rdbms.TableRowIterator;
  * @author Robert Tansley
  * @version $Revision$
  */
-public class Bundle extends DSpaceObject
+public class Bundle extends DSpaceObject implements Comparable
 {
     /** log4j logger */
     private static Logger log = Logger.getLogger(Bundle.class);
@@ -97,13 +97,15 @@ public class Bundle extends DSpaceObject
         bitstreams = new ArrayList();
 
         // Get bitstreams
-        TableRowIterator tri = DatabaseManager.queryTable(
-                ourContext, "bitstream",
-                "SELECT bitstream.* FROM bitstream, bundle2bitstream WHERE "
-                        + "bundle2bitstream.bitstream_id=bitstream.bitstream_id AND "
-                        + "bundle2bitstream.bundle_id= ? ",
-                bundleRow.getIntColumn("bundle_id"));
-        
+        TableRowIterator tri = DatabaseManager
+                .queryTable(
+                        ourContext,
+                        "bitstream",
+                        "SELECT bitstream.* FROM bitstream, bundle2bitstream WHERE "
+                                + "bundle2bitstream.bitstream_id=bitstream.bitstream_id AND "
+                                + "bundle2bitstream.bundle_id= ? ", bundleRow
+                                .getIntColumn("bundle_id"));
+
         while (tri.hasNext())
         {
             TableRow r = (TableRow) tri.next();
@@ -253,9 +255,9 @@ public class Bundle extends DSpaceObject
      */
     public void unsetPrimaryBitstreamID()
     {
-    	bundleRow.setColumnNull("primary_bitstream_id");
+        bundleRow.setColumnNull("primary_bitstream_id");
     }
-    
+
     public String getHandle()
     {
         // No Handles for bundles
@@ -312,13 +314,12 @@ public class Bundle extends DSpaceObject
         List items = new ArrayList();
 
         // Get items
-        TableRowIterator tri = DatabaseManager.queryTable(
-        		ourContext, "item",
-                "SELECT item.* FROM item, item2bundle WHERE " +
-                "item2bundle.item_id=item.item_id AND " +
-                "item2bundle.bundle_id= ? ",
-                bundleRow.getIntColumn("bundle_id"));
-        
+        TableRowIterator tri = DatabaseManager.queryTable(ourContext, "item",
+                "SELECT item.* FROM item, item2bundle WHERE "
+                        + "item2bundle.item_id=item.item_id AND "
+                        + "item2bundle.bundle_id= ? ", bundleRow
+                        .getIntColumn("bundle_id"));
+
         while (tri.hasNext())
         {
             TableRow r = (TableRow) tri.next();
@@ -370,15 +371,17 @@ public class Bundle extends DSpaceObject
     /**
      * Create a new bitstream in this bundle. This method is for registering
      * bitstreams.
-     *
-     * @param assetstore corresponds to an assetstore in dspace.cfg
-     * @param bitstreamPath the path and filename relative to the assetstore 
-     * @return  the newly created bitstream
+     * 
+     * @param assetstore
+     *            corresponds to an assetstore in dspace.cfg
+     * @param bitstreamPath
+     *            the path and filename relative to the assetstore
+     * @return the newly created bitstream
      * @throws IOException
      * @throws SQLException
      */
     public Bitstream registerBitstream(int assetstore, String bitstreamPath)
-        throws AuthorizeException, IOException, SQLException
+            throws AuthorizeException, IOException, SQLException
     {
         // check authorisation
         AuthorizeManager.authorizeAction(ourContext, this, Constants.ADD);
@@ -465,26 +468,26 @@ public class Bundle extends DSpaceObject
             {
                 // We've found the bitstream to remove
                 li.remove();
-                
+
                 // In the event that the bitstream to remove is actually
                 // the primary bitstream, be sure to unset the primary
                 // bitstream.
-                if (b.getID() == getPrimaryBitstreamID()) {
-                	unsetPrimaryBitstreamID();
+                if (b.getID() == getPrimaryBitstreamID())
+                {
+                    unsetPrimaryBitstreamID();
                 }
             }
         }
 
         // Delete the mapping row
         DatabaseManager.updateQuery(ourContext,
-                "DELETE FROM bundle2bitstream WHERE bundle_id= ? "+
-                "AND bitstream_id= ? ", 
-                getID(), b.getID());
+                "DELETE FROM bundle2bitstream WHERE bundle_id= ? "
+                        + "AND bitstream_id= ? ", getID(), b.getID());
 
         // If the bitstream is orphaned, it's removed
         TableRowIterator tri = DatabaseManager.query(ourContext,
-                "SELECT * FROM bundle2bitstream WHERE bitstream_id= ? ",
-                b.getID());
+                "SELECT * FROM bundle2bitstream WHERE bitstream_id= ? ", b
+                        .getID());
 
         if (!tri.hasNext())
         {
@@ -501,7 +504,7 @@ public class Bundle extends DSpaceObject
     public void update() throws SQLException
     {
         // Check authorisation
-        //AuthorizeManager.authorizeAction(ourContext, this, Constants.WRITE);
+        // AuthorizeManager.authorizeAction(ourContext, this, Constants.WRITE);
         log.info(LogManager.getHeader(ourContext, "update_bundle", "bundle_id="
                 + getID()));
 
@@ -543,14 +546,15 @@ public class Bundle extends DSpaceObject
     {
         return Constants.BUNDLE;
     }
-    
+
     /**
      * Add an existing bitstream to this bundle without authorization.
      * 
      * @param b
      *            the bitstream to add
      */
-    public void addBitstreamWithoutAuthorization(Bitstream b) throws SQLException
+    public void addBitstreamWithoutAuthorization(Bitstream b)
+            throws SQLException
     {
         log.info(LogManager.getHeader(ourContext, "add_bitstream", "bundle_id="
                 + getID() + ",bitstream_id=" + b.getID()));
@@ -576,5 +580,11 @@ public class Bundle extends DSpaceObject
         mappingRow.setColumn("bundle_id", getID());
         mappingRow.setColumn("bitstream_id", b.getID());
         DatabaseManager.update(ourContext, mappingRow);
+    }
+
+    // Used to sort.
+    public int compareTo(Object other)
+    {
+        return this.getName().compareTo(((Bundle)other).getName());
     }
 }

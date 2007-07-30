@@ -7,6 +7,8 @@ import java.util.Timer;
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
 import org.apache.log4j.Logger;
+import org.dspace.content.Item;
+import org.dspace.core.Context;
 
 //import org.dspace.core.Context;
 
@@ -70,11 +72,11 @@ public class CisTimerListener implements ServletContextListener
         currentTime.set(Calendar.MILLISECOND, 0);
 
         Date nextHour = currentTime.getTime();
-
+        
         log.info("The cis-timer-listener has been started.");
 
         timer.scheduleAtFixedRate(new CertificateGenerator(),
-                nextHour/*new Date()*/, HOUR_INTERVAL);
+        		/*nextHour*/new Date(), HOUR_INTERVAL);
 
         log.info("The task has been added to the cis-timer-listener.");
 
