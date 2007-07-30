@@ -65,9 +65,9 @@ import org.dspace.core.Context;
 import org.dspace.core.LogManager;
 import org.dspace.core.Utils;
 import org.dspace.handle.HandleManager;
-import org.dspace.statistics.LogEvent;
 import org.dspace.statistics.StatEvent;
 import org.dspace.statistics.StatsLogger;
+import org.dspace.statistics.event.LogEvent;
 
 /**
  * Servlet for retrieving bitstreams. The bits are simply piped to the user. If
@@ -188,14 +188,14 @@ public class BitstreamServlet extends DSpaceServlet
                 "bitstream_id=" + bitstream.getID()));
 
         // Statistics log
-    	LogEvent logEvent=new LogEvent();
+    	/*LogEvent logEvent=new LogEvent();
     	logEvent.setType(StatEvent.FILE_VIEW);
     	logEvent.setId(bitstream.getID());
     	logEvent.setHost(request.getRemoteHost());
     	logEvent.setTimestamp(System.currentTimeMillis());
     	logEvent.setUserLanguage(request.getLocale().getLanguage());
     	logEvent.setReferer(request.getHeader("referer"));
-    	StatsLogger.logEvent(logEvent);
+    	StatsLogger.logEvent(logEvent);*/
 
         // Modification date
         // TODO: Currently the date of the item, since we don't have dates
