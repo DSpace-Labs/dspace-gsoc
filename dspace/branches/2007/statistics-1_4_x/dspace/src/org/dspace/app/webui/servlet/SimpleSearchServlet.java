@@ -65,9 +65,10 @@ import org.dspace.handle.HandleManager;
 import org.dspace.search.DSQuery;
 import org.dspace.search.QueryArgs;
 import org.dspace.search.QueryResults;
-import org.dspace.statistics.LogEvent;
 import org.dspace.statistics.StatEvent;
 import org.dspace.statistics.StatsLogger;
+import org.dspace.statistics.event.LogEvent;
+import org.dspace.statistics.event.SearchEvent;
 
 /**
  * Servlet for handling a simple search.
@@ -131,9 +132,10 @@ public class SimpleSearchServlet extends DSpaceServlet
         //Statistics log
         if (query!=null)
         {
-        	LogEvent logEvent=new LogEvent();
-        	logEvent.setType(StatEvent.SEARCH);
-        	logEvent.setQuery(query);
+        	LogEvent logEvent = new LogEvent();
+        	logEvent.setType(SearchEvent.SIMPLE_SEARCH);
+        	logEvent.setAttribute("query", query);
+        	logEvent.setAttribute("ip", request.getRemoteAddr());
         	StatsLogger.logEvent(logEvent);
         }
 
