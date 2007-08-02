@@ -412,17 +412,10 @@ public class ArchiveManager
             // currentUser because he started the removal process and he will
             // end it too. also add right to remove from the item to remove
             // it's bundles.
-            try
-            {
-                AuthorizeManager.addPolicy(context, item, Constants.DELETE,
-                        context.getCurrentUser());
-                AuthorizeManager.addPolicy(context, item, Constants.REMOVE,
-                        context.getCurrentUser());
-            }
-            catch (SQLException sqle)
-            {
-                throw new RuntimeException(sqle);
-            }
+            AuthorizeManager.addPolicy(context, item, Constants.DELETE,
+                    context.getCurrentUser());
+            AuthorizeManager.addPolicy(context, item, Constants.REMOVE,
+                    context.getCurrentUser());
 
             itemDAO.delete(item.getID());
         }
@@ -453,17 +446,10 @@ public class ArchiveManager
             // currentUser because he started the removal process and he will
             // end it too. also add right to remove from the child to
             // remove it's items.
-            try
-            {
-                AuthorizeManager.addPolicy(context, child, Constants.DELETE,
-                        context.getCurrentUser());
-                AuthorizeManager.addPolicy(context, child, Constants.REMOVE,
-                        context.getCurrentUser());
-            }
-            catch (SQLException sqle)
-            {
-                throw new RuntimeException(sqle);
-            }
+            AuthorizeManager.addPolicy(context, child, Constants.DELETE,
+                    context.getCurrentUser());
+            AuthorizeManager.addPolicy(context, child, Constants.REMOVE,
+                    context.getCurrentUser());
 
             // Orphan; delete it
             collectionDAO.delete(child.getID());
@@ -494,17 +480,10 @@ public class ArchiveManager
             // currentUser because he started the removal process and he will
             // end it too. also add right to remove from the collection to
             // remove it's items.
-            try
-            {
-                AuthorizeManager.addPolicy(context, child, Constants.DELETE,
-                        context.getCurrentUser());
-                AuthorizeManager.addPolicy(context, child, Constants.REMOVE,
-                        context.getCurrentUser());
-            }
-            catch (SQLException sqle)
-            {
-                throw new RuntimeException(sqle);
-            }
+            AuthorizeManager.addPolicy(context, child, Constants.DELETE,
+                    context.getCurrentUser());
+            AuthorizeManager.addPolicy(context, child, Constants.REMOVE,
+                    context.getCurrentUser());
 
             communityDAO.delete(child.getID());
         }
