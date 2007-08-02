@@ -59,7 +59,6 @@ import org.dspace.core.PluginManager;
 import org.dspace.core.LogManager;
 import org.dspace.eperson.EPerson;
 import org.dspace.eperson.AuthenticationMethod;
-import org.dspace.statistics.StatEvent;
 import org.dspace.statistics.StatsLogger;
 import org.dspace.statistics.event.AuthenticationEvent;
 import org.dspace.statistics.event.LogEvent;
