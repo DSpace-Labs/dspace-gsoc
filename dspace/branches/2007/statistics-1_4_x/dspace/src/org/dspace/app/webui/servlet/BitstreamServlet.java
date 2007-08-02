@@ -65,8 +65,8 @@ import org.dspace.core.Context;
 import org.dspace.core.LogManager;
 import org.dspace.core.Utils;
 import org.dspace.handle.HandleManager;
-import org.dspace.statistics.StatEvent;
 import org.dspace.statistics.StatsLogger;
+import org.dspace.statistics.event.ContentEvent;
 import org.dspace.statistics.event.LogEvent;
 
 /**
@@ -188,14 +188,15 @@ public class BitstreamServlet extends DSpaceServlet
                 "bitstream_id=" + bitstream.getID()));
 
         // Statistics log
-    	/*LogEvent logEvent=new LogEvent();
-    	logEvent.setType(StatEvent.FILE_VIEW);
-    	logEvent.setId(bitstream.getID());
-    	logEvent.setHost(request.getRemoteHost());
-    	logEvent.setTimestamp(System.currentTimeMillis());
-    	logEvent.setUserLanguage(request.getLocale().getLanguage());
-    	logEvent.setReferer(request.getHeader("referer"));
-    	StatsLogger.logEvent(logEvent);*/
+        LogEvent logEvent = new LogEvent();
+    	logEvent.setType(ContentEvent.BITSTREAM_VIEW);
+    	logEvent.setAttribute("id", ""+bitstream.getID());
+    	logEvent.setAttribute("ip", request.getRemoteAddr());
+    	if ((request.getHeader("referer")!=null)&&(!request.getHeader("referer").equals("")))
+    		logEvent.setAttribute("referer", request.getHeader("referer"));
+    	if ((request.getLocale().getLanguage()!=null)&&(!request.getLocale().getLanguage().equals("")))
+    		logEvent.setAttribute("language", request.getLocale().getLanguage());
+    	StatsLogger.logEvent(logEvent);
 
         // Modification date
         // TODO: Currently the date of the item, since we don't have dates

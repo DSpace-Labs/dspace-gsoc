@@ -65,7 +65,6 @@ import org.dspace.handle.HandleManager;
 import org.dspace.search.DSQuery;
 import org.dspace.search.QueryArgs;
 import org.dspace.search.QueryResults;
-import org.dspace.statistics.StatEvent;
 import org.dspace.statistics.StatsLogger;
 import org.dspace.statistics.event.LogEvent;
 import org.dspace.statistics.event.SearchEvent;
