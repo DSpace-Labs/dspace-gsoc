@@ -12,7 +12,6 @@ import org.apache.log4j.Logger;
 import org.dspace.core.ConfigurationManager;
 import org.dspace.core.Context;
 import org.dspace.core.PluginManager;
-import org.dspace.statistics.StatEvent;
 
 import org.dspace.storage.rdbms.DatabaseManager;
 import org.dspace.storage.rdbms.TableRow;
@@ -20,6 +19,7 @@ import org.dspace.storage.rdbms.TableRow;
 import java.util.ArrayList;
 import org.dspace.statistics.dao.*;
 import org.dspace.statistics.event.LogEvent;
+import org.dspace.statistics.handler.StatisticalEventHandler;
 
 /**
  * Listener class to dispatch statistics events
@@ -34,7 +34,7 @@ public class JMSDispatcher implements MessageListener {
 	private LogEvent logEvent;
 	private Context context;
 	private DatabaseManager db;
-	
+
     public JMSDispatcher() {
     	try {
 			this.context=new Context();
