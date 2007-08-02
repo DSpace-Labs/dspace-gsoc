@@ -11,4 +11,9 @@ public class StatisticsDAOFactory {
     {
             return new AuthenticationEventDAO(context);
     }
+
+	public static ContentEventDAO getContentEventDAO(Context context)
+    {
+            return new ContentEventDAO(context);
+    }
 }
