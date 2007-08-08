@@ -1196,6 +1196,16 @@ public class Item extends DSpaceObject
         return true;
     }
 
+    public String toString()
+    {
+        String ret = "Item id:" +
+        this.getID() + " revision:" +
+        this.revision + " prev:" +
+        this.previousItemID + " orig:" +
+        this.originalItemID + "\n";
+        return ret;
+    }
+    
     ////////////////////////////////////////////////////////////////////
     // Stuff from BrowseItem
     ////////////////////////////////////////////////////////////////////

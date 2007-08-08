@@ -93,7 +93,20 @@ public class ItemDAOPostgres extends ItemDAO
     
     /** query to check the existance of an item id */
     private final String getByID = "SELECT id FROM item WHERE item_id = ?";
-        
+
+    /**
+     * Query to get the head revision for a given item
+     */
+    private final String getItemHeadRevision = "SELECT * FROM item WHERE " +
+                                           "original_item_id = ? AND " +
+                                           "revision = (SELECT max(revision) FROM item)";
+    
+    /**
+     * Query to get an item using an originalItemID and a revision number
+     */
+    private final String getItemByOriginalItemIDAndRevision = 
+    	"SELECT * FROM item WHERE original_item_id = ? and revision = ?";
+
     /** query to get the text value of a metadata element only (qualifier is NULL) */
     private final String getByMetadataElement =
         "SELECT text_value FROM metadatavalue " +
@@ -163,7 +176,40 @@ public class ItemDAOPostgres extends ItemDAO
             throw new RuntimeException(sqle);
         }
     }
+    
+    /**
+     * This method is a refactoring move to encapsulate the
+     * functionality of creating an ItemProxy and populating
+     * it, getting the item's external identifiers and caching
+     * the item.
+     * 
+     * @return item
+     * @param id integer id of an Item in the db
+     * @param row a java TableRow class instance that serves as an ORM layer
+     */
+    private Item populate(int id, TableRow row) throws SQLException
+    {
+    	if (row == null)
+        {
+            log.warn("item " + id + " not found in ItemDAO.populate");
+            return null;
+        }
 
+        Item item = new ItemProxy(context, id);
+        populateItemFromTableRow(item, row);
+
+        // FIXME: I'd like to bump the rest of this up into the superclass
+        // so we don't have to do it for every implementation, but I can't
+        // figure out a clean way of doing this yet.
+        List<ExternalIdentifier> identifiers =
+            identifierDAO.getExternalIdentifiers(item);
+        item.setExternalIdentifiers(identifiers);
+
+        context.cache(item, id);
+        
+        return item;
+    }
+    
     @Override
     public Item retrieve(int id)
     {
@@ -568,6 +614,9 @@ public class ItemDAOPostgres extends ItemDAO
         row.setColumn("in_archive", item.isArchived());
         row.setColumn("withdrawn", item.isWithdrawn());
         row.setColumn("last_modified", item.getLastModified());
+        row.setColumn("revision", item.getRevision());
+        row.setColumn("previous_item_id", item.getPreviousItemID());
+        row.setColumn("original_item_id", item.getOriginalItemID());
 
         if (submitter != null)
         {
@@ -588,13 +637,25 @@ public class ItemDAOPostgres extends ItemDAO
         boolean inArchive = row.getBooleanColumn("in_archive");
         boolean withdrawn = row.getBooleanColumn("withdrawn");
         Date lastModified = row.getDateColumn("last_modified");
-
+        int revision = row.getIntColumn("revision");
+        int previousItemID = row.getIntColumn("previous_item_id");
+        int originalItemID = row.getIntColumn("original_item_id");
+        
+        if (item.getID() == 0) 
+        {
+            int id = row.getIntColumn("item_id");
+            item.setID(id);
+        }
+        
         item.setIdentifier(new ObjectIdentifier(uuid));
         item.setSubmitter(submitterId);
         item.setOwningCollectionId(owningCollectionId);
         item.setArchived(inArchive);
         item.setWithdrawn(withdrawn);
         item.setLastModified(lastModified);
+        item.setPreviousItemID(previousItemID);
+        item.setRevision(revision);
+        item.setOriginalItemID(originalItemID);
     }
 
     @Override
@@ -714,5 +775,43 @@ public class ItemDAOPostgres extends ItemDAO
         DatabaseManager.updateQuery(context,
                 "DELETE FROM MetadataValue WHERE item_id= ? ",
                 itemId);
+    }
+
+    /**
+     * Perform a database query to get the head revision Item
+     * for a given Item number.
+     *
+     * @param itemNumber
+     */
+    public Item getHeadRevision(int itemNumber)
+    {
+        try
+        {
+            TableRow row = DatabaseManager.querySingle(context, getItemHeadRevision, itemNumber);
+            return this.populate(0, row);
+        }
+        catch (SQLException e)
+        {
+            throw new RuntimeException(e);
+        }
+    }
+    
+    /**
+     * Get an Item by an originalItemID and revision number
+     * 
+     * @param originalItemID
+     * @param revision
+     */
+    public Item getByOriginalItemIDAndRevision(int originalItemID, int revision)
+    {
+        try
+        {
+            TableRow row = DatabaseManager.querySingle(context, getItemByOriginalItemIDAndRevision, originalItemID, revision);
+            return this.populate(0, row);
+        }
+        catch (SQLException e)
+        {
+            throw new RuntimeException(e);
+        }
     }
 }
