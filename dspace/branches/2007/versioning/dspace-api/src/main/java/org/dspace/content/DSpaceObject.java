@@ -44,14 +44,14 @@ import java.util.List;
 import java.util.UUID;
 
 import org.dspace.core.Context;
-import org.dspace.content.uri.ObjectIdentifier;
-import org.dspace.content.uri.ExternalIdentifier;
 
 import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
 import org.apache.commons.lang.builder.ToStringStyle;
 import org.apache.log4j.Logger;
+import org.dspace.content.uri.ExternalIdentifier;
+import org.dspace.content.uri.ObjectIdentifier;
 
 /**
  * Abstract base class for DSpace objects
@@ -59,11 +59,51 @@ import org.apache.log4j.Logger;
 public abstract class DSpaceObject
 {
     private static Logger log = Logger.getLogger(DSpaceObject.class);
+    
+    // accumulate information to add to "detail" element of content Event,
+    // e.g. to document metadata fields touched, etc.
+    private StringBuffer eventDetails = null;
 
+    protected Context context;
     protected int id;
     protected UUID uuid;
     protected ObjectIdentifier oid;
     protected List<ExternalIdentifier> identifiers;
+    
+    /**
+     * Reset the cache of event details.
+     */
+    protected void clearDetails()
+    {
+        eventDetails = null;
+    }
+
+    /**
+     * Add a string to the cache of event details.  Automatically
+     * separates entries with a comma.
+     * Subclass can just start calling addDetails, since it creates
+     * the cache if it needs to.
+     * @param detail detail string to add.
+     */
+    protected void addDetails(String d)
+    {
+        if (eventDetails == null)
+        {
+            eventDetails = new StringBuffer(d);
+        }
+        else
+        {
+            eventDetails.append(", ").append(d);
+        }
+    }
+
+    /**
+     * @returns summary of event details, or null if there are none.
+     */
+    protected String getDetails()
+    {
+        return (eventDetails == null ? null : eventDetails.toString());
+    }
 
     /**
      * Get the type of this object, found in Constants

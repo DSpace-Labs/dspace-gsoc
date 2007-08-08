@@ -51,7 +51,6 @@ import org.apache.log4j.Logger;
 
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.authorize.AuthorizeManager;
-import org.dspace.authorize.ResourcePolicy;
 import org.dspace.core.ArchiveManager;
 import org.dspace.core.Constants;
 import org.dspace.core.Context;
@@ -64,9 +63,7 @@ import org.dspace.content.dao.CollectionDAOFactory; // Naughty!
 import org.dspace.content.dao.CommunityDAO;         // Naughty!
 import org.dspace.content.dao.CommunityDAOFactory;  // Naughty!
 import org.dspace.content.uri.ExternalIdentifier;
-import org.dspace.eperson.Group;
-import org.dspace.history.HistoryManager;
-import org.dspace.search.DSIndexer;
+import org.dspace.event.Event;
 
 /**
  * Class representing a community
@@ -83,7 +80,6 @@ public class Community extends DSpaceObject
 {
     private static Logger log = Logger.getLogger(Community.class);
 
-    private Context context;
     private CommunityDAO dao;
     private BitstreamDAO bitstreamDAO;
     private CollectionDAO collectionDAO;
@@ -94,6 +90,12 @@ public class Community extends DSpaceObject
 
     private Map<String, String> metadata;
 
+    /** Flag set when data is modified, for events */
+    private boolean modified;
+
+    /** Flag set when metadata is modified, for events */
+    private boolean modifiedMetadata;
+    
     public Community(Context context, int id)
     {
         this.id = id;
@@ -107,6 +109,9 @@ public class Community extends DSpaceObject
         metadata = new TreeMap<String, String>();
 
         context.cache(this, id);
+
+        modified = modifiedMetadata = false;
+        clearDetails();
     }
 
     public String getMetadata(String field)
@@ -129,8 +134,23 @@ public class Community extends DSpaceObject
             }
         }
         metadata.put(field, value);
+        modifiedMetadata = true;
+        addDetails(field);
+        modifiedMetadata = true;
+        addDetails(field);
+    }
+    
+    public String getName()
+    {
+        return getMetadata("name");
     }
 
+    /**
+     * Get the logo for the community. <code>null</code> is return if the
+     * community does not have a logo.
+     * 
+     * @return the logo of the community, or <code>null</code>
+     */
     public Bitstream getLogo()
     {
         return logo;
@@ -187,6 +207,7 @@ public class Community extends DSpaceObject
                             + newLogo.getID()));
         }
 
+        modified = true;
         return logo;
     }
 
@@ -285,12 +306,6 @@ public class Community extends DSpaceObject
     }
 
     @Deprecated
-    Community(Context context, org.dspace.storage.rdbms.TableRow row)
-    {
-        this(context, row.getIntColumn("community_id"));
-    }
-
-    @Deprecated
     public static Community find(Context context, int id)
     {
         return CommunityDAOFactory.getInstance(context).retrieve(id);
@@ -306,8 +321,30 @@ public class Community extends DSpaceObject
         if (parent != null)
         {
             ArchiveManager.move(context, community, null, parent);
+            context.addEvent(
+                    new Event(
+                            Event.ADD, 
+                            Constants.COMMUNITY, 
+                            parent.getID(),
+                            Constants.COMMUNITY, 
+                            community.getID(), 
+                            community.getIdentifier().getCanonicalForm()
+                            ));
         }
-
+        else
+        {
+            context.addEvent(
+                    new Event(
+                            Event.ADD, 
+                            Constants.SITE, 
+                            Site.SITE_ID, 
+                            Constants.COMMUNITY, 
+                            community.getID(), 
+                            community.getIdentifier().getCanonicalForm()
+                            ));
+        }
+        
+        
         return community;
     }
 
@@ -394,11 +431,24 @@ public class Community extends DSpaceObject
     public void update() throws AuthorizeException
     {
         dao.update(this);
+        
+		if (modified)
+        {
+            context.addEvent(new Event(Event.MODIFY, Constants.COMMUNITY, getID(), null));
+            modified = false;
+        }
+        if (modifiedMetadata)
+        {
+            context.addEvent(new Event(Event.MODIFY_METADATA, Constants.COMMUNITY, getID(), getDetails()));
+            modifiedMetadata = false;
+            clearDetails();
+        }
     }
 
     @Deprecated
     public void delete() throws AuthorizeException
     {
         dao.delete(this.getID());
+        context.addEvent(new Event(Event.DELETE, Constants.COMMUNITY, getID(), getIdentifier().getCanonicalForm()));
     }
 }

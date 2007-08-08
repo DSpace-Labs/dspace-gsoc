@@ -48,9 +48,7 @@ import org.dspace.content.dao.ItemDAOFactory;
 import org.dspace.content.uri.ExternalIdentifier;
 import org.dspace.content.uri.dao.ExternalIdentifierDAO;
 import org.dspace.content.uri.dao.ExternalIdentifierDAOFactory;
-import org.dspace.core.ConfigurationManager;
 import org.dspace.core.Context;
-import org.dspace.search.DSIndexer;
 
 /**
  * Support to install item in the archive
@@ -171,9 +169,6 @@ public class InstallItem
 
         // save changes ;-)
         itemDAO.update(item);
-
-        // add item to search and browse indices
-        DSIndexer.indexContent(c, item);
 
         // remove in-progress submission
         is.deleteWrapper();

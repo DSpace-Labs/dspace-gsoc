@@ -52,8 +52,6 @@ import org.apache.log4j.Logger;
 
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.authorize.AuthorizeManager;
-import org.dspace.authorize.ResourcePolicy;
-import org.dspace.browse.Browse;
 import org.dspace.core.ArchiveManager;
 import org.dspace.core.ConfigurationManager;
 import org.dspace.core.Constants;
@@ -72,9 +70,7 @@ import org.dspace.content.uri.ExternalIdentifier;
 import org.dspace.eperson.Group;
 import org.dspace.eperson.dao.GroupDAO;             // Naughty!
 import org.dspace.eperson.dao.GroupDAOFactory;      // Naughty!
-import org.dspace.history.HistoryManager;
-import org.dspace.search.DSIndexer;
-import org.dspace.workflow.WorkflowItem;
+import org.dspace.event.Event;
 
 /**
  * Class representing a collection.
@@ -95,7 +91,6 @@ public class Collection extends DSpaceObject
 {
     private static Logger log = Logger.getLogger(Collection.class);
 
-    private Context context;
     private CollectionDAO dao;
     private BitstreamDAO bitstreamDAO;
     private ItemDAO itemDAO;
@@ -109,6 +104,12 @@ public class Collection extends DSpaceObject
 
     private Map<String, String> metadata;
 
+    /** Flag set when data is modified, for events */
+    private boolean modified;
+
+    /** Flag set when metadata is modified, for events */
+    private boolean modifiedMetadata;
+    
     // FIXME: Maybe we should be smart about this and only store the IDs. OTOH,
     // Groups aren't that heavyweight, and cacheing them may be a good thing
     // for performance. A proxy implementation that retrieved them on demand
@@ -133,6 +134,9 @@ public class Collection extends DSpaceObject
         workflowGroups = new Group[3];
 
         context.cache(this, id);
+
+        modified = modifiedMetadata = false;
+        clearDetails();
     }
 
     public Group getSubmitters()
@@ -143,6 +147,9 @@ public class Collection extends DSpaceObject
     public void setSubmitters(Group submitters)
     {
         this.submitters = submitters;
+
+        modified = modifiedMetadata = false;
+        clearDetails();
     }
 
     public Group createSubmitters() throws AuthorizeException
@@ -160,7 +167,8 @@ public class Collection extends DSpaceObject
         setSubmitters(submitters);
 
         AuthorizeManager.addPolicy(context, this, Constants.ADD, submitters);
-
+        
+		modified = true;
         return submitters;
     }
 
@@ -238,6 +246,15 @@ public class Collection extends DSpaceObject
             }
         }
         metadata.put(field, value);
+        modifiedMetadata = true;
+        addDetails(field);
+        modifiedMetadata = true;
+        addDetails(field);
+    }
+
+    public String getName()
+    {
+        return getMetadata("name");
     }
 
     /**
@@ -308,6 +325,7 @@ public class Collection extends DSpaceObject
                     ",logo_bitstream_id=" + logo.getID()));
         }
 
+        modified = true;
         return logo;
     }
 
@@ -349,6 +367,8 @@ public class Collection extends DSpaceObject
     public void setWorkflowGroup(int step, Group g)
     {
         workflowGroups[step - 1] = g;
+        modified = true;
+        modified = true;
     }
 
     /**
@@ -424,6 +444,7 @@ public class Collection extends DSpaceObject
                     admins);
         }
 
+        modified = true;
         // register this as the admin group
         this.admins = admins;
 
@@ -471,12 +492,14 @@ public class Collection extends DSpaceObject
 
     public Item getTemplateItem()
     {
+        modified = true;
         return templateItem;
     }
 
     public void setTemplateItem(Item templateItem)
     {
         this.templateItem = templateItem;
+        modified = true;
     }
 
     /**
@@ -500,6 +523,7 @@ public class Collection extends DSpaceObject
                     "collection_id=" + getID() +
                     ",template_item_id=" + templateItem.getID()));
         }
+        modified = true;
     }
 
     /**
@@ -526,6 +550,7 @@ public class Collection extends DSpaceObject
             itemDAO.delete(templateItem.getID());
             templateItem = null;
         }
+        context.addEvent(new Event(Event.MODIFY, Constants.COLLECTION, getID(), "remove_template_item"));
     }
 
     ////////////////////////////////////////////////////////////////////
@@ -579,15 +604,11 @@ public class Collection extends DSpaceObject
     ////////////////////////////////////////////////////////////////////
 
     @Deprecated
-    Collection(Context context, org.dspace.storage.rdbms.TableRow row)
-    {
-        this(context, row.getIntColumn("collection_id"));
-    }
-
-    @Deprecated
     static Collection create(Context context) throws AuthorizeException
     {
-        return CollectionDAOFactory.getInstance(context).create();
+        Collection collection = CollectionDAOFactory.getInstance(context).create();
+        context.addEvent(new Event(Event.CREATE, Constants.COLLECTION, collection.getID(), collection.getIdentifier().getCanonicalForm()));
+        return collection;
     }
 
     @Deprecated
@@ -609,24 +630,39 @@ public class Collection extends DSpaceObject
     public void update() throws AuthorizeException
     {
         dao.update(this);
+        
+		if (modified)
+        {
+            context.addEvent(new Event(Event.MODIFY, Constants.COLLECTION, getID(), null));
+            modified = false;
+        }
+        if (modifiedMetadata)
+        {
+            context.addEvent(new Event(Event.MODIFY_METADATA, Constants.COLLECTION, getID(), getDetails()));
+            modifiedMetadata = false;
+            clearDetails();
+        }
     }
 
     @Deprecated
     void delete() throws AuthorizeException
     {
         dao.delete(this.getID());
+        context.addEvent(new Event(Event.DELETE, Constants.COLLECTION, getID(), getIdentifier().getCanonicalForm()));
     }
 
     @Deprecated
     public void addItem(Item item) throws AuthorizeException
     {
         ArchiveManager.move(context, item, null, this);
+        context.addEvent(new Event(Event.ADD, Constants.COLLECTION, getID(), Constants.ITEM, item.getID(), item.getIdentifier().getCanonicalForm()));
     }
 
     @Deprecated
     public void removeItem(Item item) throws AuthorizeException, IOException
     {
         ArchiveManager.move(context, item, this, null);
+        context.addEvent(new Event(Event.REMOVE, Constants.COLLECTION, getID(), Constants.ITEM, item.getID(), item.getIdentifier().getCanonicalForm()));
     }
 
     @Deprecated

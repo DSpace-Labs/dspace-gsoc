@@ -47,14 +47,12 @@ import org.apache.log4j.Logger;
 
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.authorize.AuthorizeManager;
+import org.dspace.content.WorkspaceItem;
 import org.dspace.core.Constants;
 import org.dspace.core.Context;
 import org.dspace.core.LogManager;
 import org.dspace.eperson.EPerson;
 import org.dspace.eperson.Group;
-import org.dspace.eperson.proxy.GroupProxy;
-import org.dspace.content.uri.ObjectIdentifier;
-import org.dspace.history.HistoryManager;
 
 /**
  * @author James Rutherford
@@ -87,9 +85,6 @@ public abstract class GroupDAO
         log.info(LogManager.getHeader(context, "create_group", "group_id="
                 + group.getID()));
 
-        HistoryManager.saveHistory(context, group, HistoryManager.CREATE,
-                context.getCurrentUser(), context.getExtraLogInfo());
-
         return group;
     }
 
@@ -108,6 +103,11 @@ public abstract class GroupDAO
         return null;
     }
 
+    /**
+     * FIXME: Look back into ItemDAOPostgres to see how we were cunning there
+     * about updating Bundles + Bitstreams and use that below for EPeople and
+     * Groups.
+     */
     public void update(Group group) throws AuthorizeException
     {
         // Check authorisation - if you're not the eperson
@@ -119,9 +119,6 @@ public abstract class GroupDAO
 
         log.info(LogManager.getHeader(context, "update_group", "group_id="
                 + group.getID()));
-
-        HistoryManager.saveHistory(context, group, HistoryManager.MODIFY,
-                context.getCurrentUser(), context.getExtraLogInfo());
 
         EPerson[] epeople = group.getMembers();
 
@@ -188,9 +185,6 @@ public abstract class GroupDAO
         // Remove any ResourcePolicies that reference this group
         AuthorizeManager.removeGroupPolicies(context, id);
 
-        HistoryManager.saveHistory(context, group, HistoryManager.REMOVE,
-                context.getCurrentUser(), context.getExtraLogInfo());
-
         log.info(LogManager.getHeader(context, "delete_group", "group_id=" +
                     id));
 
@@ -206,6 +200,13 @@ public abstract class GroupDAO
     public abstract List<Group> getGroups(EPerson eperson);
 
     public abstract Set<Integer> getGroupIDs(EPerson eperson);
+
+    public abstract List<Group> getSupervisorGroups();
+
+    /**
+     * Gets all the groups that are supervising a workspace item
+     */
+    public abstract List<Group> getSupervisorGroups(WorkspaceItem wsi);
 
 
     /**

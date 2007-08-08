@@ -40,7 +40,6 @@
 package org.dspace.content;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.lang.builder.EqualsBuilder;
@@ -50,7 +49,6 @@ import org.apache.commons.lang.builder.ToStringStyle;
 import org.apache.log4j.Logger;
 
 import org.dspace.authorize.AuthorizeException;
-import org.dspace.authorize.AuthorizeManager;
 import org.dspace.content.dao.CollectionDAO;
 import org.dspace.content.dao.CollectionDAOFactory;
 import org.dspace.content.dao.ItemDAO;
@@ -58,12 +56,8 @@ import org.dspace.content.dao.ItemDAOFactory;
 import org.dspace.content.dao.WorkspaceItemDAO;
 import org.dspace.content.dao.WorkspaceItemDAOFactory;
 import org.dspace.content.uri.ObjectIdentifier;
-import org.dspace.core.Constants;
 import org.dspace.core.Context;
-import org.dspace.core.LogManager;
 import org.dspace.eperson.EPerson;
-import org.dspace.eperson.Group;
-import org.dspace.history.HistoryManager;
 
 /**
  * Class representing an item in the process of being submitted by a user.
@@ -81,17 +75,19 @@ public class WorkspaceItem implements InProgressSubmission
     /** log4j logger */
     private static Logger log = Logger.getLogger(WorkspaceItem.class);
 
-    private Context context;
+    protected int id;
+    protected Context context;
+
     private WorkspaceItemDAO dao;
     private ItemDAO itemDAO;
     private CollectionDAO collectionDAO;
 
-    private int id;
     private ObjectIdentifier oid;
     private boolean hasMultipleFiles;
     private boolean hasMultipleTitles;
     private boolean publishedBefore;
     private int stageReached;
+    private int pageReached;
 
     private Item item;
     private Collection collection;
@@ -131,6 +127,16 @@ public class WorkspaceItem implements InProgressSubmission
     public void setStageReached(int stageReached)
     {
         this.stageReached = stageReached;
+    }
+
+    public int getPageReached()
+    {
+        return pageReached;
+    }
+
+    public void setPageReached(int pageReached)
+    {
+        this.pageReached = pageReached;
     }
 
     // InProgressSubmission methods

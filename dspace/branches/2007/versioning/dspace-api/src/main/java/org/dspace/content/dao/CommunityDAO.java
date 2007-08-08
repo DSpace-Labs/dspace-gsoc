@@ -52,7 +52,6 @@ import org.dspace.authorize.ResourcePolicy;
 import org.dspace.content.Collection;
 import org.dspace.content.Community;
 import org.dspace.content.DSpaceObject;
-import org.dspace.content.uri.ObjectIdentifier;
 import org.dspace.content.uri.ExternalIdentifier;
 import org.dspace.content.uri.dao.ExternalIdentifierDAO;
 import org.dspace.core.Constants;
@@ -60,7 +59,6 @@ import org.dspace.core.Context;
 import org.dspace.core.LogManager;
 import org.dspace.eperson.Group;
 import org.dspace.eperson.dao.GroupDAO;
-import org.dspace.history.HistoryManager;
 import org.dspace.search.DSIndexer;
 
 /**
@@ -68,7 +66,7 @@ import org.dspace.search.DSIndexer;
  */
 public abstract class CommunityDAO extends ContentDAO
 {
-    protected static Logger log = Logger.getLogger(CommunityDAOPostgres.class);
+    protected static Logger log = Logger.getLogger(CommunityDAO.class);
 
     protected Context context;
     protected BitstreamDAO bitstreamDAO;
@@ -136,13 +134,9 @@ public abstract class CommunityDAO extends ContentDAO
         policy.setGroup(anonymousGroup);
         policy.update();
 
-        HistoryManager.saveHistory(context, community,
-                HistoryManager.CREATE, context.getCurrentUser(),
-                context.getExtraLogInfo());
-
         log.info(LogManager.getHeader(context, "create_community",
                 "community_id=" + community.getID()) + ",uri=" +
-                community.getExternalIdentifier().getCanonicalForm());
+                community.getIdentifier().getCanonicalForm());
 
         update(community);
 
@@ -163,9 +157,6 @@ public abstract class CommunityDAO extends ContentDAO
     {
         // Check authorization
         community.canEdit();
-
-        HistoryManager.saveHistory(context, this, HistoryManager.MODIFY,
-                context.getCurrentUser(), context.getExtraLogInfo());
 
         log.info(LogManager.getHeader(context, "update_community",
                 "community_id=" + community.getID()));
@@ -221,9 +212,6 @@ public abstract class CommunityDAO extends ContentDAO
             {
                 unlink(parent, community);
             }
-
-            HistoryManager.saveHistory(context, community, HistoryManager.REMOVE,
-                    context.getCurrentUser(), context.getExtraLogInfo());
 
             log.info(LogManager.getHeader(context, "delete_community",
                     "community_id=" + id));

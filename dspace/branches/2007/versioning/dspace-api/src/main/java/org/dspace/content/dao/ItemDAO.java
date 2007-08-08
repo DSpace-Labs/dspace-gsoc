@@ -49,20 +49,17 @@ import org.apache.log4j.Logger;
 
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.authorize.AuthorizeManager;
-import org.dspace.browse.Browse;
+import org.dspace.browse.BrowseException;
+import org.dspace.browse.IndexBrowse;
 import org.dspace.content.Bitstream;
 import org.dspace.content.Bundle;
 import org.dspace.content.Collection;
-import org.dspace.content.Community;
 import org.dspace.content.DCValue;
 import org.dspace.content.Item;
-import org.dspace.content.proxy.ItemProxy;
-import org.dspace.content.uri.ObjectIdentifier;
 import org.dspace.core.Constants;
 import org.dspace.core.Context;
 import org.dspace.core.LogManager;
 import org.dspace.eperson.EPerson;
-import org.dspace.history.HistoryManager;
 import org.dspace.search.DSIndexer;
 
 /**
@@ -85,9 +82,6 @@ public abstract class ItemDAO extends ContentDAO
     // even more filthy).
     protected final Item create(Item item) throws AuthorizeException
     {
-        HistoryManager.saveHistory(context, item, HistoryManager.CREATE,
-                context.getCurrentUser(), context.getExtraLogInfo());
-
         log.info(LogManager.getHeader(context, "create_item",
                     "item_id=" + item.getID()));
 
@@ -116,9 +110,6 @@ public abstract class ItemDAO extends ContentDAO
         {
             AuthorizeManager.authorizeAction(context, item, Constants.WRITE);
         }
-
-        HistoryManager.saveHistory(context, item, HistoryManager.MODIFY,
-                context.getCurrentUser(), context.getExtraLogInfo());
 
         log.info(LogManager.getHeader(context, "update_item", "item_id="
                 + item.getID()));
@@ -198,9 +189,6 @@ public abstract class ItemDAO extends ContentDAO
 
         context.removeCached(item, id);
 
-        HistoryManager.saveHistory(context, item, HistoryManager.REMOVE,
-                context.getCurrentUser(), context.getExtraLogInfo());
-
         log.info(LogManager.getHeader(context, "delete_item", "item_id=" + id));
 
         // Remove from indices, if appropriate
@@ -209,7 +197,8 @@ public abstract class ItemDAO extends ContentDAO
             // Remove from Browse indices
             try
             {
-                Browse.itemRemoved(context, id);
+                IndexBrowse ib = new IndexBrowse(context);
+                ib.itemRemoved(item);
                 DSIndexer.unIndexContent(context, item);
             }
             catch (IOException ioe)
@@ -219,6 +208,10 @@ public abstract class ItemDAO extends ContentDAO
             catch (SQLException sqle)
             {
                 throw new RuntimeException(sqle);
+            }
+            catch (BrowseException e)
+            {
+                throw new RuntimeException(e);
             }
         }
 

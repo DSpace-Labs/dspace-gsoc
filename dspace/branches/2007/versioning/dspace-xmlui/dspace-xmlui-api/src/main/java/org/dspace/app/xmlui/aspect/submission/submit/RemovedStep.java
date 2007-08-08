@@ -42,8 +42,8 @@ package org.dspace.app.xmlui.aspect.submission.submit;
 import java.io.IOException;
 import java.sql.SQLException;
 
-import org.dspace.app.xmlui.aspect.submission.AbstractStep;
 import org.dspace.app.xmlui.utils.UIException;
+import org.dspace.app.xmlui.aspect.submission.AbstractStep;
 import org.dspace.app.xmlui.wing.Message;
 import org.dspace.app.xmlui.wing.WingException;
 import org.dspace.app.xmlui.wing.element.Body;
@@ -54,6 +54,8 @@ import org.xml.sax.SAXException;
 /**
  * This is a confirmation page informing the user that they have
  * successfully removed their submission.
+ * <P>
+ * As such, it's not a true "step" in the submission process
  * 
  * @author Scott Phillips
  */

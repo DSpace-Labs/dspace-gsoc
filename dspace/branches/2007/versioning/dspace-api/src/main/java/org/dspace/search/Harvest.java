@@ -58,9 +58,6 @@ import org.dspace.content.dao.CollectionDAOFactory;
 import org.dspace.content.dao.ItemDAO;
 import org.dspace.content.dao.ItemDAOFactory;
 import org.dspace.content.uri.ObjectIdentifier;
-import org.dspace.content.uri.ExternalIdentifier;
-import org.dspace.content.uri.dao.ExternalIdentifierDAO;
-import org.dspace.content.uri.dao.ExternalIdentifierDAOFactory;
 import org.dspace.core.ConfigurationManager;
 import org.dspace.core.Constants;
 import org.dspace.core.Context;
@@ -129,9 +126,7 @@ public class Harvest
             throws SQLException, ParseException
     {
         ItemDAO itemDAO = ItemDAOFactory.getInstance(context);
-        ExternalIdentifierDAO identifierDAO =
-            ExternalIdentifierDAOFactory.getInstance(context);
-        ExternalIdentifier identifier = null;
+        Item item = null;
 
         // Put together our query. Note there is no need for an
         // "in_archive=true" condition, we are using the existence of a
@@ -256,32 +251,14 @@ public class Harvest
             {
                 HarvestedItemInfo itemInfo = new HarvestedItemInfo();
                 
-                String value = row.getStringColumn("value");
-                int typeID = row.getIntColumn("type_id");
-
-                ExternalIdentifier.Type type = null;
-
-                for (ExternalIdentifier.Type t : ExternalIdentifier.Type.values())
-                {
-                    if (t.getID() == typeID)
-                    {
-                        type = t;
-                        break;
-                    }
-                }
-
-                if (type == null)
-                {
-                    throw new RuntimeException(value + " not supported.");
-                }
-
-                identifier = identifierDAO.retrieve(type, value);
+                int itemID = row.getIntColumn("resource_id");
+                item = itemDAO.retrieve(itemID);
 
                 itemInfo.context = context;
-                itemInfo.identifier = identifier;
-                itemInfo.itemID = row.getIntColumn("resource_id");
-                itemInfo.datestamp = row.getDateColumn("last_modified");
-                itemInfo.withdrawn = row.getBooleanColumn("withdrawn");
+                itemInfo.identifier = item.getIdentifier();
+                itemInfo.itemID = itemID;
+                itemInfo.datestamp = item.getLastModified();
+                itemInfo.withdrawn = item.isWithdrawn();
 
                 if (collections)
                 {
@@ -290,10 +267,11 @@ public class Harvest
 
                 if (items)
                 {
-                    itemInfo.item = itemDAO.retrieve(itemInfo.itemID);
+                    itemInfo.item = item;
                 }
 
                 infoObjects.add(itemInfo);
+                item = null;
             }
 
             index++;
@@ -318,17 +296,12 @@ public class Harvest
      * 
      * @return <code>HarvestedItemInfo</code> object for the single item, or
      *         <code>null</code>
-     * @throws SQLException
      */
     public static HarvestedItemInfo getSingle(Context context,
-            ExternalIdentifier identifier, boolean collections)
-        throws SQLException
+            ObjectIdentifier identifier, boolean collections)
     {
         // FIXME: Assume identifier is item
-        // FIXME: We should be passing an ObjectIdentifier in here, not a
-        // ExternalIdentifier
-        ObjectIdentifier oi = identifier.getObjectIdentifier();
-        Item i = (Item) oi.getObject(context);
+        Item i = (Item) identifier.getObject(context);
 
         if (i == null)
         {
@@ -361,10 +334,9 @@ public class Harvest
      *            DSpace context
      * @param itemInfo
      *            HarvestedItemInfo object to fill out
-     * @throws SQLException
      */
     private static void fillCollections(Context context,
-            HarvestedItemInfo itemInfo) throws SQLException
+            HarvestedItemInfo itemInfo)
     {
         CollectionDAO collectionDAO = CollectionDAOFactory.getInstance(context);
 
@@ -373,12 +345,12 @@ public class Harvest
 
         List<Collection> parents = collectionDAO.getParentCollections(item);
 
-        List<ExternalIdentifier> identifiers =
-            new LinkedList<ExternalIdentifier>();
+        List<ObjectIdentifier> identifiers =
+            new LinkedList<ObjectIdentifier>();
 
         for (Collection parent : parents)
         {
-            identifiers.add(parent.getExternalIdentifier());
+            identifiers.add(parent.getIdentifier());
         }
 
         itemInfo.collectionIdentifiers = identifiers;

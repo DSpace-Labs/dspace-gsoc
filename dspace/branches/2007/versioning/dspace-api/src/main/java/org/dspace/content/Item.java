@@ -54,7 +54,7 @@ import org.apache.log4j.Logger;
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.authorize.AuthorizeManager;
 import org.dspace.authorize.ResourcePolicy;
-import org.dspace.browse.Browse;
+import org.dspace.browse.Thumbnail; // FIXME: Move to this package
 import org.dspace.core.ArchiveManager;
 import org.dspace.core.Constants;
 import org.dspace.core.Context;
@@ -68,6 +68,7 @@ import org.dspace.content.dao.CommunityDAOFactory;  // Naughty!
 import org.dspace.content.dao.ItemDAO;              // Naughty!
 import org.dspace.content.dao.ItemDAOFactory;       // Naughty!
 import org.dspace.content.uri.ExternalIdentifier;
+import org.dspace.event.Event;
 import org.dspace.eperson.EPerson;
 import org.dspace.eperson.Group;
 import org.dspace.eperson.dao.EPersonDAO;           // Naughty!
@@ -86,7 +87,6 @@ public class Item extends DSpaceObject
 
     public static final String ANY = "*";
 
-    protected Context context;
     protected ItemDAO dao;
     protected BundleDAO bundleDAO;
     protected CollectionDAO collectionDAO;
@@ -120,11 +120,20 @@ public class Item extends DSpaceObject
 
     protected boolean metadataChanged;
 
+    /**
+     * True if anything else was changed since last update()
+     * (to drive event mechanism)
+     */
+    private boolean modified;
+    
     public Item(Context context, int id)
     {
         this.id = id;
         this.context = context;
 
+        modified = false;
+        clearDetails();
+        
         dao = ItemDAOFactory.getInstance(context);
         bundleDAO = BundleDAOFactory.getInstance(context);
         collectionDAO = CollectionDAOFactory.getInstance(context);
@@ -177,6 +186,7 @@ public class Item extends DSpaceObject
     public void setArchived(boolean inArchive)
     {
         this.inArchive = inArchive;
+        context.addEvent(new Event(Event.CREATE, Constants.ITEM, getID(), null));
     }
 
     /**
@@ -219,6 +229,7 @@ public class Item extends DSpaceObject
      */
     public Collection getOwningCollection()
     {
+        modified = true;
         return owningCollection;
     }
 
@@ -230,6 +241,8 @@ public class Item extends DSpaceObject
     public void setOwningCollection(Collection owningCollection)
     {
         this.owningCollection = owningCollection;
+        modified = true;
+        modified = true;
     }
 
     public void setOwningCollectionId(int owningCollectionId)
@@ -443,6 +456,8 @@ public class Item extends DSpaceObject
                 metadata.add(dcv);
                 metadataChanged = true;
             }
+            addDetails(schema+"."+element+((qualifier==null)? "": "."+qualifier));
+
         }
     }
 
@@ -511,6 +526,8 @@ public class Item extends DSpaceObject
     public void setSubmitter(EPerson submitter)
     {
         this.submitter = submitter;
+        modified = true;
+        modified = true;
     }
 
     public void setSubmitter(int submitterId)
@@ -620,6 +637,8 @@ public class Item extends DSpaceObject
         }
 
         bundles.add(b);
+
+        context.addEvent(new Event(Event.ADD, Constants.ITEM, getID(), Constants.BUNDLE, b.getID(), b.getName()));
     }
 
     /**
@@ -649,6 +668,8 @@ public class Item extends DSpaceObject
                 i.remove();
             }
         }
+        context.addEvent(new Event(Event.REMOVE, Constants.ITEM, getID(), Constants.BUNDLE, b.getID(), b.getName()));
+
     }
 
     /**
@@ -700,7 +721,7 @@ public class Item extends DSpaceObject
      */
     public Bitstream[] getNonInternalBitstreams()
     {
-        List bitstreamList = new ArrayList();
+        List<Bitstream> bitstreamList = new ArrayList<Bitstream>();
 
         // Go through the bundles and bitstreams picking out ones which aren't
         // of internal formats
@@ -760,6 +781,32 @@ public class Item extends DSpaceObject
     }
 
     /**
+     * Remove just the DSpace license from an item This is useful to update the
+     * current DSpace license, in case the user must accept the DSpace license
+     * again (either the item was rejected, or resumed after saving)
+     * <p>
+     * This method is used by the org.dspace.submit.step.LicenseStep class
+     * 
+     * @throws SQLException
+     * @throws AuthorizeException
+     * @throws IOException
+     */
+    public void removeDSpaceLicense() throws SQLException, AuthorizeException,
+            IOException
+    {
+        // get all bundles with name "LICENSE" (these are the DSpace license
+        // bundles)
+        Bundle[] bunds = getBundles("LICENSE");
+
+        for (int i = 0; i < bunds.length; i++)
+        {
+            // FIXME: probably serious troubles with Authorizations
+            // fix by telling system not to check authorization?
+            removeBundle(bunds[i]);
+        }
+    }
+
+    /**
      * Remove all licenses from an item - it was rejected
      *
      * @throws AuthorizeException
@@ -808,6 +855,8 @@ public class Item extends DSpaceObject
     public void withdraw() throws AuthorizeException, IOException
     {
         ArchiveManager.withdrawItem(context, this);
+
+		context.addEvent(new Event(Event.MODIFY, Constants.ITEM, getID(), "WITHDRAW"));
     }
 
     /**
@@ -820,6 +869,7 @@ public class Item extends DSpaceObject
     public void reinstate() throws AuthorizeException, IOException
     {
         ArchiveManager.reinstateItem(context, this);
+        context.addEvent(new Event(Event.MODIFY, Constants.ITEM, getID(), "REINSTATE"));
     }
 
     /**
@@ -1146,22 +1196,80 @@ public class Item extends DSpaceObject
         return true;
     }
 
-    public String toString()
+    ////////////////////////////////////////////////////////////////////
+    // Stuff from BrowseItem
+    ////////////////////////////////////////////////////////////////////
+
+    /**
+     * Get a thumbnail object out of the item.
+     * 
+     * Warning: using this method actually instantiates an Item, which has a
+     * corresponding performance hit on the database during browse listing
+     * rendering.  That's your own fault for wanting to put images on your
+     * browse page!
+     * 
+     * @return
+     * @throws SQLException
+     */
+    public Thumbnail getThumbnail()
     {
-        String ret = "Item id:" +
-        this.getID() + " revision:" +
-        this.revision + " prev:" +
-        this.previousItemID + " orig:" +
-        this.originalItemID + "\n";
-        return ret;
+        // if there's no original, there is no thumbnail
+        Bundle[] original = getBundles("ORIGINAL");
+        if (original.length == 0)
+        {
+            return null;
+        }
+        
+        // if multiple bitstreams, check if the primary one is HTML
+        boolean html = false;
+        if (original[0].getBitstreams().length > 1)
+        {
+            Bitstream[] bitstreams = original[0].getBitstreams();
+
+            for (int i = 0; (i < bitstreams.length) && !html; i++)
+            {
+                if (bitstreams[i].getID() == original[0].getPrimaryBitstreamID())
+                {
+                    html = bitstreams[i].getFormat().getMIMEType().equals("text/html");
+                }
+            }
+        }
+
+        // now actually pull out the thumbnail (ouch!)
+        Bundle[] thumbs = getBundles("THUMBNAIL");
+        
+        // if there are thumbs and we're not dealing with an HTML item
+        // then show the thumbnail
+        if ((thumbs.length > 0) && !html)
+        {
+            Bitstream thumbnailBitstream;
+            Bitstream originalBitstream;
+            
+            if ((original[0].getBitstreams().length > 1) && (original[0].getPrimaryBitstreamID() > -1))
+            {
+                originalBitstream = Bitstream.find(context, original[0].getPrimaryBitstreamID());
+                thumbnailBitstream = thumbs[0].getBitstreamByName(originalBitstream.getName() + ".jpg");
+            }
+            else
+            {
+                originalBitstream = original[0].getBitstreams()[0];
+                thumbnailBitstream = thumbs[0].getBitstreams()[0];
+            }
+            
+            if ((thumbnailBitstream != null)
+                    && (AuthorizeManager.authorizeActionBoolean(context, thumbnailBitstream, Constants.READ)))
+            {
+                Thumbnail thumbnail = new Thumbnail(thumbnailBitstream, originalBitstream);
+                return thumbnail;
+            }
+        }
+
+        return null;
     }
 
-    /** Deprecated by the introduction of DAOs */
-    @Deprecated
-    Item(Context context, org.dspace.storage.rdbms.TableRow row)
-    {
-        this(context, row.getIntColumn("item_id"));
-    }
+    ////////////////////////////////////////////////////////////////////
+    // Deprecated methods
+    ////////////////////////////////////////////////////////////////////
 
     @Deprecated
     public static Item find(Context context, int id)
@@ -1223,6 +1331,9 @@ public class Item extends DSpaceObject
     public void update() throws AuthorizeException
     {
         dao.update(this);
+        context.addEvent(new Event(Event.MODIFY_METADATA, Constants.ITEM, getID(), getDetails()));
+        metadataChanged = false;
+        clearDetails();
     }
 
     @Deprecated
@@ -1251,3 +1362,5 @@ public class Item extends DSpaceObject
         clearMetadata(MetadataSchema.DC_SCHEMA, element, qualifier, lang);
     }
 }
+
+
