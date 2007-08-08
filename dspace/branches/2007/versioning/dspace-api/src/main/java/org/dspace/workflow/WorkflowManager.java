@@ -59,8 +59,6 @@ import org.dspace.content.DCDate;
 import org.dspace.content.DCValue;
 import org.dspace.content.InstallItem;
 import org.dspace.content.Item;
-import org.dspace.content.dao.ItemDAO;              // Naughty!
-import org.dspace.content.dao.ItemDAOFactory;       // Naughty!
 import org.dspace.content.WorkspaceItem;
 import org.dspace.content.dao.WorkspaceItemDAO;
 import org.dspace.content.dao.WorkspaceItemDAOFactory;
@@ -230,10 +228,6 @@ public class WorkflowManager
         wfi.setMultipleFiles(true);
         wfi.setMultipleTitles(true);
         wfi.setPublishedBefore(true);
-
-        // Write history creation event
-        HistoryManager.saveHistory(c, wfi, HistoryManager.CREATE, c
-                .getCurrentUser(), c.getExtraLogInfo());
 
         //make sure the item isn't in the archive
         myitem.setArchived(false);
