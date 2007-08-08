@@ -187,16 +187,23 @@ public abstract class WorkspaceItemDAO extends ContentDAO
      * @param item Item
      * @return WorkspaceItem The new workspace item.
      */
-    public abstract WorkspaceItem create(Item item)
-        throws AuthorizeException;
+    public WorkspaceItem create(Item item)
+    throws AuthorizeException
+    {
+		WorkspaceItem wsi = this.create(item.getOwningCollection(),false);
+		return create(wsi, item, item.getOwningCollection());
+		
+    }
 
     /**
-     * Create a new workspace item, with a new ID. This is FROM an existing Item.
-     * This is to allow for new versions of Items to be tucked back into Workspaces.
-     * 
-     * @param item Item
-     * @return WorkspaceItem The new workspace item.
-     */
+	 * Create a new workspace item, with a new ID. This is FROM an existing
+	 * Item. This is to allow for new versions of Items to be tucked back into
+	 * Workspaces.
+	 * 
+	 * @param item
+	 *            Item
+	 * @return WorkspaceItem The new workspace item.
+	 */
     protected WorkspaceItem create(WorkspaceItem wsi, Item item, Collection collection)
         throws AuthorizeException
     {
@@ -225,31 +232,24 @@ public abstract class WorkspaceItemDAO extends ContentDAO
             Constants.REMOVE
         };
 
-        try
+        // Give read, write, add, and remove privileges to the current user
+        for (int action : actions)
         {
-            // Give read, write, add, and remove privileges to the current user
-            for (int action : actions)
-            {
-                AuthorizeManager.addPolicy(context, item, action, currentUser);
-            }
+            AuthorizeManager.addPolicy(context, item, action, currentUser);
+        }
 
-            // Give read, write, add, and remove privileges to the various
-            // workflow groups (if any).
-            for (Group stepGroup : stepGroups)
+        // Give read, write, add, and remove privileges to the various
+        // workflow groups (if any).
+        for (Group stepGroup : stepGroups)
+        {
+            if (stepGroup != null)
             {
-                if (stepGroup != null)
+                for (int action : actions)
                 {
-                    for (int action : actions)
-                    {
-                        AuthorizeManager.addPolicy(context, item, action,
-                                stepGroup);
-                    }
+                    AuthorizeManager.addPolicy(context, item, action,
+                            stepGroup);
                 }
             }
-        }
-        catch (java.sql.SQLException sqle)
-        {
-            throw new RuntimeException(sqle);
         }
 
         itemDAO.update(item);
@@ -262,9 +262,6 @@ public abstract class WorkspaceItemDAO extends ContentDAO
                 "workspace_item_id=" + wsi.getID() +
                 "item_id=" + item.getID() +
                 "collection_id=" + collection.getID()));
-
-        HistoryManager.saveHistory(context, wsi, HistoryManager.CREATE,
-                context.getCurrentUser(), context.getExtraLogInfo());
 
         return wsi;
     }
