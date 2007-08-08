@@ -39,18 +39,14 @@
  */
 package org.dspace.eperson;
 
-import org.dspace.core.Context;
-
 public class RegistrationData
 {
-    private Context context;
     private int id;
     private String email;
     private String token;
 
-    public RegistrationData(Context context, int id)
+    public RegistrationData(int id)
     {
-        this.context = context;
         this.id = id;
     }
 

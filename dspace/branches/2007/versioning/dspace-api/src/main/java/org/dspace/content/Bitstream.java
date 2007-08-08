@@ -41,7 +41,6 @@ package org.dspace.content;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.log4j.Logger;
@@ -51,20 +50,11 @@ import org.dspace.content.dao.BitstreamDAO;         // Naughty!
 import org.dspace.content.dao.BitstreamDAOFactory;  // Naughty!
 import org.dspace.content.dao.BundleDAO;            // Naughty!
 import org.dspace.content.dao.BundleDAOFactory;     // Naughty!
-import org.dspace.content.uri.ObjectIdentifier;
-import org.dspace.content.uri.ExternalIdentifier;
-import org.dspace.content.uri.dao.ExternalIdentifierDAO;
-import org.dspace.content.uri.dao.ExternalIdentifierDAOFactory;
-import org.dspace.core.ConfigurationManager;
 import org.dspace.core.Constants;
 import org.dspace.core.Context;
-import org.dspace.core.LogManager;
+import org.dspace.event.Event;
 import org.dspace.storage.bitstore.BitstreamStorageManager;
 
-import org.apache.commons.lang.builder.EqualsBuilder;
-import org.apache.commons.lang.builder.HashCodeBuilder;
-import org.apache.commons.lang.builder.ToStringBuilder;
-import org.apache.commons.lang.builder.ToStringStyle;
 
 /**
  * Class representing bitstreams stored in the DSpace system.
@@ -81,7 +71,6 @@ public class Bitstream extends DSpaceObject
     /** log4j logger */
     private static Logger log = Logger.getLogger(Bitstream.class);
 
-    private Context context;
     private BitstreamDAO dao;
     private BundleDAO bundleDAO;
 
@@ -98,6 +87,12 @@ public class Bitstream extends DSpaceObject
     private String internalID;
     private boolean deleted;
 
+    /** Flag set when data is modified, for events */
+    private boolean modified;
+
+    /** Flag set when metadata is modified, for events */
+    private boolean modifiedMetadata;
+    
     public Bitstream(Context context, int id)
     {
         this.id = id;
@@ -107,6 +102,9 @@ public class Bitstream extends DSpaceObject
         bundleDAO = BundleDAOFactory.getInstance(context);
 
         context.cache(this, id);
+
+        modified = modifiedMetadata = false;
+        clearDetails();
     }
 
     public int getSequenceID()
@@ -117,6 +115,8 @@ public class Bitstream extends DSpaceObject
     public void setSequenceID(int sequenceID)
     {
         this.sequenceID = sequenceID;
+        modifiedMetadata = true;
+        addDetails("SequenceID");
     }
 
     // FIXME: Do we even want this exposed?
@@ -131,6 +131,18 @@ public class Bitstream extends DSpaceObject
         this.internalID = internalID;
     }
 
+    public String getHandle()
+    {
+        // No Handles for bitstreams
+        return null;
+    }
+
+    /**
+     * Get the name of this bitstream - typically the filename, without any path
+     * information
+     * 
+     * @return the name of the bitstream
+     */
     public String getName()
     {
         return name;
@@ -139,6 +151,10 @@ public class Bitstream extends DSpaceObject
     public void setName(String name)
     {
         this.name = name;
+        modifiedMetadata = true;
+        addDetails("Name");
+        modifiedMetadata = true;
+        addDetails("Name");
     }
 
     /**
@@ -156,6 +172,10 @@ public class Bitstream extends DSpaceObject
     public void setSource(String source)
     {
         this.source = source;
+        modifiedMetadata = true;
+        addDetails("Source");
+        modifiedMetadata = true;
+        addDetails("Source");
     }
 
     public String getDescription()
@@ -166,6 +186,10 @@ public class Bitstream extends DSpaceObject
     public void setDescription(String description)
     {
         this.description = description;
+        modifiedMetadata = true;
+        addDetails("Description");
+        modifiedMetadata = true;
+        addDetails("Description");
     }
 
     /**
@@ -226,6 +250,10 @@ public class Bitstream extends DSpaceObject
     {
         setFormat(null);
         this.userFormatDescription = desc;
+        modifiedMetadata = true;
+        addDetails("UserFormatDescription");
+        modifiedMetadata = true;
+        addDetails("UserFormatDescription");
     }
 
     /**
@@ -296,6 +324,8 @@ public class Bitstream extends DSpaceObject
 
         // Remove user type description
         userFormatDescription = null;
+        modified = true;
+        modified = true;
     }
 
     public boolean isDeleted()
@@ -357,12 +387,9 @@ public class Bitstream extends DSpaceObject
         return Constants.BITSTREAM;
     }
 
-    /** Deprecated by the introduction of DAOs */
-    @Deprecated
-    public Bitstream(Context context, org.dspace.storage.rdbms.TableRow row)
-    {
-        this(context, row.getIntColumn("bitstream_id"));
-    }
+    ////////////////////////////////////////////////////////////////////
+    // Deprecated methods
+    ////////////////////////////////////////////////////////////////////
 
     @Deprecated
     public static Bitstream find(Context context, int id)
@@ -381,26 +408,44 @@ public class Bitstream extends DSpaceObject
     static Bitstream create(Context context, InputStream is)
             throws AuthorizeException, IOException
     {
-        return BitstreamDAOFactory.getInstance(context).store(is);
+        Bitstream bitstream = BitstreamDAOFactory.getInstance(context).store(is);
+        context.addEvent(new Event(Event.CREATE, Constants.BITSTREAM, bitstream.getID(), null));
+        return bitstream;
     }
 
     @Deprecated
     static Bitstream register(Context context, int assetstore,
             String bitstreamPath) throws AuthorizeException, IOException
     {
-        return BitstreamDAOFactory.getInstance(context).register(assetstore,
+        
+        Bitstream bitstream =  BitstreamDAOFactory.getInstance(context).register(assetstore,
                 bitstreamPath);
+        context.addEvent(new Event(Event.CREATE, Constants.BITSTREAM, bitstream.getID(), "REGISTER"));
+        return bitstream;
     }
 
     @Deprecated
     public void update() throws AuthorizeException
     {
         dao.update(this);
+        
+        if (modified)
+         {
+             context.addEvent(new Event(Event.MODIFY, Constants.BITSTREAM, getID(), null));
+             modified = false;
+         }
+         if (modifiedMetadata)
+         {
+             context.addEvent(new Event(Event.MODIFY_METADATA, Constants.BITSTREAM, getID(), getDetails()));
+             modifiedMetadata = false;
+             clearDetails();
+         }
     }
 
     @Deprecated
     void delete() throws AuthorizeException
     {
         dao.delete(this.getID());
+        context.addEvent(new Event(Event.DELETE, Constants.BITSTREAM, getID(), getIdentifier().getCanonicalForm()));
     }
 }

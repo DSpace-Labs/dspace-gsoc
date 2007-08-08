@@ -50,13 +50,13 @@ import org.apache.log4j.Logger;
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.authorize.AuthorizeManager;
 import org.dspace.authorize.ResourcePolicy;
-import org.dspace.browse.Browse;
+import org.dspace.browse.BrowseException;
+import org.dspace.browse.IndexBrowse;
 import org.dspace.content.Collection;
 import org.dspace.content.Community;
 import org.dspace.content.Item;
 import org.dspace.content.ItemIterator;
 import org.dspace.content.WorkspaceItem;
-import org.dspace.content.uri.ObjectIdentifier;
 import org.dspace.content.uri.ExternalIdentifier;
 import org.dspace.content.uri.dao.ExternalIdentifierDAO;
 import org.dspace.core.ArchiveManager;
@@ -65,7 +65,6 @@ import org.dspace.core.Context;
 import org.dspace.core.LogManager;
 import org.dspace.eperson.Group;
 import org.dspace.eperson.dao.GroupDAO;
-import org.dspace.history.HistoryManager;
 import org.dspace.search.DSIndexer;
 import org.dspace.workflow.WorkflowItem;
 
@@ -74,7 +73,7 @@ import org.dspace.workflow.WorkflowItem;
  */
 public abstract class CollectionDAO extends ContentDAO
 {
-    protected static Logger log = Logger.getLogger(CollectionDAOPostgres.class);
+    protected static Logger log = Logger.getLogger(CollectionDAO.class);
 
     protected Context context;
     protected BitstreamDAO bitstreamDAO;
@@ -145,14 +144,10 @@ public abstract class CollectionDAO extends ContentDAO
 
         update(collection);
 
-        HistoryManager.saveHistory(context, collection,
-                HistoryManager.CREATE, context.getCurrentUser(),
-                context.getExtraLogInfo());
-
         log.info(LogManager.getHeader(context, "create_collection",
                 "collection_id=" + collection.getID())
                 + ",uri=" +
-                collection.getExternalIdentifier().getCanonicalForm());
+                collection.getIdentifier().getCanonicalForm());
         
         return collection;
     }
@@ -171,9 +166,6 @@ public abstract class CollectionDAO extends ContentDAO
     {
         // Check authorisation
         collection.canEdit();
-
-        HistoryManager.saveHistory(context, this, HistoryManager.MODIFY,
-                context.getCurrentUser(), context.getExtraLogInfo());
 
         log.info(LogManager.getHeader(context, "update_collection",
                 "collection_id=" + collection.getID()));
@@ -221,10 +213,6 @@ public abstract class CollectionDAO extends ContentDAO
 
             DSIndexer.unIndexContent(context, collection);
 
-            HistoryManager.saveHistory(context, collection,
-                    HistoryManager.REMOVE, context.getCurrentUser(),
-                    context.getExtraLogInfo());
-
             // Remove Template Item
             collection.removeTemplateItem();
             
@@ -247,7 +235,9 @@ public abstract class CollectionDAO extends ContentDAO
                                 null);
 
                         //notify Browse of removing item.
-                        Browse.itemRemoved(context, itemId);
+                        IndexBrowse ib = new IndexBrowse(context);
+                        ib.itemRemoved(item);
+                        
                     }
                 } 
                 else
@@ -257,7 +247,8 @@ public abstract class CollectionDAO extends ContentDAO
                     ArchiveManager.move(context, item, collection, null);
 
                     //notify Browse of removing item mapping. 
-                    Browse.itemChanged(context, item);
+                    IndexBrowse ib = new IndexBrowse(context);
+                    ib.indexItem(item);
                 }
             }
 
@@ -307,6 +298,10 @@ public abstract class CollectionDAO extends ContentDAO
         catch (SQLException sqle)
         {
             throw new RuntimeException(sqle);
+        }
+        catch (BrowseException e)
+        {
+            throw new RuntimeException(e);
         }
     }
 

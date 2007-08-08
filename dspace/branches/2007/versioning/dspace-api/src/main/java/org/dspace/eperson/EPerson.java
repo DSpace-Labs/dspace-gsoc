@@ -39,23 +39,19 @@
  */
 package org.dspace.eperson;
 
-import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import org.apache.log4j.Logger;
-
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.DSpaceObject;
-import org.dspace.core.ConfigurationManager;
 import org.dspace.core.Constants;
 import org.dspace.core.Context;
-import org.dspace.core.LogManager;
 import org.dspace.core.Utils;
-import org.dspace.eperson.dao.EPersonDAO;           // Naughty!
-import org.dspace.eperson.dao.EPersonDAOFactory;    // Naughty!
+import org.dspace.eperson.dao.EPersonDAO;
+import org.dspace.eperson.dao.EPersonDAOFactory;
+import org.dspace.event.Event;
 
 /**
  * Class representing an e-person.
@@ -67,7 +63,6 @@ public class EPerson extends DSpaceObject
 {
     private static Logger log = Logger.getLogger(EPerson.class);
 
-    private Context context;
     private EPersonDAO dao;
 
     /** See EPersonMetadataField. */
@@ -84,6 +79,12 @@ public class EPerson extends DSpaceObject
     public static final int NETID = 4;
     public static final int LANGUAGE = 5;
 
+    /** Flag set when data is modified, for events */
+    private boolean modified;
+
+    /** Flag set when metadata is modified, for events */
+    private boolean modifiedMetadata;
+    
     public enum EPersonMetadataField
     {
         FIRSTNAME ("firstname"),
@@ -132,6 +133,9 @@ public class EPerson extends DSpaceObject
             String>(EPersonMetadataField.class);
 
         context.cache(this, id);
+                
+        modified = modifiedMetadata = false;
+        clearDetails();
     }
 
      public String getLanguage()
@@ -162,6 +166,8 @@ public class EPerson extends DSpaceObject
         }
 
         metadata.put(EPersonMetadataField.EMAIL, email);
+        modified = true;
+        modified = true;
     }
 
     public String getNetid()
@@ -177,6 +183,13 @@ public class EPerson extends DSpaceObject
         }
 
         metadata.put(EPersonMetadataField.NETID, netid);
+        modified = true;
+        modified = true;
+    }
+
+    public String getName()
+    {
+        return getEmail();
     }
 
     /**
@@ -212,6 +225,8 @@ public class EPerson extends DSpaceObject
     public void setFirstName(String firstName)
     {
         metadata.put(EPersonMetadataField.FIRSTNAME, firstName);
+        modified = true;
+        modified = true;
     }
 
     public String getLastName()
@@ -222,11 +237,15 @@ public class EPerson extends DSpaceObject
     public void setLastName(String lastName)
     {
         metadata.put(EPersonMetadataField.LASTNAME, lastName);
+        modified = true;
+        modified = true;
     }
 
     public void setCanLogIn(boolean canLogin)
     {
         this.canLogin = canLogin;
+        modified = true;
+        modified = true;
     }
 
     public boolean canLogIn()
@@ -237,6 +256,8 @@ public class EPerson extends DSpaceObject
     public void setRequireCertificate(boolean requireCertificate)
     {
         this.requireCertificate = requireCertificate;
+        modified = true;
+        modified = true;
     }
 
     public boolean getRequireCertificate()
@@ -247,6 +268,8 @@ public class EPerson extends DSpaceObject
     public void setSelfRegistered(boolean selfRegistered)
     {
         this.selfRegistered = selfRegistered;
+        modified = true;
+        modified = true;
     }
 
     public boolean getSelfRegistered()
@@ -274,11 +297,17 @@ public class EPerson extends DSpaceObject
     public void setMetadata(String field, String value)
     {
         metadata.put(EPersonMetadataField.fromString(field), value);
+        modifiedMetadata = true;
+        addDetails(field);
+        modifiedMetadata = true;
+        addDetails(field);
     }
 
     public void setPassword(String password)
     {
         metadata.put(EPersonMetadataField.PASSWORD, Utils.getMD5(password));
+        modified = true;
+        modified = true;
     }
 
     public boolean checkPassword(String attempt)
@@ -303,12 +332,6 @@ public class EPerson extends DSpaceObject
     ////////////////////////////////////////////////////////////////////
     // Deprecated methods
     ////////////////////////////////////////////////////////////////////
-
-    @Deprecated
-    public EPerson(Context context, org.dspace.storage.rdbms.TableRow row)
-    {
-        this(context, row.getIntColumn("eperson_id"));
-    }
 
     @Deprecated
     public static EPerson[] findAll(Context context, int sortField)
@@ -371,11 +394,26 @@ public class EPerson extends DSpaceObject
     public void update() throws AuthorizeException
     {
         dao.update(this);
+
+        if (modified)
+        {
+            context.addEvent(new Event(Event.MODIFY, Constants.EPERSON, getID(), null));
+            modified = false;
+        }
+        if (modifiedMetadata)
+        {
+            context.addEvent(new Event(Event.MODIFY_METADATA, Constants.EPERSON, getID(), getDetails()));
+            modifiedMetadata = false;
+            clearDetails();
+        }
     }
 
     @Deprecated
     public void delete() throws AuthorizeException, EPersonDeletionException
     {
         dao.delete(getID());
+        context.addEvent(new Event(Event.DELETE, Constants.EPERSON, getID(), getEmail()));
+
+        
     }
 }

@@ -42,6 +42,7 @@ package org.dspace.core;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -54,6 +55,9 @@ import org.dspace.eperson.EPerson;
 import org.dspace.eperson.Group;
 import org.dspace.storage.dao.GlobalDAO;
 import org.dspace.storage.dao.GlobalDAOFactory;
+import org.dspace.event.Event;
+import org.dspace.event.EventManager;
+import org.dspace.event.Dispatcher;
 
 /**
  * Class representing the context of a particular DSpace operation. This stores
@@ -70,7 +74,6 @@ import org.dspace.storage.dao.GlobalDAOFactory;
  * The context object is also used as a cache for CM API objects.
  * 
  * 
- * @author Robert Tansley
  * @author James Rutherford
  * @version $Revision$
  */
@@ -98,6 +101,12 @@ public class Context
 
     /** Group IDs of special groups user is a member of */
     private List specialGroups;
+    
+    /** Content events */
+    private List<Event> events = null;
+
+    /** Event dispatcher name */
+    private String dispName = null;
 
     /**
      * Construct a new context object. A database connection is opened. No user
@@ -248,6 +257,10 @@ public class Context
      */
     public void complete() throws SQLException
     {
+        // We need to commit first to complete the event processing
+        // TODO this may be temporary - MRD
+        commit();
+        
         dao.endTransaction();
     }
 
@@ -261,10 +274,95 @@ public class Context
      */
     public void commit() throws SQLException
     {
-        // Commit any changes made as part of the transaction
-        dao.saveTransaction();
+        
+
+        Dispatcher dispatcher = null;
+
+        try
+        {
+            if (events != null)
+            {    
+                if (dispName == null)
+                {
+                    dispName = EventManager.DEFAULT_DISPATCHER;
+                }
+                
+                dispatcher = EventManager.getDispatcher(dispName);
+                
+                // Commit any changes made as part of the transaction
+                dao.saveTransaction();
+                
+                dispatcher.dispatch(this);
+            }
+            else
+            {
+                // Commit any changes made as part of the transaction
+                dao.saveTransaction();
+            }
+        }
+        finally
+        {
+            if (events != null)
+            {
+                synchronized (events)
+                {
+                    events = null;
+                }
+            }
+            if(dispatcher != null)
+            {
+            	/* 
+            	 * TODO return dispatcher via internal method dispatcher.close();
+            	 * and remove the returnDispatcher method from EventManager.
+            	 */
+                EventManager.returnDispatcher(dispName, dispatcher);
+            }
+        }
+
     }
 
+    /**
+     * Select an event dispatcher, <code>null</code> selects the default
+     * 
+     */
+    public void setDispatcher(String dispatcher)
+    {
+        if (log.isDebugEnabled())
+        {
+            log.debug(this.toString() + ": setDispatcher(\"" + dispatcher + "\")");
+        }
+        dispName = dispatcher;
+    }
+
+    /**
+     * Add an event to be dispatched when this context is committed.
+     * 
+     * @param event
+     */
+    public synchronized void addEvent(Event event)
+    {
+        if (events == null)
+        {
+            events = Collections.synchronizedList(new ArrayList<Event>());
+        }
+        
+        events.add(event);
+    }
+
+    /**
+     * Get the current event list. If there is a separate list of events from
+     * already-committed operations combine that with current list.
+     * 
+     * @return List of all available events.
+     */
+    public synchronized List<Event> getEvents()
+    {
+        List<Event> tmp = events;
+        events = null;
+        return tmp;
+    }
+
+    
     /**
      * Close the context, without committing any of the changes performed using
      * this context. The database connection is freed. No exception is thrown if
@@ -275,9 +373,11 @@ public class Context
     public void abort()
     {
         dao.abortTransaction();
+        events = null;
     }
 
     /**
+     * 
      * Find out if this context is valid. Returns <code>false</code> if this
      * context has been aborted or completed.
      * 

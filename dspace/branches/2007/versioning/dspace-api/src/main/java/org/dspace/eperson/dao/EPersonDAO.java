@@ -50,11 +50,9 @@ import org.dspace.core.Constants;
 import org.dspace.core.Context;
 import org.dspace.core.LogManager;
 import org.dspace.eperson.EPerson;
-import org.dspace.eperson.EPerson.EPersonMetadataField;
 import org.dspace.eperson.EPersonDeletionException;
 import org.dspace.eperson.Group;
-import org.dspace.content.uri.ObjectIdentifier;
-import org.dspace.history.HistoryManager;
+import org.dspace.eperson.EPerson.EPersonMetadataField;
 
 /**
  * @author James Rutherford
@@ -86,9 +84,6 @@ public abstract class EPersonDAO
     {
         log.info(LogManager.getHeader(context, "create_eperson", "eperson_id="
                     + eperson.getID()));
-
-        HistoryManager.saveHistory(context, eperson, HistoryManager.CREATE,
-                context.getCurrentUser(), context.getExtraLogInfo());
 
         return eperson;
     }
@@ -127,9 +122,6 @@ public abstract class EPersonDAO
 
         log.info(LogManager.getHeader(context, "update_eperson",
                 "eperson_id=" + eperson.getID()));
-
-        HistoryManager.saveHistory(context, eperson, HistoryManager.MODIFY,
-                context.getCurrentUser(), context.getExtraLogInfo());
     }
 
     public void delete(int id)
@@ -144,9 +136,6 @@ public abstract class EPersonDAO
             throw new AuthorizeException(
                     "You must be an admin to delete an EPerson");
         }
-
-        HistoryManager.saveHistory(context, eperson, HistoryManager.REMOVE,
-                context.getCurrentUser(), context.getExtraLogInfo());
 
         // Remove from cache
         context.removeCached(eperson, id);

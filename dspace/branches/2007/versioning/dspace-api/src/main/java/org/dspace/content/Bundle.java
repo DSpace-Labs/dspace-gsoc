@@ -44,7 +44,6 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.ListIterator;
 
 import org.apache.log4j.Logger;
 
@@ -59,6 +58,7 @@ import org.dspace.content.dao.BundleDAO;            // Naughty!
 import org.dspace.content.dao.BundleDAOFactory;     // Naughty!
 import org.dspace.content.dao.ItemDAO;              // Naughty!
 import org.dspace.content.dao.ItemDAOFactory;       // Naughty!
+import org.dspace.event.Event;
 
 /**
  * Class representing bundles of bitstreams stored in the DSpace system
@@ -79,16 +79,16 @@ public class Bundle extends DSpaceObject
     private int primaryBitstreamId;
     private List<Bitstream> bitstreams;
 
-    private Context context;
     private BundleDAO dao;
     private BitstreamDAO bitstreamDAO;
     private ItemDAO itemDAO;
 
-    public Bundle(Context context)
-    {
-        this(context, -1);
-    }
+    /** Flag set when data is modified, for events */
+    private boolean modified;
 
+    /** Flag set when metadata is modified, for events */
+    private boolean modifiedMetadata;
+    
     public Bundle(Context context, int id)
     {
         this.id = id;
@@ -103,6 +103,7 @@ public class Bundle extends DSpaceObject
         bitstreams = new ArrayList<Bitstream>();
 
         context.cache(this, id);
+        modified = modifiedMetadata = false;
     }
 
     public String getName()
@@ -113,6 +114,8 @@ public class Bundle extends DSpaceObject
     public void setName(String name)
     {
         this.name = name;
+        modifiedMetadata = true;
+        modifiedMetadata = true;
     }
 
     public void unsetPrimaryBitstreamID()
@@ -122,12 +125,14 @@ public class Bundle extends DSpaceObject
 
     public int getPrimaryBitstreamID()
     {
+        modified = true;
         return primaryBitstreamId;
     }
 
     public void setPrimaryBitstreamID(int primaryBitstreamId)
     {
         this.primaryBitstreamId = primaryBitstreamId;
+        modified = true;
     }
 
     public Bitstream getPrimaryBitstream()
@@ -203,6 +208,9 @@ public class Bundle extends DSpaceObject
         }
 
         bitstreams.add(b);
+        
+        context.addEvent(new Event(Event.ADD, Constants.BUNDLE, getID(), Constants.BITSTREAM, b.getID(), String.valueOf(b.getSequenceID())));
+        
     }
 
     public void removeBitstream(Bitstream b) throws AuthorizeException,
@@ -218,6 +226,9 @@ public class Bundle extends DSpaceObject
             if (bitstream.getID() == b.getID())
             {
                 i.remove();
+                
+                context.addEvent(new Event(Event.REMOVE, Constants.BUNDLE, getID(), Constants.BITSTREAM, b.getID(), String.valueOf(b.getSequenceID())));
+                           
             }
         }
     }
@@ -236,12 +247,6 @@ public class Bundle extends DSpaceObject
     ////////////////////////////////////////////////////////////////////
 
     @Deprecated
-    Bundle(Context context, org.dspace.storage.rdbms.TableRow row)
-    {
-        this(context, row.getIntColumn("bundle_id"));
-    }
-
-    @Deprecated
     public static Bundle find(Context context, int id)
     {
         return BundleDAOFactory.getInstance(context).retrieve(id);
@@ -250,19 +255,34 @@ public class Bundle extends DSpaceObject
     @Deprecated
     static Bundle create(Context context) throws AuthorizeException
     {
-        return BundleDAOFactory.getInstance(context).create();
+    	Bundle bundle = BundleDAOFactory.getInstance(context).create();
+        context.addEvent(new Event(Event.CREATE, Constants.BUNDLE, bundle.getID(), null));
+        return bundle;
     }
 
     @Deprecated
     public void update() throws AuthorizeException
     {
         dao.update(this);
+        
+         if (modified)
+        {
+            context.addEvent(new Event(Event.MODIFY, Constants.BUNDLE, getID(), null));
+            modified = false;
+        }
+        if (modifiedMetadata)
+        {
+            context.addEvent(new Event(Event.MODIFY_METADATA, Constants.BUNDLE, getID(), null));
+            modifiedMetadata = false;
+        }
     }
 
     @Deprecated
     void delete() throws AuthorizeException, IOException
     {
         dao.delete(this.getID());
+        context.addEvent(new Event(Event.DELETE, Constants.BUNDLE, getID(), getIdentifier().getCanonicalForm()));
+        
     }
 
     @Deprecated

@@ -40,7 +40,6 @@
 package org.dspace.app.oai;
 
 import java.util.Properties;
-import java.sql.SQLException;
 
 import org.dspace.app.util.Util;
 import org.dspace.content.DCValue;
@@ -120,7 +119,7 @@ public class RDFCrosswalk extends Crosswalk
         metadata.append("<ow:Publication rdf:about=\"oai:")
                 .append(hostName)
                 .append(":")
-                .append(item.getExternalIdentifier().getCanonicalForm())
+                .append(item.getIdentifier().getCanonicalForm())
                 .append("\">");
 
         for (int i = 0; i < allDC.length; i++)
@@ -169,11 +168,16 @@ public class RDFCrosswalk extends Crosswalk
         }
         
         // add extended info - collection, communities, and thumbnail URLs
-        Collection[] colls = item.getCollections();;
-        Community[] comms = item.getCommunities();
-        Bundle[] origBundles = item.getBundles("ORIGINAL");
-        Bundle[] thumbBundles = item.getBundles("THUMBNAIL");
+        Collection[] colls = null;
+        Community[] comms = null;
+        Bundle[] origBundles = null;
+        Bundle[] thumbBundles = null;
 
+        colls = item.getCollections();
+        comms = item.getCommunities();
+        origBundles = item.getBundles("ORIGINAL");
+        thumbBundles = item.getBundles("THUMBNAIL");
+        
         // all parent communities map to DC source
         for (int i = 0; i < comms.length; i++)
         {

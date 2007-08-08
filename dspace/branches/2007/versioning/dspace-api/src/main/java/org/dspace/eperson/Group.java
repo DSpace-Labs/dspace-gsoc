@@ -40,25 +40,18 @@
 package org.dspace.eperson;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 import org.apache.log4j.Logger;
-
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.DSpaceObject;
-import org.dspace.core.ConfigurationManager;
 import org.dspace.core.Constants;
 import org.dspace.core.Context;
-import org.dspace.core.LogManager;
-import org.dspace.eperson.dao.EPersonDAO;           // Naughty!
-import org.dspace.eperson.dao.EPersonDAOFactory;    // Naughty!
-import org.dspace.eperson.dao.GroupDAO;             // Naughty!
-import org.dspace.eperson.dao.GroupDAOFactory;      // Naughty!
+import org.dspace.eperson.dao.EPersonDAO;
+import org.dspace.eperson.dao.EPersonDAOFactory;
+import org.dspace.eperson.dao.GroupDAO;
+import org.dspace.eperson.dao.GroupDAOFactory;
+import org.dspace.event.Event;
 
 /**
  * Class representing a group of e-people.
@@ -75,7 +68,6 @@ public class Group extends DSpaceObject
     /** log4j logger */
     private static Logger log = Logger.getLogger(Group.class);
 
-    private Context context;
     protected GroupDAO dao;
     protected EPersonDAO epersonDAO;
 
@@ -85,6 +77,17 @@ public class Group extends DSpaceObject
     protected List<EPerson> epeople;
     protected List<Group> groups;
 
+    /** lists that need to be written out again */
+    private boolean epeopleChanged = false;
+
+    private boolean groupsChanged = false;
+
+    /** is this just a stub, or is all data loaded? */
+    private boolean isDataLoaded = false;
+
+    /** Flag set when metadata is modified, for events */
+    private boolean modifiedMetadata;
+    
     public Group(Context context, int id)
     {
         this.id = id;
@@ -92,6 +95,9 @@ public class Group extends DSpaceObject
 
         dao = GroupDAOFactory.getInstance(context);
         epersonDAO = EPersonDAOFactory.getInstance(context);
+
+        modifiedMetadata = false;
+        clearDetails();
 
         epeople = new ArrayList<EPerson>();
         groups = new ArrayList<Group>();
@@ -112,6 +118,10 @@ public class Group extends DSpaceObject
     public void setName(String name)
     {
         this.name = name;
+        modifiedMetadata = true;
+        addDetails("name");
+        modifiedMetadata = true;
+        addDetails("name");
     }
 
     public void addMember(EPerson e)
@@ -122,6 +132,8 @@ public class Group extends DSpaceObject
         }
 
         epeople.add(e);
+
+        context.addEvent(new Event(Event.ADD, Constants.GROUP, getID(), Constants.EPERSON, e.getID(), e.getEmail()));
     }
 
     public void addMember(Group g)
@@ -132,16 +144,26 @@ public class Group extends DSpaceObject
         }
 
         groups.add(g);
+
+        context.addEvent(new Event(Event.ADD, Constants.GROUP, getID(), Constants.GROUP, g.getID(), g.getName()));
     }
 
     public void removeMember(EPerson e)
     {
-        epeople.remove(e);
+        if (epeople.remove(e))
+        {
+            epeopleChanged = true;
+            context.addEvent(new Event(Event.REMOVE, Constants.GROUP, getID(), Constants.EPERSON, e.getID(), e.getEmail()));
+        }
     }
 
     public void removeMember(Group g)
     {
-        groups.remove(g);
+        if (groups.remove(g))
+        {
+            groupsChanged = true;
+            context.addEvent(new Event(Event.REMOVE, Constants.GROUP, getID(), Constants.GROUP, g.getID(), g.getName()));
+        }
     }
 
     public boolean isMember(EPerson e)
@@ -212,32 +234,34 @@ public class Group extends DSpaceObject
     }
 
     @Deprecated
-    Group(Context context, org.dspace.storage.rdbms.TableRow row)
-    {
-        this(context, row.getIntColumn("eperson_group_id"));
-    }
-
-    @Deprecated
     public static Group create(Context context) throws AuthorizeException
     {
-        log.info("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
-        log.info("Called Group.create()");
-        log.info("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
         GroupDAO dao = GroupDAOFactory.getInstance(context);
         Group group = dao.create();
-
+        
+		context.addEvent(new Event(Event.CREATE, Constants.GROUP, group.getID(), null));
+        
         return group;
     }
 
     public void update() throws AuthorizeException
     {
         dao.update(this);
+        
+        if (modifiedMetadata)
+        {
+            context.addEvent(new Event(Event.MODIFY_METADATA, Constants.GROUP, getID(), getDetails()));
+            modifiedMetadata = false;
+            clearDetails();
+        }
     }
 
     @Deprecated
     public void delete() throws AuthorizeException
     {
         dao.delete(this.getID());
+        context.addEvent(new Event(Event.DELETE, Constants.GROUP, getID(), getName()));
+        
     }
 
     @Deprecated

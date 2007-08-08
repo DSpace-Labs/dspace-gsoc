@@ -41,7 +41,6 @@ package org.dspace.core;
 
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.List;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -52,7 +51,8 @@ import org.apache.log4j.Logger;
 
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.authorize.AuthorizeManager;
-import org.dspace.browse.Browse;
+import org.dspace.browse.BrowseException;
+import org.dspace.browse.IndexBrowse;
 import org.dspace.content.Bitstream;
 import org.dspace.content.Collection;
 import org.dspace.content.Community;
@@ -70,13 +70,11 @@ import org.dspace.content.dao.CollectionDAO;
 import org.dspace.content.dao.CollectionDAOFactory;
 import org.dspace.content.dao.CommunityDAO;
 import org.dspace.content.dao.CommunityDAOFactory;
-import org.dspace.content.uri.ExternalIdentifier;
 import org.dspace.content.uri.dao.ExternalIdentifierDAO;
 import org.dspace.content.uri.dao.ExternalIdentifierDAOFactory;
 import org.dspace.content.dao.WorkspaceItemDAO;
 import org.dspace.content.dao.WorkspaceItemDAOFactory;
 import org.dspace.eperson.EPerson;
-import org.dspace.history.HistoryManager;
 import org.dspace.search.DSIndexer;
 import org.dspace.eperson.Group;
 
@@ -216,17 +214,21 @@ public class ArchiveManager
             // Update item in DB
             itemDAO.update(item);
 
-            // Invoke History system
-            HistoryManager.saveHistory(context, item, HistoryManager.MODIFY, e,
-                    context.getExtraLogInfo());
-
             // Remove from indicies
-            Browse.itemRemoved(context, item.getID());
+            IndexBrowse ib = new IndexBrowse(context);
+            ib.itemRemoved(item);
             DSIndexer.unIndexContent(context, item);
+            
+            
+            
         }
         catch (SQLException sqle)
         {
             throw new RuntimeException(sqle);
+        }
+        catch (BrowseException be)
+        {
+            throw new RuntimeException(be);
         }
 
         // and all of our authorization policies
@@ -278,10 +280,6 @@ public class ArchiveManager
 
             // Update item in DB
             itemDAO.update(item);
-
-            // Invoke History system
-            HistoryManager.saveHistory(context, item, HistoryManager.MODIFY, e,
-                    context.getExtraLogInfo());
 
             // Add to indicies
             // Remove - update() already performs this
