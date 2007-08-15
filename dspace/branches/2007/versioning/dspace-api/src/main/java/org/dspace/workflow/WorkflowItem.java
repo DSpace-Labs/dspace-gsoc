@@ -40,6 +40,7 @@
 package org.dspace.workflow;
 
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.List;
 
 import org.apache.log4j.Logger;
@@ -47,11 +48,16 @@ import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.Collection;
 import org.dspace.content.InProgressSubmission;
 import org.dspace.content.Item;
+import org.dspace.content.dao.CollectionDAOFactory;
+import org.dspace.content.dao.ItemDAOFactory;
 import org.dspace.content.uri.ObjectIdentifier;
 import org.dspace.core.Context;
 import org.dspace.eperson.EPerson;
 import org.dspace.workflow.dao.WorkflowItemDAO;
 import org.dspace.workflow.dao.WorkflowItemDAOFactory;
+import org.dspace.storage.rdbms.DatabaseManager;
+import org.dspace.storage.rdbms.TableRow;
+import org.dspace.storage.rdbms.TableRowIterator;
 
 /**
  * Class representing an item going through the workflow process in DSpace
@@ -92,6 +98,37 @@ public class WorkflowItem implements InProgressSubmission
         context.cache(this, id);
     }
 
+    /**
+     * Construct a workspace item corresponding to the given database row
+     * 
+     * @param context
+     *            the context this object exists in
+     * @param row
+     *            the database row
+     */
+    WorkflowItem(Context context, TableRow row) throws SQLException
+    {
+        TableRow wfRow = row;
+
+        int collectionID = wfRow.getIntColumn("collection_id");
+        item = ItemDAOFactory.getInstance(context).retrieve(wfRow.getIntColumn("item_id"));
+        collection =
+            CollectionDAOFactory.getInstance(context).retrieve(collectionID);
+
+        if (wfRow.isColumnNull("owner"))
+        {
+            owner = null;
+        }
+        else
+        {
+            owner = EPerson.find(context, wfRow.getIntColumn("owner"));
+        }
+
+        // Cache ourselves
+        context.cache(this, row.getIntColumn("workflow_id"));
+    }
+
+    
     public int getID()
     {
         return id;
