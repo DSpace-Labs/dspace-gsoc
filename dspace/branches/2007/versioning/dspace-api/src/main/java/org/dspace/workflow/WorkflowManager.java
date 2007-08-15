@@ -72,7 +72,10 @@ import org.dspace.eperson.EPerson;
 import org.dspace.eperson.Group;
 import org.dspace.workflow.dao.WorkflowItemDAO;
 import org.dspace.workflow.dao.WorkflowItemDAOFactory;
-
+import org.dspace.content.dao.ItemDAO;
+import org.dspace.content.dao.ItemDAOFactory;
+import org.dspace.storage.rdbms.DatabaseManager;
+import org.dspace.storage.rdbms.TableRow;
 /**
  * Workflow state machine
  * 
