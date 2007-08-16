@@ -42,11 +42,16 @@ package org.dspace.content.dao.postgres;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 import java.util.UUID;
 
 import org.dspace.authorize.AuthorizeException;
@@ -57,20 +62,24 @@ import org.dspace.content.Bitstream;
 import org.dspace.content.Bundle;
 import org.dspace.content.Collection;
 import org.dspace.content.Community;
+import org.dspace.content.DSpaceObject;
 import org.dspace.content.DCValue;
 import org.dspace.content.Item;
 import org.dspace.content.ItemIterator;
 import org.dspace.content.MetadataField;
 import org.dspace.content.MetadataSchema;
 import org.dspace.content.MetadataValue;
-import org.dspace.content.dao.BitstreamDAOFactory;
-import org.dspace.content.dao.BundleDAOFactory;
-import org.dspace.content.dao.ItemDAO;
+import org.dspace.content.dao.MetadataFieldDAO;
+import org.dspace.content.dao.MetadataFieldDAOFactory;
+import org.dspace.content.dao.MetadataSchemaDAO;
+import org.dspace.content.dao.MetadataSchemaDAOFactory;
+import org.dspace.content.dao.MetadataValueDAO;
+import org.dspace.content.dao.MetadataValueDAOFactory;
 import org.dspace.content.proxy.ItemProxy;
+import org.dspace.content.dao.ItemDAO;
 import org.dspace.content.uri.ObjectIdentifier;
 import org.dspace.content.uri.ExternalIdentifier;
-import org.dspace.content.uri.dao.ExternalIdentifierDAO;
-import org.dspace.content.uri.dao.ExternalIdentifierDAOFactory;
+import org.dspace.core.ConfigurationManager;
 import org.dspace.core.Constants;
 import org.dspace.core.Context;
 import org.dspace.core.LogManager;
@@ -86,11 +95,9 @@ import org.dspace.storage.rdbms.TableRowIterator;
  */
 public class ItemDAOPostgres extends ItemDAO
 {
-    private ExternalIdentifierDAO identifierDAO;
-
     /** query to obtain all the items from the database */
     private final String findAll = "SELECT * FROM item";
-    
+
     /** query to check the existance of an item id */
     private final String getByID = "SELECT id FROM item WHERE item_id = ?";
 
@@ -118,7 +125,7 @@ public class ItemDAOPostgres extends ItemDAO
         "        WHERE short_id = ? " +
         "    )" +
         ")";
-    
+
     /** query to get the text value of a metadata element and qualifier */
     private final String getByMetadata =
         "SELECT text_value FROM metadatavalue " +
@@ -130,7 +137,7 @@ public class ItemDAOPostgres extends ItemDAO
         "        WHERE short_id = ? " +
         "    )" +
         ")";
-    
+
     /** query to get the text value of a metadata element with the wildcard
      * qualifier (*) */
     private final String getByMetadataAnyQualifier =
@@ -144,14 +151,9 @@ public class ItemDAOPostgres extends ItemDAO
         "    )" +
         ")";
 
-
     public ItemDAOPostgres(Context context)
     {
-        this.context = context;
-
-        bundleDAO = BundleDAOFactory.getInstance(context);
-        bitstreamDAO = BitstreamDAOFactory.getInstance(context);
-        identifierDAO = ExternalIdentifierDAOFactory.getInstance(context);
+        super(context);
     }
 
     @Override
@@ -316,6 +318,10 @@ public class ItemDAOPostgres extends ItemDAO
      */
     private void update(Item item, TableRow itemRow) throws AuthorizeException
     {
+        MetadataValueDAO mvDAO = MetadataValueDAOFactory.getInstance(context);
+        MetadataFieldDAO mfDAO = MetadataFieldDAOFactory.getInstance(context);
+        MetadataSchemaDAO msDAO = MetadataSchemaDAOFactory.getInstance(context);
+
         try
         {
             // Fill out the TableRow and save it
@@ -340,8 +346,7 @@ public class ItemDAOPostgres extends ItemDAO
                 {
                     // Get the DC Type
                     int schemaID;
-                    MetadataSchema schema =
-                        MetadataSchema.find(context, dcv.schema);
+                    MetadataSchema schema = msDAO.retrieveByName(dcv.schema);
 
                     if (schema == null)
                     {
@@ -349,11 +354,11 @@ public class ItemDAOPostgres extends ItemDAO
                     }
                     else
                     {
-                        schemaID = schema.getSchemaID();
+                        schemaID = schema.getID();
                     }
 
-                    MetadataField field = MetadataField.findByElement(context,
-                            schemaID, dcv.element, dcv.qualifier);
+                    MetadataField field =
+                        mfDAO.retrieve(schemaID, dcv.element, dcv.qualifier);
 
                     if (field == null)
                     {
@@ -391,14 +396,14 @@ public class ItemDAOPostgres extends ItemDAO
                     current++;
                     elementCount.put(key, new Integer(current));
 
-                    // Write DCValue
-                    MetadataValue metadata = new MetadataValue();
-                    metadata.setItemId(item.getID());
-                    metadata.setFieldId(field.getFieldID());
+                    // Write metadata
+                    MetadataValue metadata = mvDAO.create();
+                    metadata.setItemID(item.getID());
+                    metadata.setFieldID(field.getID());
                     metadata.setValue(dcv.value);
                     metadata.setLanguage(dcv.language);
                     metadata.setPlace(current);
-                    metadata.create(context);
+                    mvDAO.update(metadata);
                 }
 
 //                dublinCoreChanged = false;
@@ -441,7 +446,244 @@ public class ItemDAOPostgres extends ItemDAO
         try
         {
             TableRowIterator tri = DatabaseManager.queryTable(context, "item",
-                    "SELECT item_id FROM item WHERE in_archive = '1'");
+                    "SELECT item_id FROM item " +
+                    "WHERE in_archive = '1' AND withdrawn = '0'");
+
+            return returnAsList(tri);
+        }
+        catch (SQLException sqle)
+        {
+            throw new RuntimeException(sqle);
+        }
+    }
+
+    @Override
+    public List<Item> getItems(DSpaceObject scope,
+            String startDate, String endDate, int offset, int limit,
+            boolean items, boolean collections, boolean withdrawn)
+        throws ParseException
+    {
+        try
+        {
+            // Put together our query. Note there is no need for an
+            // "in_archive=true" condition, we are using the existence of a
+            // persistent identifier as our 'existence criterion'.
+            String query =
+                "SELECT p.value, p.type_id, p.resource_id, " +
+                "i.withdrawn, i.last_modified " +
+                "FROM externalidentifier p, item i";
+
+            // We are building a complex query that may contain a variable
+            // about of input data points. To accomidate this while still
+            // providing type safty we build a list of parameters to be
+            // plugged into the query at the database level.
+            List parameters = new ArrayList();
+
+            if (scope != null)
+            {
+                if (scope.getType() == Constants.COLLECTION)
+                {
+                    query += ", collection2item cl2i";
+                }
+                else if (scope.getType() == Constants.COMMUNITY)
+                {
+                    query += ", community2item cm2i";
+                }
+            }
+
+            query += " WHERE p.resource_type_id=" + Constants.ITEM +
+                " AND p.resource_id = i.item_id ";
+
+            if (scope != null)
+            {
+                if (scope.getType() == Constants.COLLECTION)
+                {
+                    query += " AND cl2i.collection_id= ? " +
+                             " AND cl2i.item_id = p.resource_id ";
+                    parameters.add(new Integer(scope.getID()));
+                }
+                else if (scope.getType() == Constants.COMMUNITY)
+                {
+                    query += " AND cm2i.community_id= ? " +
+                             " AND cm2i.item_id = p.resource_id";
+                    parameters.add(new Integer(scope.getID()));
+                }
+            }
+
+            if (startDate != null)
+            {
+                query = query + " AND i.last_modified >= ? ";
+                parameters.add(toTimestamp(startDate, false));
+            }
+
+            if (endDate != null)
+            {
+                /*
+                 * If the end date has seconds precision, e.g.:
+                 *
+                 * 2004-04-29T13:45:43Z
+                 *
+                 * we need to add 999 milliseconds to this. This is because SQL
+                 * TIMESTAMPs have millisecond precision, and so might have a value:
+                 *
+                 * 2004-04-29T13:45:43.952Z
+                 *
+                 * and so <= '2004-04-29T13:45:43Z' would not pick this up. Reading
+                 * things out of the database, TIMESTAMPs are rounded down, so the
+                 * above value would be read as '2004-04-29T13:45:43Z', and
+                 * therefore a caller would expect <= '2004-04-29T13:45:43Z' to
+                 * include that value.
+                 *
+                 * Got that? ;-)
+                 */
+                boolean selfGenerated = false;
+                if (endDate.length() == 20)
+                {
+                    endDate = endDate.substring(0, 19) + ".999Z";
+                    selfGenerated = true;
+                }
+
+                query += " AND i.last_modified <= ? ";
+                parameters.add(toTimestamp(endDate, selfGenerated));
+            }
+
+            if (withdrawn == false)
+            {
+                // Exclude withdrawn items
+                if ("oracle".equals(ConfigurationManager.getProperty("db.name")))
+                {
+                    query += " AND withdrawn=0 ";
+                }
+                else
+                {
+                    // postgres uses booleans
+                    query += " AND withdrawn=false ";
+                }
+            }
+
+            // Order by item ID, so that for a given harvest the order will be
+            // consistent. This is so that big harvests can be broken up into
+            // several smaller operations (e.g. for OAI resumption tokens.)
+            query += " ORDER BY p.resource_id";
+
+            log.debug(LogManager.getHeader(context, "harvest SQL", query));
+
+            // Execute
+            Object[] parametersArray = parameters.toArray();
+            TableRowIterator tri = DatabaseManager.query(context, query,
+                    parametersArray);
+
+            return returnAsList(tri);
+        }
+        catch (SQLException sqle)
+        {
+            throw new RuntimeException(sqle);
+        }
+    }
+
+    @Override
+    public List<Item> getItems(MetadataField field, MetadataValue value,
+            Date startDate, Date endDate)
+    {
+        // FIXME: Of course, this should actually go somewhere else
+        boolean oracle = false;
+        if ("oracle".equals(ConfigurationManager.getProperty("db.name")))
+        {
+            oracle = true;
+        }
+
+        // FIXME: this method is clearly not optimised
+
+        String valueQuery = null;
+
+        if (value != null)
+        {
+            valueQuery =
+                "SELECT item_id FROM metadatavalue " +
+                "WHERE metadata_field_id = ? " +
+                "AND text_value LIKE ?";
+//                "AND metadata_field_id = (" +
+//                    "SELECT metadata_field_id FROM metadatafieldregistry " +
+//                    "WHERE element = ? AND qualifier = ?" +
+//                    "AND metadata_schema_id = ?" +
+//                ")";
+        }
+
+        // start the date constraint query buffer
+        StringBuffer dateQuery = new StringBuffer();
+        // FIXME: This is a little DC-specific, but I suppose that's OK.
+        dateQuery.append(
+                "SELECT item_id FROM metadatavalue " +
+                "WHERE metadata_field_id = (" +
+                    "SELECT metadata_field_id " +
+                    "FROM metadatafieldregistry " +
+                    "WHERE element = 'date' " +
+                    "AND qualifier = 'accessioned' " +
+                ")");
+
+        if (startDate != null)
+        {
+            if (oracle)
+            {
+                dateQuery.append(" AND TO_TIMESTAMP( TO_CHAR(text_value), "+
+                        "'yyyy-mm-dd\"T\"hh24:mi:ss\"Z\"' ) > TO_DATE('" +
+                        unParseDate(startDate) + "', 'yyyy-MM-dd') ");
+            }
+            else
+            {
+                dateQuery.append(" AND text_value::timestamp > '" +
+                        unParseDate(startDate) + "'::timestamp ");
+            }
+        }
+
+        if (endDate != null)
+        {
+            if (oracle)
+            {
+                dateQuery.append(" AND TO_TIMESTAMP( TO_CHAR(text_value), "+
+                        "'yyyy-mm-dd\"T\"hh24:mi:ss\"Z\"' ) < TO_DATE('" +
+                        unParseDate(endDate) + "', 'yyyy-MM-dd') ");
+            }
+            else
+            {
+                dateQuery.append(" AND text_value::timestamp < '" +
+                        unParseDate(endDate) + "'::timestamp ");
+            }
+        }
+
+        // build the final query
+        StringBuffer query = new StringBuffer();
+
+        query.append(
+                "SELECT item_id FROM item " +
+                "WHERE in_archive = " + (oracle ? "1 " : "true ") +
+                "AND withdrawn = " + (oracle ? "0 " : "false "));
+
+        if (startDate != null || endDate != null)
+        {
+            query.append(" AND item_id IN ( " + dateQuery.toString() + ") ");
+        }
+
+        if (value != null)
+        {
+            query.append(" AND item_id IN ( " + valueQuery + ") ");
+        }
+
+        try
+        {
+            TableRowIterator tri = null;
+
+            if (value == null)
+            {
+                tri = DatabaseManager.query(context, query.toString());
+            }
+            else
+            {
+                System.out.println(query.toString());
+                System.out.println(field.getID() + ":" + value.getValue());
+                tri = DatabaseManager.query(context, query.toString(),
+                        field.getID(), value.getValue());
+            }
 
             return returnAsList(tri);
         }
@@ -459,8 +701,8 @@ public class ItemDAOPostgres extends ItemDAO
             TableRowIterator tri = DatabaseManager.queryTable(context, "item",
                     "SELECT i.item_id " +
                     "FROM item i, collection2item c2i " +
-                    "WHERE i.item_id = c2i.item_id "+ 
-                    "AND c2i.collection_id = ? " + 
+                    "WHERE i.item_id = c2i.item_id "+
+                    "AND c2i.collection_id = ? " +
                     "AND i.in_archive = '1'",
                     collection.getID());
 
@@ -511,21 +753,14 @@ public class ItemDAOPostgres extends ItemDAO
         }
     }
 
-    private List<Item> returnAsList(TableRowIterator tri)
+    private List<Item> returnAsList(TableRowIterator tri) throws SQLException
     {
         List<Item> items = new ArrayList<Item>();
 
-        try
+        for (TableRow row : tri.toList())
         {
-            for (TableRow row : tri.toList())
-            {
-                int id = row.getIntColumn("item_id");
-                items.add(retrieve(id));
-            }
-        }
-        catch (SQLException sqle)
-        {
-            throw new RuntimeException(sqle);
+            int id = row.getIntColumn("item_id");
+            items.add(retrieve(id));
         }
 
         return items;
@@ -578,7 +813,8 @@ public class ItemDAOPostgres extends ItemDAO
         }
     }
 
-    private boolean linked(Item item, Bundle bundle)
+    @Override
+    public boolean linked(Item item, Bundle bundle)
     {
         try
         {
@@ -661,10 +897,13 @@ public class ItemDAOPostgres extends ItemDAO
     @Override
     public void loadMetadata(Item item)
     {
+        MetadataFieldDAO mfDAO = MetadataFieldDAOFactory.getInstance(context);
+        MetadataSchemaDAO msDAO = MetadataSchemaDAOFactory.getInstance(context);
+
         try
         {
             TableRowIterator tri = DatabaseManager.queryTable(context,
-                    "MetadataValue",
+                    "metadatavalue",
                     "SELECT * FROM MetadataValue " +
                     "WHERE item_id = ? " +
                     "ORDER BY metadata_field_id, place",
@@ -676,7 +915,7 @@ public class ItemDAOPostgres extends ItemDAO
             {
                 // Get the associated metadata field and schema information
                 int fieldID = row.getIntColumn("metadata_field_id");
-                MetadataField field = MetadataField.find(context, fieldID);
+                MetadataField field = mfDAO.retrieve(fieldID);
 
                 if (field == null)
                 {
@@ -685,8 +924,8 @@ public class ItemDAOPostgres extends ItemDAO
                 }
                 else
                 {
-                    MetadataSchema schema = MetadataSchema.find(
-                            context, field.getSchemaID());
+                    MetadataSchema schema =
+                        msDAO.retrieve(field.getSchemaID());
 
                     // Make a DCValue object
                     DCValue dcv = new DCValue();
@@ -708,17 +947,17 @@ public class ItemDAOPostgres extends ItemDAO
             throw new RuntimeException(sqle);
         }
     }
-    
+
     /**
      * Perform a database query to obtain the string array of values
      * corresponding to the passed parameters. This is only really called from
-     * 
+     *
      * <code>
      * getMetadata(schema, element, qualifier, lang);
      * </code>
-     * 
+     *
      * which will obtain the value from cache if available first.
-     * 
+     *
      * @param schema
      * @param element
      * @param qualifier
@@ -732,7 +971,7 @@ public class ItemDAOPostgres extends ItemDAO
         try
         {
             TableRowIterator tri;
-            
+
             if (qualifier == null)
             {
                 Object[] params = { item.getID(), element, schema };
@@ -750,7 +989,7 @@ public class ItemDAOPostgres extends ItemDAO
                 Object[] params = { item.getID(), element, qualifier, schema };
                 tri = DatabaseManager.query(context, getByMetadata, params);
             }
-            
+
             while (tri.hasNext())
             {
                 TableRow tr = tri.next();
@@ -813,5 +1052,56 @@ public class ItemDAOPostgres extends ItemDAO
         {
             throw new RuntimeException(e);
         }
+    }
+
+    /**
+     * Convert a String to a java.sql.Timestamp object
+     *
+     * @param t The timestamp String
+     * @param selfGenerated Is this a self generated timestamp (e.g. it has
+     *                      .999 on the end)
+     * @return The converted Timestamp
+     * @throws ParseException
+     */
+    private static Timestamp toTimestamp(String t, boolean selfGenerated)
+        throws ParseException
+    {
+        SimpleDateFormat df;
+
+        // Choose the correct date format based on string length
+        if (t.length() == 10)
+        {
+            df = new SimpleDateFormat("yyyy-MM-dd");
+        }
+        else if (t.length() == 20)
+        {
+            df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+        }
+        else if (selfGenerated)
+        {
+            df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+        }
+        else {
+            // Not self generated, and not in a guessable format
+            throw new ParseException("", 0);
+        }
+
+        // Parse the date
+        df.setCalendar(Calendar.getInstance(TimeZone.getTimeZone("UTC")));
+        return new Timestamp(df.parse(t).getTime());
+    }
+
+    /**
+     * Take the date object and convert it into a string of the form YYYY-MM-DD
+     *
+     * @param   date    the date to be converted
+     *
+     * @return          A string of the form YYYY-MM-DD
+     */
+    private static String unParseDate(Date date)
+    {
+        // Use SimpleDateFormat
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy'-'MM'-'dd");
+        return sdf.format(date);
     }
 }

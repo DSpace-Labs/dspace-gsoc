@@ -56,7 +56,6 @@ import org.dspace.content.Item;
 import org.dspace.content.dao.BitstreamDAO;
 import org.dspace.content.uri.ObjectIdentifier;
 import org.dspace.content.uri.ExternalIdentifier;
-import org.dspace.content.uri.dao.ExternalIdentifierDAOFactory;
 import org.dspace.core.ConfigurationManager;
 import org.dspace.core.Constants;
 import org.dspace.core.Context;
@@ -66,7 +65,6 @@ import org.dspace.search.DSIndexer;
 import org.dspace.storage.rdbms.DatabaseManager;
 import org.dspace.storage.rdbms.TableRow;
 import org.dspace.storage.rdbms.TableRowIterator;
-import org.dspace.storage.bitstore.BitstreamStorageManager;
 
 /**
  * @author James Rutherford
@@ -75,9 +73,7 @@ public class BitstreamDAOPostgres extends BitstreamDAO
 {
     public BitstreamDAOPostgres(Context context)
     {
-        this.context = context;
-
-        identifierDAO = ExternalIdentifierDAOFactory.getInstance(context);
+        super(context);
     }
 
     @Override
@@ -101,26 +97,6 @@ public class BitstreamDAOPostgres extends BitstreamDAO
         {
             throw new RuntimeException(sqle);
         }
-    }
-
-    @Override
-    public Bitstream store(InputStream is)
-        throws AuthorizeException, IOException
-    {
-        Bitstream bs = create();
-        BitstreamStorageManager.store(context, bs, is);
-
-        return super.create(bs);
-    }
-
-    @Override
-    public Bitstream register(int store, String path)
-        throws AuthorizeException, IOException
-    {
-        Bitstream bs = create();
-        BitstreamStorageManager.register(context, bs, store, path);
-
-        return super.create(bs);
     }
 
     /**
@@ -270,19 +246,14 @@ public class BitstreamDAOPostgres extends BitstreamDAO
         try
         {
             // Remove references to primary bitstreams in bundle
-            String query1 =
+            // FIXME: This doesn't actually remove this association with the
+            // Bundle. Is that a problem?
+            String query =
                 "UPDATE bundle SET primary_bitstream_id = " +
                 (oracle ? "''" : "Null") +
                 " WHERE primary_bitstream_id = ? ";
 
-            // Mark this bitstream as "deleted" (we don't actually remove the
-            // row until a cleanup is performed).
-            String query2 =
-                "UPDATE Bitstream SET deleted = '1' " +
-                "WHERE bitstream_id = ? ";
-
-            DatabaseManager.updateQuery(context, query1, id);
-            DatabaseManager.updateQuery(context, query2, id);
+            DatabaseManager.updateQuery(context, query, id);
         }
         catch (SQLException sqle)
         {
@@ -345,20 +316,14 @@ public class BitstreamDAOPostgres extends BitstreamDAO
     }
 
     private List<Bitstream> returnAsList(TableRowIterator tri)
+        throws SQLException
     {
         List <Bitstream> bitstreams = new ArrayList<Bitstream>();
 
-        try
+        for (TableRow row : tri.toList())
         {
-            for (TableRow row : tri.toList())
-            {
-                int id = row.getIntColumn("bitstream_id");
-                bitstreams.add(retrieve(id));
-            }
-        }
-        catch (SQLException sqle)
-        {
-            throw new RuntimeException(sqle);
+            int id = row.getIntColumn("bitstream_id");
+            bitstreams.add(retrieve(id));
         }
 
         return bitstreams;

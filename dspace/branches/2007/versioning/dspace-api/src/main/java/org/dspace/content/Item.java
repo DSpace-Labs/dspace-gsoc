@@ -143,8 +143,6 @@ public class Item extends DSpaceObject
         bundles = new ArrayList<Bundle>();
         metadata = new ArrayList<DCValue>();
         metadataChanged = false;
-
-        context.cache(this, id);
     }
 
     public int getID()
@@ -240,7 +238,6 @@ public class Item extends DSpaceObject
     public void setOwningCollection(Collection owningCollection)
     {
         this.owningCollection = owningCollection;
-        modified = true;
         modified = true;
     }
 
@@ -525,7 +522,6 @@ public class Item extends DSpaceObject
     public void setSubmitter(EPerson submitter)
     {
         this.submitter = submitter;
-        modified = true;
         modified = true;
     }
 

@@ -65,9 +65,7 @@ public class BundleDAOPostgres extends BundleDAO
 {
     public BundleDAOPostgres(Context context)
     {
-        this.context = context;
-
-        bitstreamDAO = BitstreamDAOFactory.getInstance(context);
+        super(context);
     }
 
     @Override
@@ -251,21 +249,14 @@ public class BundleDAOPostgres extends BundleDAO
         }
     }
 
-    private List<Bundle> returnAsList(TableRowIterator tri)
+    private List<Bundle> returnAsList(TableRowIterator tri) throws SQLException
     {
         List<Bundle> bundles = new ArrayList<Bundle>();
 
-        try
+        for (TableRow row : tri.toList())
         {
-            for (TableRow row : tri.toList())
-            {
-                int id = row.getIntColumn("bundle_id");
-                bundles.add(retrieve(id));
-            }
-        }
-        catch (SQLException sqle)
-        {
-            throw new RuntimeException(sqle);
+            int id = row.getIntColumn("bundle_id");
+            bundles.add(retrieve(id));
         }
 
         return bundles;
@@ -317,7 +308,8 @@ public class BundleDAOPostgres extends BundleDAO
         }
     }
 
-    private boolean linked(Bundle bundle, Bitstream bitstream)
+    @Override
+    public boolean linked(Bundle bundle, Bitstream bitstream)
     {
         try
         {

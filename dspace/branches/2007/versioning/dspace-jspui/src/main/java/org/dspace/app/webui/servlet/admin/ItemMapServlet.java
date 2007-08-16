@@ -315,15 +315,15 @@ public class ItemMapServlet extends DSpaceServlet
     			// set up the browse scope
     			bs.setBrowseIndex(bi);
     			bs.setOrder("ASC");
-    			bs.setValue(name);
-    			bs.setValueFocus(null);
+    			bs.setFilterValue(name);
+    			bs.setJumpToValue(null);
     			bs.setResultsPerPage(10000);	// an arbitrary number (large) for the time being
     			bs.setSortBy(0);
     			bs.setBrowseLevel(1);
     			
     			BrowseEngine be = new BrowseEngine(context);
     			BrowseInfo results = be.browse(bs);
-    			Item[] browseItems = results.getItemResults(context);
+    			Item[] browseItems = results.getBrowseItemResults(context);
     			
     			// FIXME: oh god this is so annoying - what an API /Richard
     			// we need to deduplicate against existing items in this collection

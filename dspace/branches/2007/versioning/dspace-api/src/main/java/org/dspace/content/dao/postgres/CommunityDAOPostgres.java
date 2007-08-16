@@ -50,17 +50,10 @@ import org.dspace.content.Collection;
 import org.dspace.content.DSpaceObject;
 import org.dspace.content.Community;
 import org.dspace.content.Item;
-import org.dspace.content.dao.BitstreamDAOFactory;
-import org.dspace.content.dao.CollectionDAO;
-import org.dspace.content.dao.CollectionDAOFactory;
 import org.dspace.content.dao.CommunityDAO;
 import org.dspace.content.uri.ObjectIdentifier;
 import org.dspace.content.uri.ExternalIdentifier;
-import org.dspace.content.uri.dao.ExternalIdentifierDAO;
-import org.dspace.content.uri.dao.ExternalIdentifierDAOFactory;
 import org.dspace.core.Context;
-import org.dspace.eperson.dao.GroupDAO;
-import org.dspace.eperson.dao.GroupDAOFactory;
 import org.dspace.storage.rdbms.DatabaseManager;
 import org.dspace.storage.rdbms.TableRow;
 import org.dspace.storage.rdbms.TableRowIterator;
@@ -69,15 +62,7 @@ public class CommunityDAOPostgres extends CommunityDAO
 {
     public CommunityDAOPostgres(Context context)
     {
-        if (context != null)
-        {
-            this.context = context;
-
-            bitstreamDAO = BitstreamDAOFactory.getInstance(context);
-            collectionDAO = CollectionDAOFactory.getInstance(context);
-            groupDAO = GroupDAOFactory.getInstance(context);
-            identifierDAO = ExternalIdentifierDAOFactory.getInstance(context);
-        }
+        super(context);
     }
 
     @Override
@@ -226,7 +211,6 @@ public class CommunityDAOPostgres extends CommunityDAO
     {
         try
         {
-            // Delete community row
             DatabaseManager.delete(context, "community", id);
         }
         catch (SQLException sqle)
@@ -324,17 +308,6 @@ public class CommunityDAOPostgres extends CommunityDAO
     }
 
     @Override
-    public List<Community> getAllParentCommunities(DSpaceObject dso)
-    {
-        List<Community> parents = getParentCommunities(dso);
-        for (Community parent : parents)
-        {
-            parents.addAll(getParentCommunities(parent));
-        }
-        return parents;
-    }
-
-    @Override
     public List<Community> getChildCommunities(Community community)
     {
         try
@@ -357,53 +330,19 @@ public class CommunityDAOPostgres extends CommunityDAO
     }
 
     private List<Community> returnAsList(TableRowIterator tri)
+        throws SQLException
     {
-        try
-        {
-            List<Community> communities = new ArrayList<Community>();
+        List<Community> communities = new ArrayList<Community>();
 
-            for (TableRow row : tri.toList())
-            {
-                int id = row.getIntColumn("community_id");
-                communities.add(retrieve(id));
-            }
-
-            return communities;
-        }
-        catch (SQLException sqle)
+        for (TableRow row : tri.toList())
         {
-            throw new RuntimeException(sqle);
+            int id = row.getIntColumn("community_id");
+            communities.add(retrieve(id));
         }
+
+        return communities;
     }
 
-    /**
-     * Straightforward utility method for counting the number of Items in the
-     * given Community. There is probably a way to be smart about this. Also,
-     * this strikes me as the kind of method that shouldn't really be in here.
-     */
-    @Override
-    public int itemCount(Community community)
-    {
-    	int total = 0;
-
-        for (Collection collection :
-                collectionDAO.getChildCollections(community))
-        {
-        	total += collectionDAO.itemCount(collection);
-        }
-
-        for (Community child : getChildCommunities(community))
-        {
-        	total += itemCount(child);
-        }
-
-        return total;
-    }
-
-    /**
-     * Create a database layer association between the given Community and
-     * Collection.
-     */
     @Override
     public void link(DSpaceObject parent, DSpaceObject child)
         throws AuthorizeException
@@ -456,10 +395,6 @@ public class CommunityDAOPostgres extends CommunityDAO
         }
     }
 
-    /**
-     * Remove any existing database layer association between the given Item
-     * and Collection.
-     */
     @Override
     public void unlink(DSpaceObject parent, DSpaceObject child)
         throws AuthorizeException
@@ -494,11 +429,8 @@ public class CommunityDAOPostgres extends CommunityDAO
         }
     }
 
-    /**
-     * Determine whether or not there is an established link between the given
-     * Community and Collection in the database.
-     */
-    private boolean linked(DSpaceObject parent, DSpaceObject child)
+    @Override
+    public boolean linked(DSpaceObject parent, DSpaceObject child)
     {
         try
         {
