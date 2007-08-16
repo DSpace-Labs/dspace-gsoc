@@ -70,6 +70,8 @@ import org.dspace.content.dao.CollectionDAO;
 import org.dspace.content.dao.CollectionDAOFactory;
 import org.dspace.content.dao.CommunityDAO;
 import org.dspace.content.dao.CommunityDAOFactory;
+import org.dspace.content.dao.WorkspaceItemDAO;
+import org.dspace.content.dao.WorkspaceItemDAOFactory;
 import org.dspace.content.uri.ExternalIdentifier;
 import org.dspace.eperson.EPerson;
 import org.dspace.eperson.Group;
@@ -585,6 +587,45 @@ public class ArchiveManager
                 System.out.println("id go");
                 printExternalIdentifiers(itemDAO.retrieve(Integer.parseInt(line.getOptionValue("i"))));
             }
+            else if (line.hasOption("r") && line.hasOption("i"))
+            {
+//            	 find the EPerson, assign to context
+                EPerson myEPerson = null;
+                String eperson = null;
+                if (line.hasOption('u'))
+                {
+                    eperson = line.getOptionValue("u");
+                }
+                else
+                {
+                    System.out.println("Error, eperson cannot be found: " + eperson);
+                    System.exit(1);
+                }
+                if (eperson.indexOf('@') != -1)
+                {
+                    // @ sign, must be an email
+                    myEPerson = EPerson.findByEmail(c, eperson);
+                }
+                else
+                {
+                    myEPerson = EPerson.find(c, Integer.parseInt(eperson));
+                }
+
+                if (myEPerson == null)
+                {
+                    System.out.println("Error, eperson cannot be found: " + eperson);
+                    System.exit(1);
+                }
+
+                c.setCurrentUser(myEPerson);
+
+                int id = Integer.parseInt(line.getOptionValue("i"));
+                Item i = ArchiveManager.newVersionOfItem(c, itemDAO.retrieve(id));
+                System.out.println("Original Item: \n");
+                System.out.println(itemDAO.retrieve(id).toString());
+                System.out.println("New Item: \n");
+                System.out.println(i.toString());
+            }
             c.complete();
         }
         catch (Exception e)
@@ -645,5 +686,33 @@ public class ArchiveManager
         {
             System.out.println(id.getCanonicalForm());
         }
+    }
+
+    /**
+     *  Takes in a bundle and makes a deep copy of it. 
+     *  Without duping bitstreams.
+     *
+     *  @param bundle
+     */
+    private Bundle dupeBundle (Context context, Bundle bundle)
+    throws AuthorizeException
+    {
+        BundleDAO bdao = BundleDAOFactory.getInstance(context);
+        Bundle dupe = bdao.create();
+        Bitstream[] bitstreams = null;
+        int primary = bundle.getPrimaryBitstreamID();
+
+        bitstreams = bundle.getBitstreams();
+        for (Bitstream b : bitstreams)
+        {
+            dupe.addBitstream(b);
+            if (primary == b.getID())
+            {
+                dupe.setPrimaryBitstreamID(b.getID());
+            }
+        }
+
+        dupe.setName(bundle.getName());
+        return dupe;
     }
 }
