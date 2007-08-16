@@ -40,7 +40,6 @@
 package org.dspace.workflow;
 
 import java.io.IOException;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -660,15 +659,7 @@ public class WorkflowManager
                 + wfi.getID() + "item_id=" + item.getID() + "collection_id="
                 + collection.getID()));
 
-        // FIXME: DAOs for InstallItem
-        try
-        {
-            item = InstallItem.installItem(c, wfi);
-        }
-        catch (java.sql.SQLException sqle)
-        {
-            throw new RuntimeException(sqle);
-        }
+        item = InstallItem.installItem(c, wfi);
         String uri = item.getIdentifier().getCanonicalForm();
 
         // Log the event
@@ -1042,16 +1033,8 @@ public class WorkflowManager
         String provDescription = "Approved for entry into archive by "
                 + usersName + " on " + now + " (GMT) ";
 
-        // FIXME: DAOs for InstallItem
-        try
-        {
-            // add bitstream descriptions (name, size, checksums)
-            provDescription += InstallItem.getBitstreamProvenanceMessage(item);
-        }
-        catch (SQLException sqle)
-        {
-            throw new RuntimeException(sqle);
-        }
+        // add bitstream descriptions (name, size, checksums)
+        provDescription += InstallItem.getBitstreamProvenanceMessage(item);
 
         // Add to item as a DC field
         item.addDC("description", "provenance", "en", provDescription);
@@ -1084,16 +1067,8 @@ public class WorkflowManager
                     + now.toString() + "\n";
         }
 
-        // FIXME: DAOs for InstallItem
-        try
-        {
-            // add sizes and checksums of bitstreams
-            provmessage += InstallItem.getBitstreamProvenanceMessage(myitem);
-        }
-        catch (SQLException sqle)
-        {
-            throw new RuntimeException(sqle);
-        }
+        // add sizes and checksums of bitstreams
+        provmessage += InstallItem.getBitstreamProvenanceMessage(myitem);
 
         // Add message to the DC
         myitem.addDC("description", "provenance", "en", provmessage);

@@ -12,9 +12,8 @@
 
    <parent>
       <groupId>org.dspace</groupId>
-      <artifactId>dspace-lni</artifactId>
-      <version>1.5-SNAPSHOT</version>
-      <relativePath>..</relativePath>
+      <artifactId>dspace-pom</artifactId>
+      <version>1.6-SNAPSHOT</version>
    </parent>
    
    <scm>

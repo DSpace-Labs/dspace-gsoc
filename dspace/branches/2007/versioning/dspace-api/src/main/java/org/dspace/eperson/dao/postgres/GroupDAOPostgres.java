@@ -332,7 +332,7 @@ public class GroupDAOPostgres extends GroupDAO
             TableRowIterator tri = DatabaseManager.queryTable(context,
                     "epersongroup",
                     "SELECT eg.eperson_group_id " +
-                    "FROM epersongroup eg, epersongroup2workspaceitem eg2wsi" +
+                    "FROM epersongroup eg, epersongroup2workspaceitem eg2wsi " +
                     "WHERE eg2wsi.eperson_group_id = eg.eperson_group_id " +
                     "ORDER BY eg.name");
 
@@ -352,7 +352,7 @@ public class GroupDAOPostgres extends GroupDAO
             TableRowIterator tri = DatabaseManager.queryTable(context,
                     "epersongroup",
                     "SELECT eg.eperson_group_id " +
-                    "FROM epersongroup eg, epersongroup2workspaceitem eg2wsi" +
+                    "FROM epersongroup eg, epersongroup2workspaceitem eg2wsi " +
                     "WHERE eg2wsi.workspace_item_id = ? " +
                     "AND eg2wsi.eperson_group_id = eg.eperson_group_id " +
                     "ORDER BY eg.name",
@@ -572,7 +572,8 @@ public class GroupDAOPostgres extends GroupDAO
         }
     }
 
-    private boolean linked(Group parent, Group child)
+    @Override
+    public boolean linked(Group parent, Group child)
     {
         try
         {
@@ -634,7 +635,8 @@ public class GroupDAOPostgres extends GroupDAO
         }
     }
 
-    private boolean linked(Group group, EPerson eperson)
+    @Override
+    public boolean linked(Group group, EPerson eperson)
     {
         try
         {
@@ -698,6 +700,7 @@ public class GroupDAOPostgres extends GroupDAO
         }
     }
 
+    @Override
     public boolean linked(Group group, InProgressSubmission ips)
     {
         try

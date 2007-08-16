@@ -54,16 +54,11 @@ import org.dspace.content.Bitstream;
 import org.dspace.content.Collection;
 import org.dspace.content.Community;
 import org.dspace.content.Item;
-import org.dspace.content.dao.BitstreamDAOFactory;
 import org.dspace.content.dao.CollectionDAO;
-import org.dspace.content.dao.ItemDAOFactory;
 import org.dspace.content.uri.ObjectIdentifier;
 import org.dspace.content.uri.ExternalIdentifier;
-import org.dspace.content.uri.dao.ExternalIdentifierDAOFactory;
 import org.dspace.core.Context;
 import org.dspace.eperson.Group;
-import org.dspace.eperson.dao.GroupDAO;
-import org.dspace.eperson.dao.GroupDAOFactory;
 import org.dspace.storage.rdbms.DatabaseManager;
 import org.dspace.storage.rdbms.TableRow;
 import org.dspace.storage.rdbms.TableRowIterator;
@@ -72,15 +67,7 @@ public class CollectionDAOPostgres extends CollectionDAO
 {
     public CollectionDAOPostgres(Context context)
     {
-        if (context != null)
-        {
-            this.context = context;
-
-            bitstreamDAO = BitstreamDAOFactory.getInstance(context);
-            itemDAO = ItemDAOFactory.getInstance(context);
-            groupDAO = GroupDAOFactory.getInstance(context);
-            identifierDAO = ExternalIdentifierDAOFactory.getInstance(context);
-        }
+        super(context);
     }
 
     @Override
@@ -228,7 +215,7 @@ public class CollectionDAOPostgres extends CollectionDAO
         {
             // remove subscriptions - hmm, should this be in Subscription.java?
             DatabaseManager.updateQuery(context,
-                    "DELETE FROM subscription WHERE collection_id= ? ", id);
+                    "DELETE FROM subscription WHERE collection_id = ? ", id);
 
             // Delete collection row
             DatabaseManager.delete(context, "collection", id);
@@ -249,7 +236,7 @@ public class CollectionDAOPostgres extends CollectionDAO
         {
             TableRowIterator tri = DatabaseManager.queryTable(context,
                     "collection",
-                    "SELECT * FROM collection ORDER BY name");
+                    "SELECT collection_id FROM collection ORDER BY name");
 
             return returnAsList(tri);
         }
@@ -257,41 +244,6 @@ public class CollectionDAOPostgres extends CollectionDAO
         {
             throw new RuntimeException(sqle);
         }
-    }
-
-    /**
-     * Returns a List of collections that user has a given permission on.
-     * Useful for trimming 'select to collection' list, or figuring out which
-     * collections a person is an editor for.
-     */
-    @Override
-    public List<Collection> getCollectionsByAuthority(Community parent,
-            int actionID)
-    {
-        List<Collection> results = new ArrayList<Collection>();
-
-        Collection[] collections = null;
-
-        if (parent != null)
-        {
-            collections = parent.getCollections();
-        }
-        else
-        {
-            collections =
-                (Collection[]) getCollections().toArray(new Collection[0]);
-        }
-
-        for (Collection collection : collections)
-        {
-            if (AuthorizeManager.authorizeActionBoolean(context,
-                    collection, actionID))
-            {
-                results.add(collection);
-            }
-        }
-
-        return results;
     }
 
     @Override
@@ -320,8 +272,8 @@ public class CollectionDAOPostgres extends CollectionDAO
     {
         try
         {
-            TableRowIterator tri = DatabaseManager.queryTable(
-                    context,"collection",
+            TableRowIterator tri = DatabaseManager.queryTable(context,
+                    "collection",
                     "SELECT c.collection_id, c.name " +
                     "FROM collection c, community2collection c2c " +
                     "WHERE c2c.collection_id = c.collection_id " +
@@ -338,20 +290,14 @@ public class CollectionDAOPostgres extends CollectionDAO
     }
 
     private List<Collection> returnAsList(TableRowIterator tri)
+        throws SQLException
     {
         List<Collection> collections = new ArrayList<Collection>();
 
-        try
+        for (TableRow row : tri.toList())
         {
-            for (TableRow row : tri.toList())
-            {
-                int id = row.getIntColumn("collection_id");
-                collections.add(retrieve(id));
-            }
-        }
-        catch (SQLException sqle)
-        {
-            throw new RuntimeException(sqle);
+            int id = row.getIntColumn("collection_id");
+            collections.add(retrieve(id));
         }
 
         return collections;
@@ -391,10 +337,6 @@ public class CollectionDAOPostgres extends CollectionDAO
         }
     }
 
-    /**
-     * Create a database layer association between the given Item and
-     * Collection.
-     */
     @Override
     public void link(Collection collection, Item item)
         throws AuthorizeException
@@ -420,10 +362,6 @@ public class CollectionDAOPostgres extends CollectionDAO
         }
     }
 
-    /**
-     * Remove any existing database layer association between the given Item
-     * and Collection.
-     */
     @Override
     public void unlink(Collection collection, Item item)
         throws AuthorizeException
@@ -446,11 +384,8 @@ public class CollectionDAOPostgres extends CollectionDAO
         }
     }
 
-    /**
-     * Determine whether or not there is an established link between the given
-     * Item and Collection in the database.
-     */
-    private boolean linked(Collection collection, Item item)
+    @Override
+    public boolean linked(Collection collection, Item item)
     {
         try
         {

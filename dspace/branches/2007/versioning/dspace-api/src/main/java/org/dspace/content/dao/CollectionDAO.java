@@ -59,12 +59,14 @@ import org.dspace.content.ItemIterator;
 import org.dspace.content.WorkspaceItem;
 import org.dspace.content.uri.ExternalIdentifier;
 import org.dspace.content.uri.dao.ExternalIdentifierDAO;
+import org.dspace.content.uri.dao.ExternalIdentifierDAOFactory;
 import org.dspace.core.ArchiveManager;
 import org.dspace.core.Constants;
 import org.dspace.core.Context;
 import org.dspace.core.LogManager;
 import org.dspace.eperson.Group;
 import org.dspace.eperson.dao.GroupDAO;
+import org.dspace.eperson.dao.GroupDAOFactory;
 import org.dspace.search.DSIndexer;
 import org.dspace.workflow.WorkflowItem;
 import org.dspace.storage.dao.CRUD;
@@ -109,6 +111,16 @@ public abstract class CollectionDAO extends ContentDAO
         {
             return name;
         }
+    }
+
+    public CollectionDAO(Context context)
+    {
+        this.context = context;
+
+        bitstreamDAO = BitstreamDAOFactory.getInstance(context);
+        itemDAO = ItemDAOFactory.getInstance(context);
+        groupDAO = GroupDAOFactory.getInstance(context);
+        identifierDAO = ExternalIdentifierDAOFactory.getInstance(context);
     }
 
     public abstract Collection create() throws AuthorizeException;
@@ -180,10 +192,6 @@ public abstract class CollectionDAO extends ContentDAO
         catch (IOException ioe)
         {
             throw new RuntimeException(ioe);
-        }
-        catch (SQLException sqle)
-        {
-            throw new RuntimeException(sqle);
         }
 
         ItemIterator iterator = collection.getItems();
@@ -309,11 +317,46 @@ public abstract class CollectionDAO extends ContentDAO
     }
 
     public abstract List<Collection> getCollections();
-    public abstract List<Collection> getCollectionsByAuthority(Community parent,
-            int actionID);
+
+    /**
+     * Returns a List of collections that user has a given permission on.
+     * Useful for trimming 'select to collection' list, or figuring out which
+     * collections a person is an editor for.
+     */
+    public List<Collection> getCollectionsByAuthority(Community parent,
+            int actionID)
+    {
+        List<Collection> results = new ArrayList<Collection>();
+        List<Collection> collections = null;
+
+        if (parent != null)
+        {
+            collections = getChildCollections(parent);
+        }
+        else
+        {
+            collections = getCollections();
+        }
+
+        for (Collection collection : collections)
+        {
+            if (AuthorizeManager.authorizeActionBoolean(context,
+                    collection, actionID))
+            {
+                results.add(collection);
+            }
+        }
+
+        return results;
+    }
+
     public abstract List<Collection> getParentCollections(Item item);
     public abstract List<Collection> getChildCollections(Community community);
 
+    /**
+     * Create a storage layer association between the given Item and
+     * Collection.
+     */
     public void link(Collection collection, Item item)
         throws AuthorizeException
     {
@@ -330,6 +373,10 @@ public abstract class CollectionDAO extends ContentDAO
 
     }
 
+    /**
+     * Remove any existing storage layer association between the given Item and
+     * Collection.
+     */
     public void unlink(Collection collection, Item item)
         throws AuthorizeException
     {
@@ -340,6 +387,12 @@ public abstract class CollectionDAO extends ContentDAO
                 "collection_id=" + collection.getID() + 
                 ",item_id=" + item.getID()));
     }
+
+    /**
+     * Determine whether or not there is an established link between the given
+     * Item and Collection in the storage layer.
+     */
+    public abstract boolean linked(Collection collection, Item item);
 
     // Everything below this line is debatable & needs rethinking
 

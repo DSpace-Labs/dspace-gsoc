@@ -66,6 +66,13 @@ public abstract class BundleDAO extends ContentDAO
     protected Context context;
     protected BitstreamDAO bitstreamDAO;
 
+    public BundleDAO(Context context)
+    {
+        this.context = context;
+
+        bitstreamDAO = BitstreamDAOFactory.getInstance(context);
+    }
+
     public abstract Bundle create() throws AuthorizeException;
 
     // FIXME: This should be called something else, but I can't think of
@@ -176,17 +183,44 @@ public abstract class BundleDAO extends ContentDAO
 
     public void link(Bundle bundle, Bitstream bitstream) throws AuthorizeException
     {
-        AuthorizeManager.authorizeAction(context, bundle, Constants.ADD);
-        AuthorizeManager.inheritPolicies(context, bundle, bitstream);
+        if (!linked(bundle, bitstream))
+        {
+            AuthorizeManager.authorizeAction(context, bundle, Constants.ADD);
+            AuthorizeManager.inheritPolicies(context, bundle, bitstream);
+
+            log.info(LogManager.getHeader(context, "add_bitstream",
+                        "bundle_id=" + bundle.getID() +
+                        ",bitstream_id=" + bitstream.getID()));
+
+            bundle.addBitstream(bitstream);
+        }
     }
 
     public void unlink(Bundle bundle, Bitstream bitstream) throws AuthorizeException
     {
-        AuthorizeManager.authorizeAction(context, bundle,
-                Constants.REMOVE);
+        if (linked(bundle, bitstream))
+        {
+            AuthorizeManager.authorizeAction(context, bundle,
+                    Constants.REMOVE);
 
-        log.info(LogManager.getHeader(context, "remove_bitstream",
-                    "bundle_id=" + bundle.getID() +
-                    ",bitstream_id=" + bitstream.getID()));
+            log.info(LogManager.getHeader(context, "remove_bitstream",
+                        "bundle_id=" + bundle.getID() +
+                        ",bitstream_id=" + bitstream.getID()));
+
+            bundle.removeBitstream(bitstream);
+        }
+    }
+
+    public boolean linked(Bundle bundle, Bitstream bitstream)
+    {
+        for (Bitstream b : bundle.getBitstreams())
+        {
+            if (b.equals(bitstream))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

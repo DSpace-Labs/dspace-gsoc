@@ -40,7 +40,7 @@
 package org.dspace.content.dao;
 
 import java.io.IOException;
-import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -54,11 +54,13 @@ import org.dspace.content.Community;
 import org.dspace.content.DSpaceObject;
 import org.dspace.content.uri.ExternalIdentifier;
 import org.dspace.content.uri.dao.ExternalIdentifierDAO;
+import org.dspace.content.uri.dao.ExternalIdentifierDAOFactory;
 import org.dspace.core.Constants;
 import org.dspace.core.Context;
 import org.dspace.core.LogManager;
 import org.dspace.eperson.Group;
 import org.dspace.eperson.dao.GroupDAO;
+import org.dspace.eperson.dao.GroupDAOFactory;
 import org.dspace.search.DSIndexer;
 import org.dspace.storage.dao.CRUD;
 import org.dspace.storage.dao.Link;
@@ -103,6 +105,16 @@ public abstract class CommunityDAO extends ContentDAO
         {
             return name;
         }
+    }
+
+    public CommunityDAO(Context context)
+    {
+        this.context = context;
+
+        bitstreamDAO = BitstreamDAOFactory.getInstance(context);
+        collectionDAO = CollectionDAOFactory.getInstance(context);
+        groupDAO = GroupDAOFactory.getInstance(context);
+        identifierDAO = ExternalIdentifierDAOFactory.getInstance(context);
     }
 
     public abstract Community create() throws AuthorizeException;
@@ -172,10 +184,6 @@ public abstract class CommunityDAO extends ContentDAO
         {
             throw new RuntimeException(ioe);
         }
-        catch (SQLException sqle)
-        {
-            throw new RuntimeException(sqle);
-        }
 
         // FIXME: Do we need to iterate through child Communities /
         // Collecitons to update / re-index? Probably not.
@@ -236,16 +244,8 @@ public abstract class CommunityDAO extends ContentDAO
             // bitstreamDAO.delete(logoId)
             community.setLogo(null);
 
-            try
-            {
-                // remove from the search index
-                DSIndexer.unIndexContent(context, community);
-
-            }
-            catch (SQLException sqle)
-            {
-                throw new RuntimeException(sqle);
-            }
+            // remove from the search index
+            DSIndexer.unIndexContent(context, community);
 
             // Remove all authorization policies
             AuthorizeManager.removeAllPolicies(context, community);
@@ -261,7 +261,19 @@ public abstract class CommunityDAO extends ContentDAO
     public abstract List<Community> getChildCommunities(Community community);
 
     public abstract List<Community> getParentCommunities(DSpaceObject dso);
-    public abstract List<Community> getAllParentCommunities(DSpaceObject dso);
+
+    public List<Community> getAllParentCommunities(DSpaceObject dso)
+    {
+        List<Community> parents = getParentCommunities(dso);
+        List<Community> superParents = new ArrayList<Community>(parents);
+
+        for (Community parent : parents)
+        {
+            superParents.addAll(getAllParentCommunities(parent));
+        }
+
+        return superParents;
+    }
 
     public void link(DSpaceObject parent, DSpaceObject child)
         throws AuthorizeException
@@ -324,8 +336,29 @@ public abstract class CommunityDAO extends ContentDAO
         }
     }
 
-    // Everything below this line is debatable & needs rethinking
+    public abstract boolean linked(DSpaceObject parent, DSpaceObject child);
 
-    public abstract int itemCount(Community community);
+    /**
+     * Straightforward utility method for counting the number of Items in the
+     * given Community. There is probably a way to be smart about this. Also,
+     * this strikes me as the kind of method that shouldn't really be in here.
+     */
+    public int itemCount(Community community)
+    {
+    	int total = 0;
+
+        for (Collection collection :
+                collectionDAO.getChildCollections(community))
+        {
+        	total += collectionDAO.itemCount(collection);
+        }
+
+        for (Community child : getChildCommunities(community))
+        {
+        	total += itemCount(child);
+        }
+
+        return total;
+    }
 }
 

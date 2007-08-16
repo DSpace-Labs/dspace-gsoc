@@ -66,6 +66,7 @@ import org.dspace.browse.BrowseException;
 import org.dspace.browse.BrowseIndex;
 import org.dspace.browse.BrowseInfo;
 import org.dspace.browse.BrowserScope;
+import org.dspace.browse.SortOption;
 import org.dspace.content.Bitstream;
 import org.dspace.content.Collection;
 import org.dspace.content.Community;
@@ -321,7 +322,7 @@ public class FeedServlet extends DSpaceServlet
     		{
     			throw new IOException("There is no configuration supplied for: recent.submissions.index");
     		}
-    		BrowseIndex bix = BrowseIndex.getBrowseIndex(idx);
+    		BrowseIndex bix = BrowseIndex.getItemBrowseIndex();
     		if (bix == null)
     		{
     			throw new IOException("There is no browse index with the name: " + idx);
@@ -329,6 +330,11 @@ public class FeedServlet extends DSpaceServlet
     		
     		BrowserScope scope = new BrowserScope(context);
     		scope.setBrowseIndex(bix);
+            for (SortOption so : SortOption.getSortOptions())
+            {
+                if (so.getName().equals(idx))
+                    scope.setSortBy(so.getNumber());
+            }
     		
     		// the feed
     		Channel channel = new Channel();
@@ -428,7 +434,7 @@ public class FeedServlet extends DSpaceServlet
     		
     		BrowseEngine be = new BrowseEngine(context);
     		BrowseInfo bi = be.browseMini(scope);
-    		Item[] results = bi.getItemResults(context);
+    		Item[] results = bi.getBrowseItemResults(context);
     		List items = new ArrayList();
     		for (int i = 0; i < results.length; i++)
     		{

@@ -98,10 +98,12 @@
 	String linkBase = request.getContextPath() + "/";
 	if (collection != null)
 	{
+//		linkBase = linkBase + "handle/" + collection.getHandle() + "/";
 		linkBase = collection.getIdentifier().getURL().toString() + "/";
 	}
 	if (community != null)
 	{
+//		linkBase = linkBase + "handle/" + community.getHandle() + "/";
 		linkBase = community.getIdentifier().getURL().toString() + "/";
 	}
 	
@@ -136,10 +138,12 @@
 	String formaction = request.getContextPath() + "/";
 	if (collection != null)
 	{
+//		formaction = formaction + "handle/" + collection.getHandle() + "/";
 		formaction = collection.getIdentifier().getURL().toString() + "/";
 	}
 	if (community != null)
 	{
+//		formaction = formaction + "handle/" + community.getHandle() + "/";
 		formaction = community.getIdentifier().getURL().toString() + "/";
 	}
 	formaction = formaction + "browse";
@@ -149,7 +153,7 @@
 	int rpp = bi.getResultsPerPage();
 	
 //	 the message key for the type
-	String typeKey = "browse.type." + bix.getName();
+	String typeKey = "browse.type.metadata." + bix.getName();
 %>
 
 <dspace:layout titlekey="browse.page-title">

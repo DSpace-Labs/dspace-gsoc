@@ -40,14 +40,13 @@
 package org.dspace.core;
 
 import java.io.IOException;
-import java.sql.SQLException;
+import java.util.List;
 import java.util.List;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
-
 import org.apache.log4j.Logger;
 
 import org.dspace.authorize.AuthorizeException;
@@ -72,23 +71,11 @@ import org.dspace.content.dao.CollectionDAOFactory;
 import org.dspace.content.dao.CommunityDAO;
 import org.dspace.content.dao.CommunityDAOFactory;
 import org.dspace.content.uri.ExternalIdentifier;
-import org.dspace.content.uri.dao.ExternalIdentifierDAO;
-import org.dspace.content.uri.dao.ExternalIdentifierDAOFactory;
-import org.dspace.content.dao.WorkspaceItemDAO;
-import org.dspace.content.dao.WorkspaceItemDAOFactory;
 import org.dspace.eperson.EPerson;
+import org.dspace.eperson.Group;
 import org.dspace.search.DSIndexer;
 import org.dspace.eperson.Group;
 
-// debug, probably can be removed
-import org.dspace.eperson.EPerson;
-import org.dspace.eperson.dao.EPersonDAO;
-import org.dspace.eperson.dao.EPersonDAOFactory;
-
-
-/**
- * This class could really do with a CLI...
- */
 public class ArchiveManager
 {
     private static Logger log = Logger.getLogger(ArchiveManager.class);
@@ -220,13 +207,6 @@ public class ArchiveManager
             IndexBrowse ib = new IndexBrowse(context);
             ib.itemRemoved(item);
             DSIndexer.unIndexContent(context, item);
-            
-            
-            
-        }
-        catch (SQLException sqle)
-        {
-            throw new RuntimeException(sqle);
         }
         catch (BrowseException be)
         {
@@ -270,37 +250,31 @@ public class ArchiveManager
         // Add suitable provenance - includes user, date, collections +
         // bitstream checksums
         EPerson e = context.getCurrentUser();
-        try
+
+        String prov = "Item reinstated by " + e.getFullName() + " ("
+                + e.getEmail() + ") on " + timestamp + "\n"
+                + "Item was in collections:\n" + collectionProv
+                + InstallItem.getBitstreamProvenanceMessage(item);
+
+        item.addMetadata(MetadataSchema.DC_SCHEMA, "description",
+                "provenance", "en", prov);
+
+        // Update item in DB
+        itemDAO.update(item);
+
+        // Add to indicies
+        // Remove - update() already performs this
+        // Browse.itemAdded(context, this);
+        DSIndexer.indexContent(context, item);
+
+        // authorization policies
+        if (colls.length > 0)
         {
-            String prov = "Item reinstated by " + e.getFullName() + " ("
-                    + e.getEmail() + ") on " + timestamp + "\n"
-                    + "Item was in collections:\n" + collectionProv
-                    + InstallItem.getBitstreamProvenanceMessage(item);
-
-            item.addMetadata(MetadataSchema.DC_SCHEMA, "description",
-                    "provenance", "en", prov);
-
-            // Update item in DB
-            itemDAO.update(item);
-
-            // Add to indicies
-            // Remove - update() already performs this
-            // Browse.itemAdded(context, this);
-            DSIndexer.indexContent(context, item);
-
-            // authorization policies
-            if (colls.length > 0)
-            {
-                // FIXME: not multiple inclusion friendly - just apply access
-                // policies from first collection
-                // remove the item's policies and replace them with
-                // the defaults from the collection
-                item.inheritCollectionDefaultPolicies(colls[0]);
-            }
-        }
-        catch (SQLException sqle)
-        {
-            throw new RuntimeException(sqle);
+            // FIXME: not multiple inclusion friendly - just apply access
+            // policies from first collection
+            // remove the item's policies and replace them with
+            // the defaults from the collection
+            item.inheritCollectionDefaultPolicies(colls[0]);
         }
 
         log.info(LogManager.getHeader(context, "reinstate_item", "user="
@@ -554,8 +528,6 @@ public class ArchiveManager
     }
 
     /**
-     * CLI for Versioning
-     * 
      * Using the CLI on ArchiveManager
 	 *
      * Add {dspace.dir}/bin to your path or cd {dspace.dir}/bin
@@ -575,16 +547,15 @@ public class ArchiveManager
     public static void main(String[] argv)
     {
         Context c = null;
-        try {
+        try
+        {
             c = new Context();
             CommandLineParser parser = new PosixParser();
             Options options = new Options();
-            ArchiveManager am = new ArchiveManager();
             ItemDAO itemDAO = ItemDAOFactory.getInstance(c);
 
             options.addOption("a", "all", false, "print all items");
             options.addOption("m", "metadata", false, "print item metadata");
-            options.addOption("r", "revision", false, "new revision of item");
             options.addOption("p", "print", false, "print item");
             options.addOption("u", "user", true, "eperson email address or id");
             options.addOption("i", "item_id", true, "id of the item");
@@ -592,19 +563,17 @@ public class ArchiveManager
             options.addOption("g", "group", false, "print the group info");
             CommandLine line = parser.parse(options, argv);
 
-
-
             if (line.hasOption("a"))
             {
-                am.printItems(itemDAO.getItems());
+                printItems(itemDAO.getItems());
             }
             else if (line.hasOption('g')) 
             {
-                am.printGroups(Group.findAll(c, 1));
+                printGroups(Group.findAll(c, 1));
             }
             else if (line.hasOption("m") && line.hasOption("i"))
             {
-                am.printItemMetadata(itemDAO.retrieve(Integer.parseInt(line.getOptionValue("i"))));
+                printItemMetadata(itemDAO.retrieve(Integer.parseInt(line.getOptionValue("i"))));
             }
             else if (line.hasOption("p") && line.hasOption("i"))
             {
@@ -614,51 +583,13 @@ public class ArchiveManager
             else if (line.hasOption("z") && line.hasOption("i"))
             {
                 System.out.println("id go");
-                am.printPersistentIdentifiers(itemDAO.retrieve(Integer.parseInt(line.getOptionValue("i"))));
-            }
-            else if (line.hasOption("r") && line.hasOption("i"))
-            {
-//            	 find the EPerson, assign to context
-                EPerson myEPerson = null;
-                String eperson = null;
-                if (line.hasOption('u'))
-                {
-                    eperson = line.getOptionValue("u");
-                }
-                else
-                {
-                    System.out.println("Error, eperson cannot be found: " + eperson);
-                    System.exit(1);
-                }
-                if (eperson.indexOf('@') != -1)
-                {
-                    // @ sign, must be an email
-                    myEPerson = EPerson.findByEmail(c, eperson);
-                }
-                else
-                {
-                    myEPerson = EPerson.find(c, Integer.parseInt(eperson));
-                }
-
-                if (myEPerson == null)
-                {
-                    System.out.println("Error, eperson cannot be found: " + eperson);
-                    System.exit(1);
-                }
-
-                c.setCurrentUser(myEPerson);
-
-                int id = Integer.parseInt(line.getOptionValue("i"));
-                Item i = ArchiveManager.newVersionOfItem(c, itemDAO.retrieve(id));
-                System.out.println("Original Item: \n");
-                System.out.println(itemDAO.retrieve(id).toString());
-                System.out.println("New Item: \n");
-                System.out.println(i.toString());
+                printExternalIdentifiers(itemDAO.retrieve(Integer.parseInt(line.getOptionValue("i"))));
             }
             c.complete();
         }
         catch (Exception e)
         {
+            System.err.println(e);
             throw new RuntimeException(e);
         }
     }
@@ -667,7 +598,7 @@ public class ArchiveManager
      * Prints out the list of items using item.toString()
      * @param items List<Item>
      */
-    private void printItems(List<Item> items)
+    private static void printItems(List<Item> items)
     {
         for (Item i : items)
         {
@@ -679,7 +610,7 @@ public class ArchiveManager
      * Prints out the list of groups using toString()
      * @param g Group[]
      */
-    private void printGroups(Group[] groups)
+    private static void printGroups(Group[] groups)
     {
         for (Group g : groups)
         {
@@ -692,7 +623,7 @@ public class ArchiveManager
      * 
      * @param item Item
      */
-    private void printItemMetadata(Item item)
+    private static void printItemMetadata(Item item)
     {
         System.out.println(item.getMetadata().toString());
         for (Object o : item.getMetadata())
@@ -706,7 +637,7 @@ public class ArchiveManager
      * 
      * @param item item
      */
-    private void printPersistentIdentifiers(Item item)
+    private static void printExternalIdentifiers(Item item)
     {
     	System.out.println("one pi: " + item.getExternalIdentifier().getCanonicalForm());
         System.out.println(item.getExternalIdentifiers().toString());
@@ -714,33 +645,5 @@ public class ArchiveManager
         {
             System.out.println(id.getCanonicalForm());
         }
-    }
-
-    /**
-     *  Takes in a bundle and makes a deep copy of it. 
-     *  Without duping bitstreams.
-     *
-     *  @param bundle
-     */
-    private Bundle dupeBundle (Context context, Bundle bundle)
-    throws SQLException, AuthorizeException
-    {
-        BundleDAO bdao = BundleDAOFactory.getInstance(context);
-        Bundle dupe = bdao.create();
-        Bitstream[] bitstreams = null;
-        int primary = bundle.getPrimaryBitstreamID();
-
-        bitstreams = bundle.getBitstreams();
-        for (Bitstream b : bitstreams)
-        {
-            dupe.addBitstream(b);
-            if (primary == b.getID())
-            {
-                dupe.setPrimaryBitstreamID(b.getID());
-            }
-        }
-
-        dupe.setName(bundle.getName());
-        return dupe;
     }
 }

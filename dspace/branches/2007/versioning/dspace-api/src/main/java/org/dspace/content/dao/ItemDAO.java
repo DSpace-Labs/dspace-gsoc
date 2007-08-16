@@ -40,7 +40,7 @@
 package org.dspace.content.dao;
 
 import java.io.IOException;
-import java.sql.SQLException;
+import java.text.ParseException;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
@@ -54,8 +54,14 @@ import org.dspace.browse.IndexBrowse;
 import org.dspace.content.Bitstream;
 import org.dspace.content.Bundle;
 import org.dspace.content.Collection;
+import org.dspace.content.DSpaceObject;
 import org.dspace.content.DCValue;
 import org.dspace.content.Item;
+import org.dspace.content.MetadataField;
+import org.dspace.content.MetadataSchema;
+import org.dspace.content.MetadataValue;
+import org.dspace.content.uri.dao.ExternalIdentifierDAO;
+import org.dspace.content.uri.dao.ExternalIdentifierDAOFactory;
 import org.dspace.core.Constants;
 import org.dspace.core.Context;
 import org.dspace.core.LogManager;
@@ -75,6 +81,16 @@ public abstract class ItemDAO extends ContentDAO
     protected Context context;
     protected BundleDAO bundleDAO;
     protected BitstreamDAO bitstreamDAO;
+    protected ExternalIdentifierDAO identifierDAO;
+
+    public ItemDAO(Context context)
+    {
+        this.context = context;
+
+        bundleDAO = BundleDAOFactory.getInstance(context);
+        bitstreamDAO = BitstreamDAOFactory.getInstance(context);
+        identifierDAO = ExternalIdentifierDAOFactory.getInstance(context);
+    }
 
     public abstract Item create() throws AuthorizeException;
 
@@ -96,7 +112,6 @@ public abstract class ItemDAO extends ContentDAO
 
     public Item retrieve(int id)
     {
-        // Check the cache
         return (Item) context.fromCache(Item.class, id);
     }
 
@@ -136,7 +151,7 @@ public abstract class ItemDAO extends ContentDAO
 
             if (deleted)
             {
-                removeBundleFromItem(item, dbBundle);
+                unlink(item, dbBundle);
             }
         }
 
@@ -208,10 +223,6 @@ public abstract class ItemDAO extends ContentDAO
             {
                 throw new RuntimeException(ioe);
             }
-            catch (SQLException sqle)
-            {
-                throw new RuntimeException(sqle);
-            }
             catch (BrowseException e)
             {
                 throw new RuntimeException(e);
@@ -222,7 +233,7 @@ public abstract class ItemDAO extends ContentDAO
         for (Bundle bundle : item.getBundles())
         {
             item.removeBundle(bundle);
-            removeBundleFromItem(item, bundle);
+            unlink(item, bundle);
         }
 
         // remove all of our authorization policies
@@ -253,21 +264,54 @@ public abstract class ItemDAO extends ContentDAO
     }
 
     public abstract Item getByOriginalItemIDAndRevision(int originalItemID, int revision);
+
     public abstract Item getHeadRevision(int x);
+
+    /**
+     * Returns a list of items that are both in the archive and not withdrawn.
+     */
     public abstract List<Item> getItems();
+
+    /**
+     * This function primarily exists to service the Harvest class. See that
+     * class for documentation on usage.
+     */
+    public abstract List<Item> getItems(DSpaceObject scope,
+            String startDate, String endDate, int offset, int limit,
+            boolean items, boolean collections, boolean withdrawn)
+        throws ParseException;
+
+    /**
+     * This is a simple 'search' function that returns Items that are in the
+     * archive, are not withdrawn, and match the given schema, field, and
+     * value.
+     */
+    public List<Item> getItems(MetadataField field, MetadataValue value)
+    {
+        return getItems(field, value, null, null);
+    }
+
+    /**
+     * The dates passed in here are used to limit the results by ingest date
+     * (dc.date.accessioned).
+     */
+    public abstract List<Item> getItems(MetadataField field,
+            MetadataValue value, Date startDate, Date endDate);
+    
     public abstract List<Item> getItemsByCollection(Collection collection);
     public abstract List<Item> getItemsBySubmitter(EPerson eperson);
 
     public abstract List<Item> getParentItems(Bundle bundle);
 
-    // FIXME: This is so similar to the usage of ArchiveManager.move() that it
-    // would be pretty silly not to use it. The only issue with that is that we
-    // don't generally want to expose via the API the ability to move Bundles
-    // between Items (or do we? I doubt it).
-    protected final void removeBundleFromItem(Item item, Bundle bundle)
-        throws AuthorizeException
+    public void link(Item item, Bundle bundle) throws AuthorizeException
     {
-        unlink(item, bundle);
+        // FIXME: Pre-DAOs this wasn't checked.
+        AuthorizeManager.authorizeAction(context, item, Constants.ADD);
+    }
+
+    public void unlink(Item item, Bundle bundle) throws AuthorizeException
+    {
+        AuthorizeManager.authorizeAction(context, item, Constants.REMOVE);
 
         // If the bundle is now orphaned, delete it.
         if (getParentItems(bundle).size() == 0)
@@ -287,16 +331,7 @@ public abstract class ItemDAO extends ContentDAO
         }
     }
 
-    public void link(Item item, Bundle bundle) throws AuthorizeException
-    {
-        // FIXME: Pre-DAOs this wasn't checked.
-        AuthorizeManager.authorizeAction(context, item, Constants.ADD);
-    }
-
-    public void unlink(Item item, Bundle bundle) throws AuthorizeException
-    {
-        AuthorizeManager.authorizeAction(context, item, Constants.REMOVE);
-    }
+    public abstract boolean linked(Item item, Bundle bundle);
 
     // Everything below this line needs to be re-thought
 
