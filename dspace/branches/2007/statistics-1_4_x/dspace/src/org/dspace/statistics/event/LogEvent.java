@@ -1,6 +1,7 @@
 package org.dspace.statistics.event;
 
 import java.io.Serializable;
+import java.util.Date;
 import java.util.Hashtable;
 
 /**
@@ -13,8 +14,9 @@ import java.util.Hashtable;
 public class LogEvent implements Serializable{
 	Enum type;
 	Hashtable hashTable;
+
 	private int id=-1;
-	
+
 	public LogEvent() {
 		hashTable=new Hashtable();
 	}

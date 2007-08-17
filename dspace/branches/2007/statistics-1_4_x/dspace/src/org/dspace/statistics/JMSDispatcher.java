@@ -33,7 +33,6 @@ public class JMSDispatcher implements MessageListener {
 	private static Logger log = Logger.getLogger(JMSDispatcher.class);
 	private LogEvent logEvent;
 	private Context context;
-	private DatabaseManager db;
 
     public JMSDispatcher() {
     	try {

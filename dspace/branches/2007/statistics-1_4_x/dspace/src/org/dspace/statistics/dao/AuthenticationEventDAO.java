@@ -101,4 +101,9 @@ public class AuthenticationEventDAO implements StatisticsDAO {
 		return false;
 	}
 
+	public LogEvent[] find(String action, String attributes, boolean date, int range) throws StatisticsDAOException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 }
