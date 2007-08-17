@@ -2,10 +2,10 @@ package org.dspace.statistics.handler;
 
 import org.apache.log4j.Logger;
 import org.dspace.core.Context;
-import org.dspace.statistics.CrawlerCheck;
 import org.dspace.statistics.dao.ContentEventDAO;
 import org.dspace.statistics.dao.StatisticsDAOFactory;
 import org.dspace.statistics.event.LogEvent;
+import org.dspace.statistics.tools.CrawlerCheck;
 
 public class ContentEventHandler implements StatisticalEventHandler {
 

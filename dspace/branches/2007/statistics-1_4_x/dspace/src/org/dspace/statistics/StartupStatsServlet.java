@@ -20,6 +20,7 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.activemq.broker.BrokerService;
 import org.apache.log4j.Logger;
 
 /**
@@ -41,6 +42,7 @@ public class StartupStatsServlet extends HttpServlet {
 	private String DESTINATION="jms/queue/MyQueue";
 	private InitialContext initCtx;
 	private Context envContext;
+	private BrokerService broker = new BrokerService();
 
 	protected void doGet(final HttpServletRequest arg0, final HttpServletResponse arg1) throws ServletException, IOException {
 		super.doGet(arg0, arg1);
@@ -52,11 +54,18 @@ public class StartupStatsServlet extends HttpServlet {
 
 	public void destroy() {
 		super.destroy();
+		try{
+			connection.stop();
+			connection.close();
+		}catch(Exception e){
+            log.error(e.toString());
+        }
 	}
 
 	public void init() throws ServletException {
 		super.init();
 		log.info("Stats Servlet started");
+
 		try {
 			dispatcher=new JMSDispatcher();
 
@@ -71,6 +80,7 @@ public class StartupStatsServlet extends HttpServlet {
             session = (QueueSession) connection.createQueueSession(false,Session.AUTO_ACKNOWLEDGE);
             receiver = session.createReceiver((javax.jms.Queue) destination);
             receiver.setMessageListener(dispatcher);
+
             connection.start();
             log.info("Stats event queue configured");
         } catch (NamingException ex) {
