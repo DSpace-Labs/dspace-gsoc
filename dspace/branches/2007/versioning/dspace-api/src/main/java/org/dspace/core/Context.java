@@ -287,16 +287,20 @@ public class Context
                     dispName = EventManager.DEFAULT_DISPATCHER;
                 }
                 
-                dispatcher = EventManager.getDispatcher(dispName);
+                //FIXME This is an auto NPE, there is no org.dspace.events in my branch
+                //dispatcher = EventManager.getDispatcher(dispName);
                 
                 // Commit any changes made as part of the transaction
                 dao.saveTransaction();
                 
-                dispatcher.dispatch(this);
+                //FIXME
+                //dispatcher.dispatch(this);
+                
             }
             else
             {
                 // Commit any changes made as part of the transaction
+            	System.out.println("Trying to save the transaction.");
                 dao.saveTransaction();
             }
         }
