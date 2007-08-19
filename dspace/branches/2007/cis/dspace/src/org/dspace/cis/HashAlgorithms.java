@@ -7,32 +7,60 @@ package org.dspace.cis;
  * <code>SHA-256</code>, <code>SHA-384</code> and <code>512</code>
  * accepted
  * 
- * @author Jiahui Wang
+ * @author Wang Jiahui
  * 
  */
 public class HashAlgorithms
 {
-    private String algrithmName;
+    /**
+     * The algorithmName
+     */
+    private String algorithmName;
 
+    /**
+     * The primitive constructor.
+     * @param an the algorithm's name
+     */
     private HashAlgorithms(String an)
     {
-        algrithmName = an;
+        algorithmName = an;
     }
 
+    /**
+     * Get the String presentation of this class.
+     */
     public String toString()
     {
-        return algrithmName;
+        return algorithmName;
     }
 
+    /**
+     * The constant presenting the MD2 hash algorithm.
+     */
     public static final HashAlgorithms MD2 = new HashAlgorithms("MD2");
 
+    /**
+     * The constant presenting the MD5 hash algorithm.
+     */
     public static final HashAlgorithms MD5 = new HashAlgorithms("MD5");
 
+    /**
+     * The constant presenting the SHA-1 hash algorithm.
+     */
     public static final HashAlgorithms SHA1 = new HashAlgorithms("SHA-1");
 
+    /**
+     * The constant presenting the SHA-256 hash algorithm.
+     */
     public static final HashAlgorithms SHA256 = new HashAlgorithms("SHA-256");
 
+    /**
+     * The constant presenting the SHA-384 hash algorithm.
+     */
     public static final HashAlgorithms SHA384 = new HashAlgorithms("SHA-384");
 
+    /**
+     * The constant presenting the SHA-512 hash algorithm.
+     */
     public static final HashAlgorithms SHA512 = new HashAlgorithms("SHA-512");
 }

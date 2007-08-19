@@ -12,12 +12,11 @@ import org.dspace.storage.rdbms.DatabaseManager;
 import org.dspace.storage.rdbms.TableRow;
 import org.dspace.storage.rdbms.TableRowIterator;
 
-//import org.dspace.authorize.AuthorizeManager;
+import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.Bitstream;
 import org.dspace.content.Bundle;
 import org.dspace.content.Item;
 import org.dspace.core.ConfigurationManager;
-//import org.dspace.core.Constants;
 import org.dspace.core.Context;
 import org.dspace.core.Utils;
 
@@ -42,20 +41,30 @@ import org.dspace.core.Utils;
  * time-interval.
  * 
  * 
- * @author Administrator
+ * @author Wang Jiahui
  *
  */
 public class CertificateGenerator extends TimerTask
 {
 
+    /**
+     * The format_id for certificate bitstream.
+     */
     private static final int CERTIFICATE_FORMAT_ID = 37;
 
-    /** Our context */
+    /**
+     * Our context.
+     */
     private Context context;
 
-    /** log4j logger */
+    /**
+     * log4j logger.
+     */
     private static Logger log = Logger.getLogger(CertificateGenerator.class);
 
+    /**
+     * The main method of certificate-generation method.
+     */
     public void run()
     {
 
@@ -65,30 +74,25 @@ public class CertificateGenerator extends TimerTask
         // Get the last hour's time interval ID
         Date date = new Date();
         int timeInterval_id = CisUtils.getTimeInterval_id(date) - 1;
+        // the list of hashvalues of item
         List hashvaluesOfItemList = new ArrayList();
-        List hashvalues = new ArrayList();
+        // the array of hashvalues of item
         HashvalueofItem[] hashvaluesOfItemArray = null;
+        // the list of hashvalues.
+        List hashvalues = new ArrayList();
+        // the digest factory object
         DigestFactory dF = new DigestFactory();
-        // List certificates = new ArrayList();
+        // the bitstream table row for certificate
         TableRow bitstreamTR = null;
+        // the conrespponding item, bundle and bitstram for this certificate
         Item item = null;
         Bundle bundle = null;
         Bitstream bitstream = null;
-        
-//    	 Context context;
-//    	try {
-//    		context = new Context();
-//    		item = Item.find(context, 2);
-//            boolean isAuthentic = CisUtils.validate("/dspace/assetstore/14/76/19/147619542129842268361014467977202592071", item, context);
-//            System.out.println(isAuthentic);
-//        } catch (Exception e) {
-//    		e.printStackTrace();
-//    	}
-    	
 
         try
         {
             context = new Context();
+            // get the hashvalues of last time interval to both list and array
             TableRowIterator tri = DatabaseManager.query(context,
                     "select * from hashvalueofitem where time_interval_id = '"
                             + timeInterval_id + "' order by hashvalue_id");
@@ -104,13 +108,12 @@ public class CertificateGenerator extends TimerTask
                                 bitstreamTR.getIntColumn("time_interval_id")));
                 hashvalues.add(bitstreamTR.getStringColumn("hashvalue"));
             }
-            // hashvaluesOfItemArray = (HashvalueofItem[])
-            // hashvaluesOfItemList.toArray();
             int size = hashvaluesOfItemList.size();
             hashvaluesOfItemArray = new HashvalueofItem[size];
             for (int i = 0; i < size; i++)
             {
-                hashvaluesOfItemArray[i] = (HashvalueofItem)hashvaluesOfItemList.get(i);
+                hashvaluesOfItemArray[i] = (HashvalueofItem) hashvaluesOfItemList
+                        .get(i);
             }
 
             for (int i = 0; i < hashvaluesOfItemArray.length; i++)
@@ -118,8 +121,18 @@ public class CertificateGenerator extends TimerTask
                 // Find the item this certificate belongs to.
                 item = Item
                         .find(context, hashvaluesOfItemArray[i].getItem_id());
-                // Add a bundle named "CERTIFICATE" to this item.
-                bundle = item.createBundleWithoutAuthorization("CERTIFICATE");
+                if (item.getBundles("CERTIFICATE").length == 0)
+                {
+                    // Add a bundle named "CERTIFICATE" to this item.
+                    bundle = item
+                            .createBundleWithoutAuthorization("CERTIFICATE");
+                }
+                else
+                {
+                    bundle = item.getBundles("CERTIFICATE")[0];
+                    bundle.removeBitstreamWithoutAuthorization(bundle
+                            .getBitstreamByName("CERTIFICATE"));
+                }
                 // Add a entry in the table "bitstream" for this certificate.
                 bitstreamTR = DatabaseManager.create(context, "bitstream");
                 // Set values in the entry for this certificate.
@@ -152,11 +165,20 @@ public class CertificateGenerator extends TimerTask
             // Create witness for this time-interval and archive it in the
             // database.
             createWitness(timeInterval_id, hashvalues, dF);
+            // archive the changes in the database.
             context.complete();
         }
         catch (SQLException e)
         {
             log.debug("SQLException thrown when generate certificates!");
+        }
+        catch (AuthorizeException e)
+        {
+            log.debug("AuthorizeException thrown when generate certificates!");
+        }
+        catch (IOException e)
+        {
+            log.debug("IOException thrown when generate certificates!");
         }
     }
 
@@ -164,9 +186,13 @@ public class CertificateGenerator extends TimerTask
      * Create witness for this time-interval and archive it in the database.
      * 
      * @param timeInterval_id
+     *            the timeInterval_id for this witness
      * @param hashvalues
+     *            the hashvalues to make this witness
      * @param dF
+     *            the digest factory for this witness-generation process
      * @throws SQLException
+     *             some Exceptions in SQL process
      */
     private void createWitness(int timeInterval_id, List hashvalues,
             DigestFactory dF) throws SQLException
@@ -197,6 +223,7 @@ public class CertificateGenerator extends TimerTask
      * @param item
      *            the item this certificate belongs to
      * @throws SQLException
+     *             some Exceptions in SQL process
      */
     private void setCertificateDatabase(TableRow bitstreamTR, Item item)
             throws SQLException
@@ -218,6 +245,7 @@ public class CertificateGenerator extends TimerTask
      *            given item
      * @return given item's next available sequence number
      * @throws SQLException
+     *             some Exceptions in SQL process
      */
     private int getSequenceOfItem(Item item) throws SQLException
     {
@@ -250,16 +278,24 @@ public class CertificateGenerator extends TimerTask
      * @param hashvaluesOfItem
      *            all hash-values in the time-interval.
      * @throws SQLException
+     *             some Exceptions in SQL process
      */
     private void setAssistValues(Certificate cer, int index,
             HashvalueofItem[] hashvaluesOfItem, DigestFactory df)
             throws SQLException
     {
+        // get the length of hashvalues
         int length = hashvaluesOfItem.length;
+        // this process is necessary only if there are more than one hashvalues
+        // in the same time-interval. If there is only one hashvalue, the
+        // certificate is empty.
         if (length > 1)
         {
             HashvalueofItem[] tmpArray = null;
             List tmpList = new ArrayList();
+            // if the index is less than the max 2^N value under length, we
+            // should first process the values beyond max2N(length), make it as
+            // the last assistHash, then hashvalues between 1 and max2N(length).
             if (index + 1 <= max2N(length))
             {
                 if (length > max2N(length))
@@ -273,6 +309,9 @@ public class CertificateGenerator extends TimerTask
                 setAssistValuesWithBounds(cer, index, hashvaluesOfItem, 1,
                         max2N(length), df);
             }
+            // if the index is more than the max 2^N value under length, we
+            // should first process the values between 1 and max2N(length), then
+            // the values beyond max2N(length) (in a recursive way).
             else
             {
                 cer.addWitness(new AssistHash(catHash(hashvaluesOfItem, 1,
@@ -285,8 +324,9 @@ public class CertificateGenerator extends TimerTask
                 tmpArray = new HashvalueofItem[size];
                 for (int i = 0; i < size; i++)
                 {
-                    tmpArray[i] = (HashvalueofItem)tmpList.get(i);
+                    tmpArray[i] = (HashvalueofItem) tmpList.get(i);
                 }
+                // set the other assistHashvalues in a recursive way.
                 setAssistValues(cer, index - max2N(length), tmpArray, df);
             }
         }
@@ -298,7 +338,9 @@ public class CertificateGenerator extends TimerTask
      * the last time-interval.
      * 
      * @param cer
+     *            the certificate
      * @throws SQLException
+     *             some Exceptions in SQL process
      */
     private void addLastWitness(Certificate cer, int timeInterval_id)
             throws SQLException
@@ -338,6 +380,8 @@ public class CertificateGenerator extends TimerTask
             HashvalueofItem[] hashvaluesOfItem, int from, int to,
             DigestFactory df)
     {
+        // if there are only two hashvalues in this bound, we simply add the
+        // other hashvalue as an assistHash.
         if (from + 1 == to)
         {
             if (from == index + 1)
@@ -351,17 +395,19 @@ public class CertificateGenerator extends TimerTask
                         .getHashValue(), AssistHashPos.LEFT));
             }
         }
+        // if there are more than 2 hashvalues, we generate the assistHashes in
+        // a half-and-half and recursive way.
         else if ((from + to - 1) / 2 < index + 1)
         {
             cer.addWitness(new AssistHash(catHash(hashvaluesOfItem, from, (from
                     + to - 1) / 2, df), AssistHashPos.LEFT));
-            setAssistValuesWithBounds(cer, index, hashvaluesOfItem, (from + to
-                    + 1) / 2, to, df);
+            setAssistValuesWithBounds(cer, index, hashvaluesOfItem,
+                    (from + to + 1) / 2, to, df);
         }
         else
         {
-            cer.addWitness(new AssistHash(catHash(hashvaluesOfItem, (from + to
-                    + 1) / 2, to, df), AssistHashPos.RIGHT));
+            cer.addWitness(new AssistHash(catHash(hashvaluesOfItem,
+                    (from + to + 1) / 2, to, df), AssistHashPos.RIGHT));
             setAssistValuesWithBounds(cer, index, hashvaluesOfItem, from, (from
                     + to - 1) / 2, df);
         }
@@ -387,8 +433,11 @@ public class CertificateGenerator extends TimerTask
      * Catenate some hash-values of a given array and digest it.
      * 
      * @param hashvaluesOfItem
+     *            the hashvalues to be catenated.
      * @param from
+     *            the from index of the array.
      * @param to
+     *            the to index of the array.
      * @return the final hash-value
      */
     private String catHash(HashvalueofItem[] hashvaluesOfItem, int from,
@@ -401,31 +450,6 @@ public class CertificateGenerator extends TimerTask
         }
 
         return CisUtils.witHash(hashvalues, df);
-        // if (from + 1 == to) {
-        // return df.digest(hashvaluesOfItem[from - 1].getHashValue()
-        // + hashvaluesOfItem[from].getHashValue());
-        // } else {
-        // return df.digest(catHash(hashvaluesOfItem, from,
-        // (from + to - 1) / 2, df)
-        // + catHash(hashvaluesOfItem, (from + to + 1) / 2, to, df));
-        // }
     }
-
-    // public static void main(String[] args) {
-    // System.out.println(max2N(1));
-    // System.out.println(max2N(2));
-    // System.out.println(max2N(3));
-    // System.out.println(max2N(4));
-    // System.out.println(max2N(5));
-    // System.out.println(max2N(6));
-    // System.out.println(max2N(7));
-    // System.out.println(max2N(8));
-    // System.out.println(max2N(9));
-    // System.out.println(max2N(10));
-    // }
-    // public static void main(String[] args)
-    // {
-    // new CertificateGenerator().run();
-    // }
 
 }

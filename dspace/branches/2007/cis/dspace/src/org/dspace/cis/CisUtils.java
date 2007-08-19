@@ -3,7 +3,6 @@ package org.dspace.cis;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.text.DateFormat;
 import java.sql.SQLException;
 import java.text.ParseException;
 import java.util.ArrayList;
@@ -17,10 +16,6 @@ import org.dspace.core.*;
 import org.dspace.storage.rdbms.DatabaseManager;
 import org.dspace.storage.rdbms.TableRow;
 import org.jdom.JDOMException;
-
-//import org.dspace.core.Context;
-//import org.dspace.storage.rdbms.DatabaseManager;
-//import org.dspace.storage.rdbms.TableRowIterator;
 
 public class CisUtils
 {
@@ -49,7 +44,7 @@ public class CisUtils
         // like 12345678901234567890 turns into the relative name
         // /12/34/56/12345678901234567890.
         //
-        // You should not change these settings if you have data in the
+        // We should not change these settings if you have data in the
         // asset store, as the BitstreamStorageManager will be unable
         // to find your existing data.
         int digitsPerLevel = 2;
@@ -67,7 +62,6 @@ public class CisUtils
             buf.append(iInternalId.substring(digits, digits + digitsPerLevel));
         }
         buf.append(File.separator);
-        // buf.append(iInternalId);
         return buf.toString();
     }
 
@@ -178,6 +172,20 @@ public class CisUtils
     }
 
     /**
+     * Get the <code>Date</code> instance with the milliseconds since January
+     * 1, 1970, 00:00:00 GMT.
+     * 
+     * @param timeintervalID
+     * @return
+     */
+    public static Date getDateFromIntervalID(int timeintervalID)
+    {
+        long tmp = timeintervalID;
+        tmp = MILLISECONDS_OF_AN_HOUR * (tmp + HOURS_OFFSET);
+        return new Date(tmp);
+    }
+
+    /**
      * Get from time of the time-interval in previous of a given time.
      */
     public static Date getLastFrom(Date date)
@@ -243,8 +251,6 @@ public class CisUtils
                             .digest(tmpArray[2 * i] + tmpArray[2 * i + 1]);
                     tmpList.add(tmpString);
                 }
-                // tmpArray = (String[]) tmpList.toArray();
-                // tmpArray = (String[]) listToArray(tmpList);
                 size = tmpList.size();
                 tmpArray = new String[size];
                 for (int i = 0; i < size; i++)
@@ -262,8 +268,6 @@ public class CisUtils
                     tmpList.add(tmpString);
                 }
                 tmpList.add(tmpArray[tmpArray.length - 1]);
-                // tmpArray = (String[]) tmpList.toArray();
-                // tmpArray = (String[]) listToArray(tmpList);
                 size = tmpList.size();
                 tmpArray = new String[size];
                 for (int i = 0; i < size; i++)
@@ -279,35 +283,21 @@ public class CisUtils
     }
 
     /**
-     * A help method implement the function of <code>list.toArray()</code>.
-     * Use that function would kill the certificate-generation thread. Haven't
-     * find out the reason yet.
-     * 
-     * @param list
-     * @return
-     */
-    public static Object[] listToArray(List list)
-    {
-        int size = list.size();
-        Object[] result = new Object[size];
-        for (int i = 0; i < size; i++)
-        {
-            result[i] = list.get(i);
-        }
-        return result;
-    }
-
-    /**
      * Validate a given item and its certificate.
      * 
      * @param path
      *            the certificate's path
      * @return whether or not the item and its certificate are authentic.
      * @throws SQLException
+     *             SQLException in SQL process
      * @throws ParseException
+     *             ParseException in cetificate parsing process
      * @throws IOException
+     *             IOException in file process
      * @throws JDOMException
+     *             JDOMException in DOM process
      * @throws FileNotFoundException
+     *             FileNotFoundException in file reading process
      */
     public static boolean validate(String path, Item item, Context context)
             throws SQLException, FileNotFoundException, JDOMException,
@@ -375,27 +365,5 @@ public class CisUtils
 
         return df.digest(tmp);
     }
-    // public static void main(String[] args) throws SQLException {
 
-    // int timeInterval_id = TimeInterval.getTimeInterval_id(new Date());
-    // System.out.println("The time_interval_ID is " + timeInterval_id);
-    // Context context;
-    // try {
-    // context = new Context();
-    // TableRowIterator tR = DatabaseManager.query(context,
-    // "select * from Hashvalueifitem where time_interval_id = "
-    // + timeInterval_id);
-    // if (!tR.hasNext()) {
-    // System.out.println("No entries return!");
-    // }
-    // while (tR.hasNext()) {
-    // System.out.println(tR.next().getStringColumn("hashvalue"));
-    // }
-    //
-    // } catch (SQLException e) {
-    // // TODO Auto-generated catch block
-    // e.printStackTrace();
-    // }
-    //
-    // }
 }

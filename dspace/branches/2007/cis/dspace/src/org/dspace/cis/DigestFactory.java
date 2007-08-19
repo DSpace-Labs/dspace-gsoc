@@ -28,33 +28,49 @@ import org.dspace.core.Utils;
  * <li>DCValue[]</li>
  * <li>Item</li>
  * 
- * @author Jiahui Wang
+ * @author Wang Jiahui
  * 
  */
 public class DigestFactory
 {
+    /**
+     * The log instance.
+     */
     private static final Logger logger = Logger.getLogger(DigestFactory.class);
 
+    /**
+     * The MessageDigest object.
+     */
     private MessageDigest md;
 
+    /**
+     * The HashAlgorithms instance.
+     */
     private HashAlgorithms PRIMITIVE;
 
+    /**
+     * The constructor with no argument.
+     *
+     */
     public DigestFactory()
     {
-        // the primitive is set to md5 by default
+        // the primitive is set to SHA256 by default
         try
         {
-            PRIMITIVE = HashAlgorithms.MD5;
+            PRIMITIVE = HashAlgorithms.SHA256;
             md = MessageDigest.getInstance(PRIMITIVE.toString());
         }
         catch (NoSuchAlgorithmException e)
         {
             logger
                     .error("No such algorithm supported when generate MessegeDigest object");
-            e.printStackTrace();
         }
     }
 
+    /**
+     * The constructor with a hashAlgorithm argument.
+     * @param ha the hashAlgorithm object
+     */
     public DigestFactory(HashAlgorithms ha)
     {
         PRIMITIVE = ha;
@@ -66,10 +82,14 @@ public class DigestFactory
         {
             logger
                     .error("No such algorithm supported when generate MessegeDigest object");
-            e.printStackTrace();
         }
     }
 
+    /**
+     * Digest a <code>String</code>.
+     * @param string the String
+     * @return the hashvalue of a string
+     */
     public String digest(String string)
     {
         byte[] fromString = string.getBytes();
@@ -78,24 +98,28 @@ public class DigestFactory
     }
 
     /**
-     * reference to org.dspace.bitstore.BitstreamStoreManager.java
-     * 
-     * @param bitstream
+     * Digest a bitstream.
+     * @param bitstream the bitstream
      * @return Hex format of the hash value of the bitstream or null if
      *         something wrong
+     * @see org.dspace.bitstore.BitstreamStoreManager
      */
     public String digest(Bitstream bitstream)
     {
 
-        String filePath = org.dspace.cis.CisUtils.getBitstreamFilePath(bitstream);
+        String filePath = CisUtils.getBitstreamFilePath(bitstream);
         filePath += bitstream.getInternalID();
 
         return digestWithFilePath(filePath);
 
     }
 
-    // should be private
-    protected String digestWithFilePath(String filePath)
+    /**
+     * Digest a file with file path.
+     * @param filePath the file path
+     * @return the hashvalue of this the given file
+     */
+    private String digestWithFilePath(String filePath)
     {
         File assetstore = new File(filePath);
 
@@ -114,11 +138,10 @@ public class DigestFactory
         {
             logger.error("can't create inputstream with this file:"
                     + assetstore.toString());
-            e.printStackTrace();
             return null;
         }
 
-        // Read through a digest input stream that will work out the MD5
+        // Read through a digest input stream
         DigestInputStream dis = null;
 
         dis = new DigestInputStream(is, md);
@@ -137,7 +160,6 @@ public class DigestFactory
             catch (IOException e)
             {
                 logger.error("IOException when read to buffer");
-                e.printStackTrace();
                 return null;
             }
         }
@@ -145,7 +167,6 @@ public class DigestFactory
         // the hash value of the bitstream
         String resultHash = Utils.toHex(dis.getMessageDigest().digest());
         return resultHash;
-        // return intermediatePath;
     }
 
     /**
@@ -156,7 +177,7 @@ public class DigestFactory
      * <li>combine the hash balues to a temporary string</li>
      * <li>digest the tempt string as the return value</li>
      * 
-     * @param bundle
+     * @param bundle the bundle
      * @return hash value of a givin bundle
      */
     public String digest(Bundle bundle)
@@ -173,6 +194,11 @@ public class DigestFactory
         return digest(tmp);
     }
 
+    /**
+     * Digest an array of bundles.
+     * @param bundles the bundles
+     * @return the hashvalue of bundles
+     */
     public String digest(Bundle[] bundles)
     {
         String tmp = null;
@@ -189,7 +215,7 @@ public class DigestFactory
      * the procedure of a DCValue's hash value generation just combine it's
      * properties into a temporary string and digest it as the return value
      * 
-     * @param dcvalue
+     * @param dcvalue the dcvalue
      * @return hash value of a DCValue
      */
     public String digest(DCValue dcvalue)
@@ -200,7 +226,8 @@ public class DigestFactory
     }
 
     /**
-     * @param dcvalues
+     * Digest an array of dcvalues.
+     * @param dcvalues the dcvalues
      * @return hash value of a DCValue array
      */
     public String digest(DCValue[] dcvalues)
@@ -215,6 +242,11 @@ public class DigestFactory
         return digest(tmp);
     }
 
+    /**
+     * Digest an item.
+     * @param item the item
+     * @return the hashvalue of the item
+     */
     public String digest(Item item)
     {
         // get all dcvalues of the item
@@ -236,7 +268,6 @@ public class DigestFactory
         catch (SQLException e)
         {
             logger.error("SQLException when get item's bundles!");
-            e.printStackTrace();
             return null;
         }
 
@@ -246,20 +277,19 @@ public class DigestFactory
 
     }
 
-    // public static void main(String[] argv){
-    //             
-    // DigestFactory df = new DigestFactory();
-    // String resu =
-    // df.digestWithFilePath("D:\\dspace\\assetstore\\10\\42\\03\\104203510823337032602227731452764060832");
-    // System.out.println(resu);
-    //         
-    // }
-
+    /**
+     * Get the hashAlgorithm of this factory.
+     * @return the hashAlgorithm
+     */
     public HashAlgorithms getPRIMITIVE()
     {
         return PRIMITIVE;
     }
 
+    /**
+     * Set the hashAlgorithm.
+     * @param primitive the hashAlgorithm
+     */
     public void setPRIMITIVE(HashAlgorithms primitive)
     {
         PRIMITIVE = primitive;

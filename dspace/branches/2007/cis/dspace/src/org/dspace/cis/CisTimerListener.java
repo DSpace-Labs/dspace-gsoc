@@ -1,16 +1,11 @@
 package org.dspace.cis;
 
-import java.sql.SQLException;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Timer;
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
 import org.apache.log4j.Logger;
-import org.dspace.content.Item;
-import org.dspace.core.Context;
-
-//import org.dspace.core.Context;
 
 /**
  * This <code>TimerListener</code> is added to start certificate-generation
@@ -30,7 +25,7 @@ import org.dspace.core.Context;
  * And it must be placed before any <code>servlet</code> and after all the
  * <code>filter-mapping</code>s.
  * 
- * @author Administrator
+ * @author Wang Jiahui
  * @see CertificateGenerator
  * @see web.xml
  */
@@ -39,10 +34,19 @@ public class CisTimerListener implements ServletContextListener
     /** log4j logger */
     private static Logger log = Logger.getLogger(CisTimerListener.class);
 
+    /**
+     * The milliseconds of an hour.
+     */
     private static final int HOUR_INTERVAL = 60 * 60 * 1000;
 
+    /**
+     * The timer to be used as an schedule.
+     */
     private Timer timer = null;
 
+    /**
+     * Clear the environment and log it.
+     */
     public void contextDestroyed(ServletContextEvent event)
     {
 
@@ -54,16 +58,17 @@ public class CisTimerListener implements ServletContextListener
         }
     }
 
+    /**
+     * Prepare the environment and start the timer and log it.
+     */
     public void contextInitialized(ServletContextEvent event)
     {
         timer = new Timer(true);
 
-        // try
-        // {
-        // Make sure that the first task is happened at a whole number time.
         Calendar currentTime = Calendar.getInstance();
         currentTime.setTime(new Date());
 
+        // get the next hour
         int currentHour = currentTime.get(Calendar.HOUR);
 
         currentTime.set(Calendar.HOUR, currentHour + 1);
@@ -72,21 +77,14 @@ public class CisTimerListener implements ServletContextListener
         currentTime.set(Calendar.MILLISECOND, 0);
 
         Date nextHour = currentTime.getTime();
-        
+
         log.info("The cis-timer-listener has been started.");
 
-        timer.scheduleAtFixedRate(new CertificateGenerator(),
-        		/*nextHour*/new Date(), HOUR_INTERVAL);
+        // set the timer in each hour
+        timer.scheduleAtFixedRate(new CertificateGenerator(), nextHour,
+                HOUR_INTERVAL);
 
         log.info("The task has been added to the cis-timer-listener.");
-
-        // }
-        // catch (SQLException e)
-        // {
-        // log
-        // .error("Context creation failed when initialize the
-        // CisTimerListner.");
-        // }
 
     }
 

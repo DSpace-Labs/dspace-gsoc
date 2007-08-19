@@ -53,37 +53,51 @@ public class Certificate extends Bitstream
     /** List of witnesses of this certificate. */
     private List witnesses = null;
 
-    // /** Starting time of this certificate's time interval. */
-    // public Date from;
-    //
-    // /** Ending time of this certificate's time interval. */
-    // public Date to;
-
     /** Digest time of the item this certificate belongs to. */
     public Date lastModifiedTime;
 
+    /**
+     * The constructor.
+     * 
+     * @param bContext
+     *            the context
+     * @param bRow
+     *            the tableRow
+     * @throws SQLException
+     *             some Exception in SQL process
+     */
     public Certificate(Context bContext, TableRow bRow) throws SQLException
     {
         super(bContext, bRow);
         witnesses = new ArrayList();
     }
 
-    // public Certificate() {
-    // setInterval();
-    // this.internalID = Utils.generateKey();
-    // witnesses = new ArrayList<AssistHash>();
-    // }
-
+    /**
+     * Get the algorithm.
+     * 
+     * @return the algorithm
+     */
     public HashAlgorithms getAlgorithm()
     {
         return algorithm;
     }
 
+    /**
+     * Get the algorithm's name.
+     * 
+     * @return the algorithm's name
+     */
     public String getAlgorithmName()
     {
         return algorithm.toString();
     }
 
+    /**
+     * Set the algorithm.
+     * 
+     * @param algorithm
+     *            the algorithm
+     */
     public void setAlgorithm(String algorithm)
     {
         if (algorithm.equals("MD2"))
@@ -97,53 +111,67 @@ public class Certificate extends Bitstream
         else if (algorithm.equals("SHA-512"))
             this.algorithm = HashAlgorithms.SHA512;
         else
-            this.algorithm = HashAlgorithms.MD5;
+            this.algorithm = HashAlgorithms.SHA256;
     }
 
+    /**
+     * Set the handle.
+     * 
+     * @param handle
+     *            the handle
+     */
     public void setHandle(String handle)
     {
         this.handle = handle;
     }
 
+    /**
+     * Get the handle.
+     */
     public String getHandle()
     {
         return handle;
     }
 
-    // public Date getFrom() {
-    // return from;
-    // }
-    //
-    // public void setFrom(Date from) {
-    // this.from = from;
-    // }
-    //
-    // public Date getTo() {
-    // return to;
-    // }
-    //
-    // public void setTo(Date to) {
-    // this.to = to;
-    // }
-
+    /**
+     * Get the lastModifiedTime.
+     * 
+     * @return the last modified time
+     */
     public Date getLastModifiedTime()
     {
         return lastModifiedTime;
     }
 
+    /**
+     * Set the lastModifiedTime.
+     * 
+     * @param time
+     *            the last modified time
+     */
     public void setLastModifiedTime(Date time)
     {
         this.lastModifiedTime = time;
     }
 
+    /**
+     * Add an assistHash value.
+     * 
+     * @param witness
+     *            an assistHash
+     */
     public void addWitness(AssistHash witness)
     {
         witnesses.add(witness);
     }
 
+    /**
+     * Get all the assistHash values.
+     * 
+     * @return the assistHash values
+     */
     public AssistHash[] getWitnesses()
     {
-        // return (AssistHash[]) witnesses.toArray();
         AssistHash[] wit = new AssistHash[this.witnesses.size()];
         for (int i = 0; i < witnesses.size(); i++)
         {
@@ -208,16 +236,19 @@ public class Certificate extends Bitstream
      * &lt;/certificate&gt;
      * 
      * @throws IOException
+     *             IOException in archive process
      */
     public void archive() throws IOException
     {
         Document doc = new Document();
         Element root = new Element("certificate");
+        // set the attributes
         root.setAttribute("algorithm", this.algorithm.toString());
         root.setAttribute("handle", this.handle);
         Element digestTime = new Element("LastModifiedTime");
         digestTime.addContent(this.lastModifiedTime.toString());
         root.addContent(digestTime);
+        // write the assistHash values
         Iterator it = this.witnesses.iterator();
         while (it.hasNext())
         {
@@ -234,7 +265,7 @@ public class Certificate extends Bitstream
         format.setEncoding("UTF-8");
         outputter.setFormat(format);
         String destPath = CisUtils.getBitstreamFilePath(this);
-        // Make ths directory for certificate
+        // make ths directory for certificate
         new File(destPath).mkdirs();
         FileWriter writer = new FileWriter(destPath + File.separator
                 + this.getInternalID());
@@ -252,10 +283,15 @@ public class Certificate extends Bitstream
      *            the context
      * @return the <code>Certificate</code> instance
      * @throws FileNotFoundException
+     *             FileNotFoundException in the read process
      * @throws JDOMException
+     *             JDOMException in DOM process
      * @throws IOException
+     *             IOException in file process
      * @throws SQLException
+     *             SQLException in SQL process
      * @throws ParseException
+     *             ParseException in file-parsing process
      */
     public static Certificate readFile(String path, Context context)
             throws FileNotFoundException, JDOMException, IOException,
@@ -298,100 +334,5 @@ public class Certificate extends Bitstream
         }
         return cer;
     }
-
-    // public static void main(String[] argv) throws IOException {
-    // File file = new
-    // File("/dspace/assetstore/36/47/31/36473117764695350162253083493927900144");
-    // if (!file.exists())
-    // {
-    // System.out.println("The path is wrong");
-    // return;
-    // }
-    // System.out.println("The file's name is" + file.getName());
-    // SAXBuilder sb = new SAXBuilder();
-    // Document doc;
-    // try
-    // {
-    // doc = sb.build(new FileInputStream(file));
-    // Element root = doc.getRootElement();
-    // DateFormat df = DateFormat.getDateTimeInstance();
-    // System.out.println(root.getChildText("LastModifiedTime"));
-    // Date date = df.parse(root.getChildText("LastModifiedTime"));
-    // System.out.println(date);
-    // List elements = root.getChildren("witness");
-    // AssistHash ah = null;
-    // List witnesses = new ArrayList();
-    // for (int i = 0; i < elements.size(); i++)
-    // {
-    // String pos = ((Element)elements.get(i)).getAttributeValue("position");
-    // if (pos.equals("LEFT"))
-    // {
-    // ah = new AssistHash(((Element)elements.get(i)).getText(),
-    // AssistHashPos.LEFT);
-    // } else {
-    // ah = new AssistHash(((Element)elements.get(i)).getText(),
-    // AssistHashPos.RIGHT);
-    // }
-    // witnesses.add(ah);
-    // }
-    // for (int i = 0; i < witnesses.size(); i++)
-    // {
-    // System.out.println(((AssistHash)witnesses.get(i)).getPos().toString() +
-    // ":" + ((AssistHash)witnesses.get(i)).getHashvalue());
-    // }
-    // }
-    // catch (Exception e)
-    // {
-    // // TODO Auto-generated catch block
-    // e.printStackTrace();
-    // }
-
-    // Document doc = new Document();
-    // Element root = new Element("certificate");
-    // root.setAttribute("algorithm", "MD5");
-    // root.setAttribute("handle", "123456789/12");
-    // Element timeInterval = new Element("time-interval");
-    // Element from = new Element("from");
-    // from.addContent("Sat May 26 20:00:00 CST 2007");
-    // Element to = new Element("to");
-    // to.addContent("Sat May 26 21:00:00 CST 2007");
-    // timeInterval.addContent(from);
-    // timeInterval.addContent(to);
-    // root.addContent(timeInterval);
-    // int i = 0;
-    // while (i < 3) {
-    // root.addContent(new Element("witness").setAttribute("position",
-    // "LEFT").addContent("9acbebc7935a2ce2a22dfe17cb4843f9"));
-    // i++;
-    // }
-    //
-    // doc.addContent(root);
-    // doc.setRootElement(root);
-    //
-    // XMLOutputter outputter = new XMLOutputter();
-    // Format format = Format.getPrettyFormat();
-    // format.setEncoding("UTF-8");
-    // outputter.setFormat(format);
-    // FileWriter writer = new FileWriter(new File("d://text.xml"));
-    // outputter.output(doc, writer);
-    // writer.close();
-
-    // Calendar c = Calendar.getInstance();
-    // int year = c.get(Calendar.YEAR);
-    // int month = c.get(Calendar.MONTH);
-    // int date = c.get(Calendar.DAY_OF_MONTH);
-    // int hour = c.get(Calendar.HOUR_OF_DAY);
-    //        
-    // c.set(year, month, date, hour, 0, 0);
-    // Date from = c.getTime();
-    //        
-    // long miliSeconds = from.getTime();
-    // miliSeconds += 3600000;
-    //      
-    // Date to = new Date(miliSeconds);
-    //        
-    // System.out.println(from);
-    // System.out.println(to);
-    // }
 
 }

@@ -57,6 +57,9 @@ import org.dspace.authorize.AuthorizeException;
 import org.dspace.authorize.AuthorizeManager;
 import org.dspace.authorize.ResourcePolicy;
 import org.dspace.browse.Browse;
+import org.dspace.cis.CisUtils;
+import org.dspace.cis.DigestFactory;
+import org.dspace.cis.HashvalueofItem;
 import org.dspace.core.ConfigurationManager;
 import org.dspace.core.Constants;
 import org.dspace.core.Context;
@@ -1378,6 +1381,17 @@ public class Item extends DSpaceObject {
 
 			dublinCoreChanged = false;
 		}
+        
+        // Make the new hashvalue for this item and store it in the database.
+        HashvalueofItem hash = new HashvalueofItem(ourContext);
+        DigestFactory df = new DigestFactory();
+        String hashValue = df.digest(this);
+        hash.setTime_interval_id(CisUtils.getTimeInterval_id(new Date()));
+        hash.setHash_Algorithm(df.getPRIMITIVE().toString());
+        hash.setHashValue(hashValue);
+        hash.setItem_id(this.getID());
+        
+        hash.archive();
 
 		// Update browse indices
 		Browse.itemChanged(ourContext, this);

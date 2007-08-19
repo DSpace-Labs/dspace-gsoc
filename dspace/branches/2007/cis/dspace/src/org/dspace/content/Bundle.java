@@ -499,6 +499,66 @@ public class Bundle extends DSpaceObject implements Comparable
     }
 
     /**
+     * This is a back-door method for Certificate-Generating process.
+     * Remove a bitstream from this bundle - the bitstream is only deleted if
+     * this was the last reference to it
+     * <p>
+     * If the bitstream in question is the primary bitstream recorded for the
+     * bundle the primary bitstream field is unset in order to free the
+     * bitstream from the foreign key constraint so that the
+     * <code>cleanup</code> process can run normally.
+     * 
+     * @param b
+     *            the bitstream to remove
+     */
+    public void removeBitstreamWithoutAuthorization(Bitstream b) throws AuthorizeException,
+            SQLException, IOException
+    {
+        log.info(LogManager.getHeader(ourContext, "remove_bitstream",
+                "bundle_id=" + getID() + ",bitstream_id=" + b.getID()));
+
+        // Remove from internal list of bitstreams
+        ListIterator li = bitstreams.listIterator();
+
+        while (li.hasNext())
+        {
+            Bitstream existing = (Bitstream) li.next();
+
+            if (b.getID() == existing.getID())
+            {
+                // We've found the bitstream to remove
+                li.remove();
+
+                // In the event that the bitstream to remove is actually
+                // the primary bitstream, be sure to unset the primary
+                // bitstream.
+                if (b.getID() == getPrimaryBitstreamID())
+                {
+                    unsetPrimaryBitstreamID();
+                }
+            }
+        }
+
+        // Delete the mapping row
+        DatabaseManager.updateQuery(ourContext,
+                "DELETE FROM bundle2bitstream WHERE bundle_id= ? "
+                        + "AND bitstream_id= ? ", getID(), b.getID());
+
+        // If the bitstream is orphaned, it's removed
+        TableRowIterator tri = DatabaseManager.query(ourContext,
+                "SELECT * FROM bundle2bitstream WHERE bitstream_id= ? ", b
+                        .getID());
+
+        if (!tri.hasNext())
+        {
+            // The bitstream is an orphan, delete it
+            b.delete();
+        }
+        // close the TableRowIterator to free up resources
+        tri.close();
+    }
+
+    /**
      * Update the bundle metadata
      */
     public void update() throws SQLException
