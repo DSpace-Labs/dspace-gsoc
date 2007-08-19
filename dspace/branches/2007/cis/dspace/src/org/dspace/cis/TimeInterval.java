@@ -1,38 +1,36 @@
 package org.dspace.cis;
 
-//import java.sql.SQLException;
 import java.util.Date;
 
-//
-//import org.dspace.core.Context;
-//import org.dspace.storage.rdbms.*;
-
+/**
+ * This class presents a time interval in an hour.
+ * 
+ * @author Wang Jiahui
+ * 
+ */
 public class TimeInterval
 {
 
-    // private static final int MILLISECONDS_OF_AN_HOUR = 60 * 60 * 1000;
-
+    /**
+     * The time interval's id.
+     */
     private int timeInterval_id;
 
+    /**
+     * The *from* time of this interval.
+     */
     private Date from;
 
+    /**
+     * The *to* time of this interval.
+     */
     private Date to;
 
-    // /** Our context */
-    // private Context ourContext;
-
-    // /** The table row corresponding to this timeInterval */
-    // private TableRow intervalRow;
-
-    // public TimeInterval(TableRow intervalRow, Context ourContext)
-    // {
-    // timeInterval_id = intervalRow.getIntColumn("time_interval_id");
-    // from = intervalRow.getDateColumn("from");
-    // to = intervalRow.getDateColumn("to");
-    // this.intervalRow = intervalRow;
-    // this.ourContext = ourContext;
-    // }
-    public TimeInterval(Date date/* , Context ourContext */)
+    /**
+     * The constructor
+     * @param date the time in this time interval
+     */
+    public TimeInterval(Date date)
     {
         timeInterval_id = CisUtils.getTimeInterval_id(date);
         from = CisUtils.getFrom(date);
@@ -40,81 +38,58 @@ public class TimeInterval
         // this.ourContext = ourContext;
     }
 
-    // public static void main(String[] args)
-    // {
-    // Calendar c = Calendar.getInstance();
-    // c.set(2001, Calendar.JANUARY, 1, 0, 0, 0);
-    // Date date1 = c.getTime();
-    // System.out.println(date1);
-    // Date now = new Date();
-    // Date date2 = getFrom(now);
-    // Date date3 = getTo(now);
-    // System.out.println(now);
-    // System.out.println(date2);
-    // System.out.println(date3);
-    // long longvalue = now.getTime() / MILLISECONDS_OF_AN_HOUR;
-    // long inter = date1.getTime() / MILLISECONDS_OF_AN_HOUR;
-    // Long l = new Long(longvalue);
-    // int intvalue = l.intValue();
-    // Integer i = new Integer(intvalue);
-    // System.out.println(inter);
-    // System.out.println(l);
-    // System.out.println(longvalue);
-    // System.out.println(intvalue);
-    // System.out.println(i);
-    // TimeInterval tI = new TimeInterval(new Date());
-    // try {
-    // tI.archive();
-    // } catch (SQLException e) {
-    // // TODO Auto-generated catch block
-    // e.printStackTrace();
-    // }
-    //      
-    // }
-
+    /**
+     * Get the *from* time of this interval.
+     * @return the from time
+     */
     public Date getFrom()
     {
         return from;
     }
 
+    /**
+     * Set the *from* time of this interval.
+     * @param from the from time
+     */
     public void setFrom(Date from)
     {
         this.from = from;
     }
 
+    /**
+     * Get the time interval's id.
+     * @return the time interval's id
+     */
     public int getTimeInterval_id()
     {
         return timeInterval_id;
     }
 
+    /**
+     * Set the time interval's id.
+     * @param timeInterval_id the time interval's id
+     */
     public void setTimeInterval_id(int timeInterval_id)
     {
         this.timeInterval_id = timeInterval_id;
     }
 
+    /**
+     * Get the *to* time of this interval.
+     * @return the to time
+     */
     public Date getTo()
     {
         return to;
     }
 
+    /**
+     * Set the *to* time of this interval.
+     * @param to the to time
+     */
     public void setTo(Date to)
     {
         this.to = to;
     }
 
-    // public void archive() throws SQLException
-    // {
-    // // List<String> collums = new ArrayList<String>();
-    // // collums.add("time_interval_id");
-    // // collums.add("from");
-    // // collums.add("to");
-    //      
-    // // TableRow tR = new TableRow("timeinterval", collums);
-    // TableRow tR = DatabaseManager.row("timeinterval");
-    // tR.setColumn("time_interval_id", this.timeInterval_id);
-    // tR.setColumn("from", this.from);
-    // tR.setColumn("to", this.to);
-    //      
-    // DatabaseManager.insert(ourContext, tR);
-    // }
 }

@@ -8,7 +8,11 @@ org.dspace.content.Bundle		- update() throws AuthorizeException
 								+ addBitstreamWithoutAuthorization(Bitstream b)
 								
 org.dspace.content.Item			+ addBundleWithoutAuthorization(Bundle b)
-								+ createBundleWithoutAuthorization(String name)	
+								+ createBundleWithoutAuthorization(String name)
+org.dspace.content.Item.Update()+ codes about store the new hashvalue when this item is modified.
 								
 org.dspace.content.DCValue		+ public int compareTo(Object other)
 org.dspace.content.Bundle		+ public int compareTo(Object other)
+
+org.dspace.app.webui.jsptag.ItemTag
+								+ codes about showing certificate bitstream
