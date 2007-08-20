@@ -25,7 +25,6 @@ import org.dspace.statistics.handler.StatisticalEventHandler;
  * Listener class to dispatch statistics events
  *
  * @author Federico Paparoni
- * @version $Revision: 1 $
  */
 
 public class JMSDispatcher implements MessageListener {
@@ -42,12 +41,17 @@ public class JMSDispatcher implements MessageListener {
 		}
     }
 
+    /**
+     * This method is a callback used by JMS queue.
+     * When a new LogEvent arrives, it dispatches it to the proper handler
+     */
+
     public void onMessage(Message message) {
     	if (message instanceof ObjectMessage) {
     		ObjectMessage objectMessage=(ObjectMessage)message;
     		try {
 				logEvent=(LogEvent)objectMessage.getObject();
-				log.info("Trattasi di "+logEvent.getType());
+				log.info("LogEvent "+logEvent.getType());
 				StatisticalEventHandler handler =(StatisticalEventHandler)PluginManager.getNamedPlugin(StatisticalEventHandler.class,logEvent.getType());
 				handler.setContext(context);
 				handler.setLogEvent(logEvent);
