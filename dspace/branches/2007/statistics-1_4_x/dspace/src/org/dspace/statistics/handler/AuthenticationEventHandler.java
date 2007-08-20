@@ -6,6 +6,12 @@ import org.dspace.statistics.dao.AuthenticationEventDAO;
 import org.dspace.statistics.dao.StatisticsDAOFactory;
 import org.dspace.statistics.event.LogEvent;
 
+/**
+ * Handler for Authentication events
+ *
+ * @author Federico Paparoni
+ */
+
 public class AuthenticationEventHandler implements StatisticalEventHandler {
 
 	private LogEvent logEvent;

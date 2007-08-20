@@ -6,6 +6,13 @@ import org.dspace.statistics.dao.ContentEventDAO;
 import org.dspace.statistics.dao.StatisticsDAOFactory;
 import org.dspace.statistics.event.LogEvent;
 import org.dspace.statistics.tools.CrawlerCheck;
+import org.dspace.statistics.tools.SearchEngineParser;
+
+/**
+ * Handler for Content events
+ *
+ * @author Federico Paparoni
+ */
 
 public class ContentEventHandler implements StatisticalEventHandler {
 
@@ -24,6 +31,11 @@ public class ContentEventHandler implements StatisticalEventHandler {
 
 		//Checks if it has a referer from a Search Engine
 		//if so it adds another attribute to the event
+		String referer=(String)logEvent.getAttributes().get("referer");
+		String searchEngine=SearchEngineParser.getSearchEngine(referer);
+		if (searchEngine!=null) {
+			logEvent.setAttribute("searchEngine", searchEngine);
+		}
 
 		try {
 			contentEventDAO=StatisticsDAOFactory.getContentEventDAO(context);
