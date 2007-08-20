@@ -4,6 +4,12 @@ import org.dspace.core.Context;
 import org.dspace.statistics.dao.*;
 import org.dspace.statistics.event.LogEvent;
 
+/**
+ * Handler for Search events
+ *
+ * @author Federico Paparoni
+ */
+
 public class SearchEventHandler implements StatisticalEventHandler {
    private LogEvent logEvent;
    private Context context;
