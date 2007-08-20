@@ -33,6 +33,10 @@ public class LogEvent implements Serializable{
 		hashTable.put(key, value);
 	}
 
+	public void setAttributes(Hashtable hashTable) {
+		this.hashTable=hashTable;
+	}
+
 	public Hashtable getAttributes() {
 		return hashTable;
 	}
