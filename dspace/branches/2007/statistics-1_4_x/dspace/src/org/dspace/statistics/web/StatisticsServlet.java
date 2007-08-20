@@ -18,6 +18,11 @@ import org.dspace.core.ConfigurationManager;
 import org.dspace.core.Context;
 import org.dspace.eperson.Group;
 
+/**
+ * StatisticsServlet is the main Servlet of Statistics Web UI
+ *
+ * @author Federico Paparoni
+ */
 
 public class StatisticsServlet extends DSpaceServlet {
 	private static Logger log = Logger.getLogger(StatisticsServlet.class);
@@ -63,6 +68,8 @@ public class StatisticsServlet extends DSpaceServlet {
 		JSPManager.showJSP(request, response, "statistics/list.jsp");
     }
 
+
+    //Static method used to retrieve the list of 'List-Report'
     public static ArrayList getReportList() {
     	String stats_views=ConfigurationManager.getProperty("list.views");
 		StringTokenizer tokenizer=new StringTokenizer(stats_views,",");
@@ -81,6 +88,7 @@ public class StatisticsServlet extends DSpaceServlet {
 		return id_stat;
     }
 
+//  Static method used to retrieve the list of 'Graph-Report'
     public static ArrayList getGraphList() {
     	String stats_views=ConfigurationManager.getProperty("graph.views");
 		StringTokenizer tokenizer=new StringTokenizer(stats_views,",");

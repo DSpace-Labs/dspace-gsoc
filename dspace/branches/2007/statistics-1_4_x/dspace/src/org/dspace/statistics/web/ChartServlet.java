@@ -4,7 +4,10 @@ import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Enumeration;
+import java.util.GregorianCalendar;
 import java.util.Hashtable;
 
 import javax.servlet.ServletException;
@@ -24,6 +27,7 @@ import org.jfree.chart.ChartFactory;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.axis.CategoryAxis;
 import org.jfree.chart.axis.CategoryLabelPositions;
+import org.jfree.chart.labels.StandardCategoryItemLabelGenerator;
 import org.jfree.chart.plot.CategoryPlot;
 import org.jfree.chart.plot.PiePlot3D;
 import org.jfree.chart.plot.PlotOrientation;
@@ -35,6 +39,12 @@ import org.jfree.data.general.PieDataset;
 import org.jfree.util.Rotation;
 
 import com.keypoint.PngEncoder;
+
+/**
+ * ChartServlet provides charts for Statistics App
+ *
+ * @author Federico Paparoni
+ */
 
 public class ChartServlet extends DSpaceServlet {
 
@@ -72,20 +82,26 @@ public class ChartServlet extends DSpaceServlet {
     protected void createChart(Context c, HttpServletRequest request, HttpServletResponse response) throws IOException {
     	id=(String)request.getParameter("id");
     	JFreeChart chart=null;
+    	response.setContentType( "image/png" );
+    	BufferedImage buf=null;
 
     	if (id.equals("home")) {
     		CategoryDataset dataset = createDataset(c);
     		chart = createChart(dataset);
+    		buf = chart.createBufferedImage(840, 400, null);
     	} else {
     		DefaultPieDataset dataset = createPieDataset();
     		chart = createPieChart(dataset);
+    		buf = chart.createBufferedImage(500, 280, null);
     	}
 
-
-        response.setContentType( "image/png" );
-        BufferedImage buf = chart.createBufferedImage(640, 400, null);
         PngEncoder encoder = new PngEncoder( buf, false, 0, 9 );
         response.getOutputStream().write( encoder.pngEncode() );
+        try {
+			c.complete();
+		} catch (SQLException e) {
+			log.error(e.toString());
+		}
     }
 
     private DefaultPieDataset createPieDataset() {
@@ -104,18 +120,20 @@ public class ChartServlet extends DSpaceServlet {
 
     private JFreeChart createPieChart(DefaultPieDataset dataset) {
     	JFreeChart chart = ChartFactory.createPieChart3D(
-    			ConfigurationManager.getProperty(id+".name"),  // chart title
-                dataset,                   // data
-                true,                   // include legend
+    			ConfigurationManager.getProperty(id+".name"),
+                dataset,
+                true,
                 true,
                 false
             );
 
-        chart.setBackgroundPaint(Color.BLUE);
+        chart.setBackgroundPaint(Color.LIGHT_GRAY);
+        chart.setBorderVisible(true);
+
         PiePlot3D plot = (PiePlot3D) chart.getPlot();
         plot.setStartAngle(270);
         plot.setDirection(Rotation.ANTICLOCKWISE);
-        plot.setForegroundAlpha(0.60f);
+        plot.setForegroundAlpha(0.50f);
         plot.setInteriorGap(0.33);
     	return chart;
     }
@@ -131,7 +149,7 @@ public class ChartServlet extends DSpaceServlet {
 
 		try {
 			for(int j=0;j<7;j++) {
-				logEvents[j]=dao.find(j+1, j, null, "ALL");
+				logEvents[j]=dao.find(j, null, "ALL");
 				for(int i=0;i<logEvents[j].length;i++) {
 					LogEvent temp=logEvents[j][i];
 					if (temp.getType().equals("ITEM_VIEW"))
@@ -150,28 +168,38 @@ public class ChartServlet extends DSpaceServlet {
 
         double[][] data = new double[][] {item,collection,community,bitstream};
         String[] rowKeys = {"Item View","Collection View","Community View","Bitstream View"};
-        String[] columnKeys = {"1","2","3","4","5","6","7"};
+        String[] columnKeys=new String[7];
+        SimpleDateFormat format=new SimpleDateFormat("MMM d");
+        GregorianCalendar calendar=new GregorianCalendar();
+        columnKeys[0]=format.format(calendar.getTime());
+        calendar.add(Calendar.DAY_OF_MONTH,-1);
+        columnKeys[1]=format.format(calendar.getTime());
+        calendar.add(Calendar.DAY_OF_MONTH,-1);
+        columnKeys[2]=format.format(calendar.getTime());
+        calendar.add(Calendar.DAY_OF_MONTH,-1);
+        columnKeys[3]=format.format(calendar.getTime());
+        calendar.add(Calendar.DAY_OF_MONTH,-1);
+        columnKeys[4]=format.format(calendar.getTime());
+        calendar.add(Calendar.DAY_OF_MONTH,-1);
+        columnKeys[5]=format.format(calendar.getTime());
+        calendar.add(Calendar.DAY_OF_MONTH,-1);
+        columnKeys[6]=format.format(calendar.getTime());
+        calendar.add(Calendar.DAY_OF_MONTH,-1);
+
         return DatasetUtilities.createCategoryDataset(rowKeys,columnKeys, data);
     }
 
-    /**
-     * Creates a chart.
-     *
-     * @param dataset  the dataset.
-     *
-     * @return The chart.
-     */
     private JFreeChart createChart(final CategoryDataset dataset) {
 
         JFreeChart chart = ChartFactory.createBarChart3D(
-            "Last week activity",      // chart title
-            "Last week",               // domain axis label
-            "Values",                  // range axis label
-            dataset,                  // data
-            PlotOrientation.VERTICAL, // orientation
-            true,                     // include legend
-            true,                     // tooltips
-            false                     // urls
+            "Last Week's Activities",
+            "Last week",
+            "Values",
+            dataset,
+            PlotOrientation.VERTICAL,
+            true,
+            true,
+            false
         );
 
         CategoryPlot plot = chart.getCategoryPlot();
@@ -180,6 +208,9 @@ public class ChartServlet extends DSpaceServlet {
             CategoryLabelPositions.createUpRotationLabelPositions(Math.PI / 8.0)
         );
         BarRenderer3D renderer = (BarRenderer3D) plot.getRenderer();
+        renderer.setBaseOutlinePaint(Color.BLACK);
+        renderer.setItemLabelGenerator(new StandardCategoryItemLabelGenerator());
+        renderer.setItemLabelsVisible(true);
         renderer.setDrawBarOutline(false);
 
         return chart;
