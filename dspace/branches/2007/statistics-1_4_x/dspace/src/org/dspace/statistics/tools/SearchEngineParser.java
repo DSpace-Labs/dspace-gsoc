@@ -3,22 +3,25 @@ package org.dspace.statistics.tools;
 import java.util.Enumeration;
 import java.util.Hashtable;
 
+/**
+ * SearchEngineParser checks the HTTP referer
+ * and return a String with
+ * 1) A search engine name
+ * 2) 'null' if the referer isn't a search engine
+ *
+ * @author Federico Paparoni
+ */
+
 public class SearchEngineParser {
 
-	public String httpReferer="";
-	public Hashtable searchEngines;
+	public static Hashtable searchEngines;
 
-    public SearchEngineParser(String httpReferer) {
-    	this.httpReferer=httpReferer;
-    	loadSearchEngines();
-    }
-
-    public String getSearchEngine() {
+    public static String getSearchEngine(String httpReferer) {
     	//FIND SEARCH ENGINE IF AVAILABLE
+    	loadSearchEngines();
         Enumeration enumeration=searchEngines.keys();
         String tempString=null;
         String searchEngine=null;
-        String words=null;
 
         while(enumeration.hasMoreElements()) {
             tempString=(String)enumeration.nextElement();
@@ -31,7 +34,9 @@ public class SearchEngineParser {
         return searchEngine;
     }
 
-    protected void loadSearchEngines() {
+    //LOAD SEARCH ENGINES
+    //MOVE THIS INTO CONFIGURATION FILE
+    protected static void loadSearchEngines() {
     	searchEngines=new Hashtable();
     	searchEngines.put("www.google","Google");
     	searchEngines.put("yahoo.com","Yahoo");
