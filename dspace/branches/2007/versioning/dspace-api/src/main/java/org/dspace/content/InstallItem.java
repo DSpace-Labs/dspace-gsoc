@@ -152,8 +152,12 @@ public class InstallItem
         // Do we have a versioned Item here?
         if (item.getOriginalItemID() != -1 && item.getOriginalItemID() != item.getID())
         {
-            //TODO We really need to figure out how to handle the external IDs here
+            //TODO Give the HEAD revision's EID to this item, and give the HEAD a new EID
         } 
+        else 
+        {
+        	//TODO give this new item an EID
+        }
         
         if (item.getOriginalItemID() == 0)
         {
