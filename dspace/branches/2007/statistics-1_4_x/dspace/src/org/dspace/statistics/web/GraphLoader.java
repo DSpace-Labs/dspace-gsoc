@@ -19,9 +19,18 @@ import org.dspace.authorize.AuthorizeException;
 import org.dspace.core.ConfigurationManager;
 import org.dspace.core.Context;
 import org.dspace.eperson.Group;
+import org.dspace.statistics.dao.AuthenticationEventDAO;
 import org.dspace.statistics.dao.ContentEventDAO;
+import org.dspace.statistics.dao.SearchEventDAO;
 import org.dspace.statistics.dao.StatisticsDAOFactory;
 import org.dspace.statistics.event.LogEvent;
+import org.dspace.statistics.tools.ObjectFilter;
+
+/**
+ * GraphLoader retrieves informations for 'Graph-Report'
+ *
+ * @author Federico Paparoni
+ */
 
 public class GraphLoader extends DSpaceServlet {
 
@@ -69,16 +78,19 @@ public class GraphLoader extends DSpaceServlet {
 		String name=ConfigurationManager.getProperty(id+".name");
 		String attribute=ConfigurationManager.getProperty(id+".attribute");
 		String type=ConfigurationManager.getProperty(id+".type");
+		String filter=ConfigurationManager.getProperty(id+".filter");
 
 		if (type.trim().equals("Content")) {
 			ContentEventDAO dao = StatisticsDAOFactory.getContentEventDAO(context);
 			logEvent=dao.find(action, attribute);
 		}
 		else if (type.equals("Authorization")) {
-
+			AuthenticationEventDAO dao = StatisticsDAOFactory.getAuthenticationEventDAO(context);
+			logEvent=dao.find(action, attribute);
 		}
 		else if (type.equals("Search")) {
-
+			SearchEventDAO dao = StatisticsDAOFactory.getSearchEventDAO(context);
+			logEvent=dao.find(action, attribute);
 		}
 
 		if (logEvent==null) {
@@ -86,7 +98,7 @@ public class GraphLoader extends DSpaceServlet {
 			logEvent=new LogEvent[0];
 		}
 		else {
-			log.info("Ne ho trovati "+logEvent.length);
+			log.info("LogEvents found "+logEvent.length);
 		}
 
 		String tempString="";
@@ -105,6 +117,18 @@ public class GraphLoader extends DSpaceServlet {
 				graphValues.put(tempString, "1");
 		}
 
+		if (!filter.equals("0")) {
+			log.info("Filter "+filter);
+			try{
+				Class c=Class.forName(filter);
+				ObjectFilter resolver=(ObjectFilter)c.newInstance();
+				graphValues=resolver.resolve(context,graphValues);
+			}
+			catch(Exception e){
+				log.error(e.toString());
+			}
+		}
+
 		Enumeration enumeration=graphValues.keys();
 		ArrayList columns=new ArrayList();
 		tempString="";
@@ -118,22 +142,22 @@ public class GraphLoader extends DSpaceServlet {
 			columns.add(temp);
 		}
 
-		java.util.Map temp = new java.util.HashMap();
-		temp.put("property", "US");
-		temp.put("value", "23");
-		columns.add(temp);
-		temp = new java.util.HashMap();
-		temp.put("property", "EN");
-		temp.put("value", "19");
-		columns.add(temp);
+				values.add(columns);
 
+		getServletContext().setAttribute( "title", name);
 		getServletContext().setAttribute( "graphValues", graphValues);
-		getServletContext().setAttribute( "columns", columns);
+		getServletContext().setAttribute( "columns", values);
 		getServletContext().setAttribute( "id", id);
 		getServletContext().setAttribute( "id_list", StatisticsServlet.getReportList());
 		getServletContext().setAttribute( "id_graph", StatisticsServlet.getGraphList());
 
 		JSPManager.showJSP(request, response, "statistics/graph-report.jsp");
+
+		try {
+			context.complete();
+		} catch (SQLException e) {
+			log.error(e.toString());
+		}
     }
 
 }
