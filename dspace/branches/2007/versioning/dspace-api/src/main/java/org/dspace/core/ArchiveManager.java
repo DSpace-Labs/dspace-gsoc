@@ -558,6 +558,7 @@ public class ArchiveManager
 
             options.addOption("a", "all", false, "print all items");
             options.addOption("m", "metadata", false, "print item metadata");
+            options.addOption("r", "revision", false, "new revision of item");
             options.addOption("p", "print", false, "print item");
             options.addOption("u", "user", true, "eperson email address or id");
             options.addOption("i", "item_id", true, "id of the item");
