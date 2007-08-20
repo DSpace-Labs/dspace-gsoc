@@ -2,8 +2,10 @@ package org.dspace.statistics.dao;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.Enumeration;
+import java.util.GregorianCalendar;
 import java.util.Hashtable;
 import java.util.StringTokenizer;
 import java.util.Vector;
@@ -11,6 +13,7 @@ import java.util.Vector;
 import org.apache.log4j.Logger;
 
 import org.dspace.core.Context;
+import org.dspace.statistics.event.ContentEvent;
 import org.dspace.statistics.event.LogEvent;
 import org.dspace.storage.rdbms.DatabaseManager;
 import org.dspace.storage.rdbms.TableRow;
@@ -108,34 +111,118 @@ public class SearchEventDAO implements StatisticsDAO{
 		return false;
 	}
 
+	/**
+	 *
+	 * This method retrieves the LogEvent from database, using as parameters the action
+	 * and the attribute
+	 *
+	 */
+
+	public LogEvent[] find(String action, String attribute) {
+		try {
+			String sqlLogs="";
+			String sqlLogsAttributes="";
+			LogEvent resultEvent;
+			TableRowIterator iterator,iteratorAttr;
+			TableRow tableRow,tableRowAttr;
+
+			if (action.equals("ALL"))
+				sqlLogs="SELECT logs_id,action FROM logs where (action='ITEM_VIEW' or action='COLLECTION_VIEW' or action='COMMUNITY_VIEW' or action='BITSTREAM_VIEW') ";
+			else
+				sqlLogs="SELECT logs_id,action FROM logs where action='"+action+"'";
+
+			iterator = DatabaseManager.query(context, sqlLogs);
+			Vector logEventVector=new Vector();
+			boolean paramFound;
+
+			while(iterator.hasNext()) {
+				resultEvent=new LogEvent();
+				tableRow=iterator.next();
+				resultEvent.setId(tableRow.getIntColumn("logs_id"));
+				if (tableRow.getStringColumn("action").equals("ITEM_VIEW"))
+					resultEvent.setType(ContentEvent.ITEM_VIEW);
+				else if (tableRow.getStringColumn("action").equals("COLLECTION_VIEW"))
+					resultEvent.setType(ContentEvent.COLLECTION_VIEW);
+				else if (tableRow.getStringColumn("action").equals("COMMUNITY_VIEW"))
+					resultEvent.setType(ContentEvent.COMMUNITY_VIEW);
+				else if (tableRow.getStringColumn("action").equals("BITSTREAM_VIEW"))
+					resultEvent.setType(ContentEvent.BITSTREAM_VIEW);
+
+				//SELECT REQUESTED ATTRIBUTE FOR THE EVENT FOUND
+				sqlLogsAttributes="SELECT param,value FROM logs_attributes WHERE logs_id='"+resultEvent.getId()+"'";
+				iteratorAttr = DatabaseManager.query(context, sqlLogsAttributes);
+
+				paramFound=false;
+
+				while(iteratorAttr.hasNext()) {
+					tableRowAttr=iteratorAttr.next();
+					if (attribute.equals(tableRowAttr.getStringColumn("param"))) {
+						resultEvent.setAttribute(tableRowAttr.getStringColumn("param"), tableRowAttr.getStringColumn("value"));
+						paramFound=true;
+					}
+				}
+				iteratorAttr.close();
+				if (paramFound)
+					logEventVector.add(resultEvent);
+			}
+			iterator.close();
+			log.info("Items found "+logEventVector.size());
+			LogEvent[] results=new LogEvent[logEventVector.size()];
+			for(int i=0;i<logEventVector.size();i++)
+				results[i]=(LogEvent)logEventVector.elementAt(i);
+
+			return results;
+		} catch (Exception e) {
+			log.error(e.toString());
+			return null;
+		}
+	}
+
+	/**
+	 *
+	 * This method retrieves the LogEvent from database, using as parameters the action
+	 * and the attributes.
+	 * The int parameter "range" specifies the date range of retrieved events
+	 * If the boolean parameter date is true, also the timestamp of the event
+	 * is retrieved.
+	 *
+	 */
+
 	public LogEvent[] find(String action, String attributes, boolean date, int range) throws StatisticsDAOException {
-		log.info("Prova microfono");
 		LogEvent resultEvent;
 		Object[] params;
 		try {
 			String sqlLogs="";
 			String sqlLogsAttributes="";
 
-
+			//Date attribute
 			if (date)
 				sqlLogs="SELECT logs_id,event_date FROM logs WHERE action = ? ";
 			else
 				sqlLogs="SELECT logs_id FROM logs WHERE action = ? ";
 
-			if (range>0) {
-				long now=System.currentTimeMillis();
-				long start=now-(range*86400000);
-				sqlLogs+=" AND event_date> ?";
-				params = new Object[2];
+			//Time range
+			if (range>=0) {
+				GregorianCalendar calendarStart=new GregorianCalendar();
+				GregorianCalendar calendarEnd=new GregorianCalendar();
+
+				int start=(-range);
+				int end=(-range)+1;
+
+				calendarStart.add(Calendar.DAY_OF_MONTH, start);
+				calendarEnd.add(Calendar.DAY_OF_MONTH, end);
+
+				sqlLogs+=" AND event_date>= ? AND event_date <= ?";
+
+				params = new Object[3];
 				params[0]=new String(action);
-				params[1]=new java.sql.Date(start);
+				params[1]=new java.sql.Date(calendarStart.getTimeInMillis());
+				params[2]=new java.sql.Date(calendarEnd.getTimeInMillis());
 			}
 			else {
 				params = new Object[1];
 				params[0]=new String(action);
 			}
-
-			log.info("SQL STRING "+sqlLogs);
 
 			StringTokenizer tokenizer=new StringTokenizer(attributes,",");
 			Vector vectorAttr=new Vector();
@@ -154,7 +241,6 @@ public class SearchEventDAO implements StatisticsDAO{
 			Vector logEventVector=new Vector();
 
 			while(iterator.hasNext()) {
-				log.info("Orca l'oca");
 				resultEvent=new LogEvent();
 				tableRow=iterator.next();
 				resultEvent.setId(tableRow.getIntColumn("logs_id"));
@@ -164,7 +250,6 @@ public class SearchEventDAO implements StatisticsDAO{
 				//SELECT REQUESTED ATTRIBUTES FOR THE EVENT FOUND
 				sqlLogsAttributes="SELECT param,value FROM logs_attributes WHERE logs_id='"+resultEvent.getId()+"'";
 				iteratorAttr = DatabaseManager.query(context, sqlLogsAttributes);
-				log.info("SQL PER ATTRIBUTI "+sqlLogsAttributes);
 
 				while(iteratorAttr.hasNext()) {
 					tableRowAttr=iteratorAttr.next();
@@ -175,7 +260,7 @@ public class SearchEventDAO implements StatisticsDAO{
 				logEventVector.add(resultEvent);
 			}
 			iterator.close();
-			log.info("Gira ma non l'oca "+logEventVector.size());
+			log.info("Items found "+logEventVector.size());
 			LogEvent[] results=new LogEvent[logEventVector.size()];
 			for(int i=0;i<logEventVector.size();i++)
 				results[i]=(LogEvent)logEventVector.elementAt(i);
