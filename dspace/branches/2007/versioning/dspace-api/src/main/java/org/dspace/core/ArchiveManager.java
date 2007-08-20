@@ -618,7 +618,7 @@ public class ArchiveManager
                     System.exit(1);
                 }
                 
-                System.out.println("Correct!");
+                //System.out.println("Correct!");
 
                 c.setCurrentUser(myEPerson);
 
