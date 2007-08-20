@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Enumeration;
+import java.util.GregorianCalendar;
 import java.util.Hashtable;
 import java.util.StringTokenizer;
 import java.util.Vector;
@@ -76,34 +77,51 @@ public class ContentEventDAO implements StatisticsDAO {
 		}
 	}
 
+	/**
+	 *
+	 * This method retrieves the LogEvent from database, using as parameters the action
+	 * and the attributes.
+	 * The int parameter "range" specifies the date range of retrieved events
+	 * If the boolean parameter date is true, also the timestamp of the event
+	 * is retrieved.
+	 *
+	 */
+
 	public LogEvent[] find(String action, String attributes, boolean date, int range) throws StatisticsDAOException {
-		log.info("Prova microfono");
 		LogEvent resultEvent;
 		Object[] params;
 		try {
 			String sqlLogs="";
 			String sqlLogsAttributes="";
 
-
+			//Date attribute
 			if (date)
 				sqlLogs="SELECT logs_id,event_date FROM logs WHERE action = ? ";
 			else
 				sqlLogs="SELECT logs_id FROM logs WHERE action = ? ";
 
-			if (range>0) {
-				long now=System.currentTimeMillis();
-				long start=now-(range*86400000);
-				sqlLogs+=" AND event_date> ?";
-				params = new Object[2];
+			//Time range
+			if (range>=0) {
+				GregorianCalendar calendarStart=new GregorianCalendar();
+				GregorianCalendar calendarEnd=new GregorianCalendar();
+
+				int start=(-range);
+				int end=(-range)+1;
+
+				calendarStart.add(Calendar.DAY_OF_MONTH, start);
+				calendarEnd.add(Calendar.DAY_OF_MONTH, end);
+
+				sqlLogs+=" AND event_date>= ? AND event_date <= ?";
+
+				params = new Object[3];
 				params[0]=new String(action);
-				params[1]=new java.sql.Date(start);
+				params[1]=new java.sql.Date(calendarStart.getTimeInMillis());
+				params[2]=new java.sql.Date(calendarEnd.getTimeInMillis());
 			}
 			else {
 				params = new Object[1];
 				params[0]=new String(action);
 			}
-
-			log.info("SQL STRING "+sqlLogs);
 
 			StringTokenizer tokenizer=new StringTokenizer(attributes,",");
 			Vector vectorAttr=new Vector();
@@ -122,7 +140,6 @@ public class ContentEventDAO implements StatisticsDAO {
 			Vector logEventVector=new Vector();
 
 			while(iterator.hasNext()) {
-				log.info("Orca l'oca");
 				resultEvent=new LogEvent();
 				tableRow=iterator.next();
 				resultEvent.setId(tableRow.getIntColumn("logs_id"));
@@ -132,7 +149,6 @@ public class ContentEventDAO implements StatisticsDAO {
 				//SELECT REQUESTED ATTRIBUTES FOR THE EVENT FOUND
 				sqlLogsAttributes="SELECT param,value FROM logs_attributes WHERE logs_id='"+resultEvent.getId()+"'";
 				iteratorAttr = DatabaseManager.query(context, sqlLogsAttributes);
-				log.info("SQL PER ATTRIBUTI "+sqlLogsAttributes);
 
 				while(iteratorAttr.hasNext()) {
 					tableRowAttr=iteratorAttr.next();
@@ -143,7 +159,7 @@ public class ContentEventDAO implements StatisticsDAO {
 				logEventVector.add(resultEvent);
 			}
 			iterator.close();
-			log.info("Gira ma non l'oca "+logEventVector.size());
+			log.info("Items found "+logEventVector.size());
 			LogEvent[] results=new LogEvent[logEventVector.size()];
 			for(int i=0;i<logEventVector.size();i++)
 				results[i]=(LogEvent)logEventVector.elementAt(i);
@@ -155,11 +171,17 @@ public class ContentEventDAO implements StatisticsDAO {
 		}
 	}
 
+	/**
+	 *
+	 * This method retrieves the LogEvent from database, using as parameters the action
+	 * and the attribute
+	 *
+	 */
+
 	public LogEvent[] find(String action, String attribute) {
 		try {
 			String sqlLogs="";
 			String sqlLogsAttributes="";
-			Vector vectorAttr=new Vector();
 			LogEvent resultEvent;
 			TableRowIterator iterator,iteratorAttr;
 			TableRow tableRow,tableRowAttr;
@@ -171,9 +193,9 @@ public class ContentEventDAO implements StatisticsDAO {
 
 			iterator = DatabaseManager.query(context, sqlLogs);
 			Vector logEventVector=new Vector();
+			boolean paramFound;
 
 			while(iterator.hasNext()) {
-				log.info("Orca l'oca");
 				resultEvent=new LogEvent();
 				tableRow=iterator.next();
 				resultEvent.setId(tableRow.getIntColumn("logs_id"));
@@ -189,19 +211,22 @@ public class ContentEventDAO implements StatisticsDAO {
 				//SELECT REQUESTED ATTRIBUTE FOR THE EVENT FOUND
 				sqlLogsAttributes="SELECT param,value FROM logs_attributes WHERE logs_id='"+resultEvent.getId()+"'";
 				iteratorAttr = DatabaseManager.query(context, sqlLogsAttributes);
-				log.info("SQL PER ATTRIBUTI "+sqlLogsAttributes);
+
+				paramFound=false;
 
 				while(iteratorAttr.hasNext()) {
 					tableRowAttr=iteratorAttr.next();
-					if (attribute.equals(tableRowAttr.getStringColumn("param")))
+					if (attribute.equals(tableRowAttr.getStringColumn("param"))) {
 						resultEvent.setAttribute(tableRowAttr.getStringColumn("param"), tableRowAttr.getStringColumn("value"));
+						paramFound=true;
+					}
 				}
 				iteratorAttr.close();
-
-				logEventVector.add(resultEvent);
+				if (paramFound)
+					logEventVector.add(resultEvent);
 			}
 			iterator.close();
-			log.info("Gira ma non l'oca "+logEventVector.size());
+			log.info("Found items "+logEventVector.size());
 			LogEvent[] results=new LogEvent[logEventVector.size()];
 			for(int i=0;i<logEventVector.size();i++)
 				results[i]=(LogEvent)logEventVector.elementAt(i);
@@ -213,7 +238,14 @@ public class ContentEventDAO implements StatisticsDAO {
 		}
 	}
 
-	public LogEvent[] find(int start, int end, String attributes, String action) throws SQLException {
+	/**
+	 *
+	 * This method retrieves the LogEvent from database, using as parameters the action, the attributes
+	 * and the date range
+	 *
+	 */
+
+	public LogEvent[] find(int range, String attributes, String action) throws SQLException {
 		String sqlLogs="";
 		String sqlLogsAttributes="";
 		Object params[] = new Object[2];
@@ -225,16 +257,20 @@ public class ContentEventDAO implements StatisticsDAO {
 		else
 			sqlLogs="SELECT logs_id,action FROM logs where action='"+action+"'";
 
-		if (((start>0)&&(end>=0))&&(action.equals("ALL"))) {
-			//Date of start is uncorrect. Must be corrected
-			long now=System.currentTimeMillis();
-			long startDate=now-(start*86400000);
-			long endDate=now-(end*86400000);
+		//Time range
+		if ((range>=0)&&(action.equals("ALL"))) {
+			GregorianCalendar calendarEnd=new GregorianCalendar();
+			GregorianCalendar calendarStart=new GregorianCalendar();
+
+			int end=(-range)+1;
+			int start=(-range);
+
+			calendarEnd.add(Calendar.DAY_OF_MONTH, end);
+			calendarStart.add(Calendar.DAY_OF_MONTH, start);
+
 			sqlLogs+=" AND event_date>= ? AND event_date <= ?";
-			params[0]=new java.sql.Date(startDate);
-			params[1]=new java.sql.Date(endDate);
-			log.info(params[0]);
-			log.info(params[1]);
+			params[0]=new java.sql.Date(calendarStart.getTimeInMillis());
+			params[1]=new java.sql.Date(calendarEnd.getTimeInMillis());
 		}
 		else
 			params=null;
@@ -251,8 +287,6 @@ public class ContentEventDAO implements StatisticsDAO {
 			}
 		}
 
-		log.info("SQL "+sqlLogs);
-
 		TableRowIterator iterator,iteratorAttr;
 		TableRow tableRow,tableRowAttr;
 
@@ -264,7 +298,6 @@ public class ContentEventDAO implements StatisticsDAO {
 		Vector logEventVector=new Vector();
 
 		while(iterator.hasNext()) {
-			log.info("Orca l'oca");
 			resultEvent=new LogEvent();
 			tableRow=iterator.next();
 			resultEvent.setId(tableRow.getIntColumn("logs_id"));
@@ -281,7 +314,6 @@ public class ContentEventDAO implements StatisticsDAO {
 				//SELECT REQUESTED ATTRIBUTES FOR THE EVENT FOUND
 				sqlLogsAttributes="SELECT param,value FROM logs_attributes WHERE logs_id='"+resultEvent.getId()+"'";
 				iteratorAttr = DatabaseManager.query(context, sqlLogsAttributes);
-				log.info("SQL PER ATTRIBUTI "+sqlLogsAttributes);
 
 				while(iteratorAttr.hasNext()) {
 					tableRowAttr=iteratorAttr.next();
@@ -294,7 +326,7 @@ public class ContentEventDAO implements StatisticsDAO {
 			logEventVector.add(resultEvent);
 		}
 		iterator.close();
-		log.info("Gira ma non l'oca "+logEventVector.size());
+		log.info("Items found "+logEventVector.size());
 		LogEvent[] results=new LogEvent[logEventVector.size()];
 		for(int i=0;i<logEventVector.size();i++)
 			results[i]=(LogEvent)logEventVector.elementAt(i);
