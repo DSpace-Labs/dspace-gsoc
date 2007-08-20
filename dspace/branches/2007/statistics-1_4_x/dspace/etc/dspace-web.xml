@@ -45,7 +45,7 @@
   - The is the servlet deployment descriptor for Tomcat 4.0 for the DSpace
   - Web user interface
   -
-  - '@@dspace.dir@@' will be replaced with the directory where DSpace is installed
+  - 'c:/dspace' will be replaced with the directory where DSpace is installed
   -->
 
 <web-app>
@@ -57,7 +57,7 @@
 
   <context-param>
     <param-name>dspace-config</param-name>
-    <param-value>@@dspace.dir@@/config/dspace.cfg</param-value>
+    <param-value>c:/dspace/config/dspace.cfg</param-value>
     <description>
       The location of the main DSpace configuration file
     </description>
@@ -81,8 +81,17 @@
     <filter-class>org.dspace.app.webui.filter.RegisteredOnlyFilter</filter-class>
   </filter>
 
+  <filter>
+    <filter-name>ResponseOverrideFilter</filter-name>
+    <filter-class>org.displaytag.filter.ResponseOverrideFilter</filter-class>
+  </filter>
 
   <!-- Filter mappings -->
+
+  <filter-mapping>
+    <filter-name>ResponseOverrideFilter</filter-name>
+    <url-pattern>/statistics/*</url-pattern>
+  </filter-mapping>
 
   <filter-mapping>
     <filter-name>admin-only</filter-name>
@@ -124,6 +133,7 @@
     <url-pattern>/view-workspaceitem</url-pattern>
   </filter-mapping>
 
+
   <!-- Servlets -->
 
   <!-- DSpace configuration initialisation.  This needs to be loaded before
@@ -138,6 +148,31 @@
     <servlet-name>stats-config</servlet-name>
     <servlet-class>org.dspace.statistics.StartupStatsServlet</servlet-class>
     <load-on-startup>1</load-on-startup>
+  </servlet>
+
+  <servlet>
+    <servlet-name>reportlist</servlet-name>
+    <servlet-class>org.dspace.statistics.web.ListReportServlet</servlet-class>
+  </servlet>
+
+  <servlet>
+    <servlet-name>listloader</servlet-name>
+    <servlet-class>org.dspace.statistics.web.ListLoader</servlet-class>
+  </servlet>
+
+  <servlet>
+    <servlet-name>graphloader</servlet-name>
+    <servlet-class>org.dspace.statistics.web.GraphLoader</servlet-class>
+  </servlet>
+
+  <servlet>
+    <servlet-name>chartServlet</servlet-name>
+    <servlet-class>org.dspace.statistics.web.ChartServlet</servlet-class>
+  </servlet>
+
+  <servlet>
+    <servlet-name>statistics</servlet-name>
+    <servlet-class>org.dspace.statistics.web.StatisticsServlet</servlet-class>
   </servlet>
 
   <servlet>
@@ -355,11 +390,6 @@
   </servlet>
 
   <servlet>
-    <servlet-name>statistics</servlet-name>
-    <servlet-class>org.dspace.app.webui.servlet.StatisticsServlet</servlet-class>
-  </servlet>
-
-  <servlet>
     <servlet-name>submit</servlet-name>
     <servlet-class>org.dspace.app.webui.servlet.SubmitServlet</servlet-class>
   </servlet>
@@ -444,6 +474,11 @@
   </servlet-mapping>
 
   <servlet-mapping>
+    <servlet-name>chartServlet</servlet-name>
+    <url-pattern>/chartServlet</url-pattern>
+  </servlet-mapping>
+
+  <servlet-mapping>
     <servlet-name>community-list</servlet-name>
     <url-pattern>/community-list</url-pattern>
   </servlet-mapping>
@@ -516,6 +551,11 @@
   <servlet-mapping>
     <servlet-name>format-registry</servlet-name>
     <url-pattern>/dspace-admin/format-registry</url-pattern>
+  </servlet-mapping>
+
+  <servlet-mapping>
+    <servlet-name>graphloader</servlet-name>
+    <url-pattern>/graphloader</url-pattern>
   </servlet-mapping>
 
   <servlet-mapping>
@@ -606,6 +646,16 @@
   <servlet-mapping>
     <servlet-name>statistics</servlet-name>
     <url-pattern>/statistics</url-pattern>
+  </servlet-mapping>
+
+  <servlet-mapping>
+    <servlet-name>listloader</servlet-name>
+    <url-pattern>/listloader</url-pattern>
+  </servlet-mapping>
+
+  <servlet-mapping>
+    <servlet-name>reportlist</servlet-name>
+    <url-pattern>/reportlist</url-pattern>
   </servlet-mapping>
 
   <servlet-mapping>
