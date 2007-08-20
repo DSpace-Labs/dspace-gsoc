@@ -19,7 +19,6 @@ import org.dspace.statistics.event.LogEvent;
  * JMS based logger
  *
  * @author Federico Paparoni
- * @version $Revision: 1 $
  */
 
 public class JMSLogger extends StatsLogger {
@@ -43,10 +42,8 @@ public class JMSLogger extends StatsLogger {
 	        log.info("LogEvent sent");
         } catch (NamingException e) {
             log.error(e.toString());
-            // TODO handle exception
         } catch (JMSException e) {
             log.error(e.toString());
-            // TODO handle exception
         }
     }
 }

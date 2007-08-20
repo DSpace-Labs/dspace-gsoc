@@ -24,10 +24,9 @@ import org.apache.activemq.broker.BrokerService;
 import org.apache.log4j.Logger;
 
 /**
- * Startup Servlet setups the listener for JMS queue
+ * Startup Servlet creates the listener for JMS queue
  *
  * @author Federico Paparoni
- * @version $Revision: 1 $
  */
 
 public class StartupStatsServlet extends HttpServlet {
@@ -42,7 +41,6 @@ public class StartupStatsServlet extends HttpServlet {
 	private String DESTINATION="jms/queue/MyQueue";
 	private InitialContext initCtx;
 	private Context envContext;
-	private BrokerService broker = new BrokerService();
 
 	protected void doGet(final HttpServletRequest arg0, final HttpServletResponse arg1) throws ServletException, IOException {
 		super.doGet(arg0, arg1);
