@@ -617,6 +617,8 @@ public class ArchiveManager
                     System.out.println("Error, eperson cannot be found: " + eperson);
                     System.exit(1);
                 }
+                
+                System.out.println("Correct!");
 
                 c.setCurrentUser(myEPerson);
 
