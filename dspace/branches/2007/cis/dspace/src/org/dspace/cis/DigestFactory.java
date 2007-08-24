@@ -184,7 +184,7 @@ public class DigestFactory
     {
         Bitstream[] bitstreams = bundle.getBitstreams();
 
-        String tmp = null;
+        String tmp = "";
 
         for (int i = 0; i < bitstreams.length; i++)
         {
@@ -201,7 +201,7 @@ public class DigestFactory
      */
     public String digest(Bundle[] bundles)
     {
-        String tmp = null;
+        String tmp = "";
 
         for (int i = 0; i < bundles.length; i++)
         {
@@ -232,7 +232,7 @@ public class DigestFactory
      */
     public String digest(DCValue[] dcvalues)
     {
-        String tmp = null;
+        String tmp = "";
 
         for (int i = 0; i < dcvalues.length; i++)
         {
