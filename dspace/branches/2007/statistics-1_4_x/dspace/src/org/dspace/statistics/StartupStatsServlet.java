@@ -56,7 +56,8 @@ public class StartupStatsServlet extends HttpServlet {
 			connection.stop();
 			connection.close();
 		}catch(Exception e){
-            log.error(e.toString());
+			log.error("caught exception", e);
+            // log.error(e.toString());
         }
 	}
 
@@ -82,9 +83,11 @@ public class StartupStatsServlet extends HttpServlet {
             connection.start();
             log.info("Stats event queue configured");
         } catch (NamingException ex) {
-            log.error(ex.toString());
+        	log.error("caught exception: ", ex);
+            // log.error(ex.toString());
         } catch (JMSException ex) {
-            log.error(ex.toString());
+        	log.error("caught exception: ", ex);
+            // log.error(ex.toString());
         }
 	}
 
