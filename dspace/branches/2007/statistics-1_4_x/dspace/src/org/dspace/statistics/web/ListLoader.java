@@ -29,7 +29,6 @@ import org.dspace.statistics.dao.StatisticsDAOFactory;
 import org.dspace.statistics.event.LogEvent;
 import org.dspace.statistics.event.SearchEvent;
 import org.dspace.statistics.tools.ObjectFilter;
-import org.dspace.statistics.web.bean.ListBean;
 
 /**
  * GraphLoader retrieves informations for 'List-Report'
