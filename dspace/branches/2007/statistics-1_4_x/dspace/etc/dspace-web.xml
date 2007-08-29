@@ -45,7 +45,7 @@
   - The is the servlet deployment descriptor for Tomcat 4.0 for the DSpace
   - Web user interface
   -
-  - 'c:/dspace' will be replaced with the directory where DSpace is installed
+  - '@@dspace.dir@@' will be replaced with the directory where DSpace is installed
   -->
 
 <web-app>
@@ -57,7 +57,7 @@
 
   <context-param>
     <param-name>dspace-config</param-name>
-    <param-value>c:/dspace/config/dspace.cfg</param-value>
+    <param-value>@@dspace.dir@@/config/dspace.cfg</param-value>
     <description>
       The location of the main DSpace configuration file
     </description>
