@@ -4,9 +4,9 @@ CREATE SEQUENCE logs_seq
   MAXVALUE 9223372036854775807
   START 195
   CACHE 1;
-ALTER TABLE logs_seq OWNER TO dspace;
+-- ALTER TABLE logs_seq OWNER TO dspace;
 
-COMMIT;
+-- COMMIT;
 
 CREATE SEQUENCE logs_attributes_seq
   INCREMENT 1
@@ -14,9 +14,9 @@ CREATE SEQUENCE logs_attributes_seq
   MAXVALUE 9223372036854775807
   START 507
   CACHE 1;
-ALTER TABLE logs_attributes_seq OWNER TO dspace;
+-- ALTER TABLE logs_attributes_seq OWNER TO dspace;
 
-COMMIT;
+-- COMMIT;
 
 CREATE TABLE logs
 (
@@ -27,9 +27,9 @@ CREATE TABLE logs
   CONSTRAINT logs_pkey PRIMARY KEY (logs_id)
 )
 WITHOUT OIDS;
-ALTER TABLE logs OWNER TO dspace;
+-- ALTER TABLE logs OWNER TO dspace;
 
-COMMIT;
+-- COMMIT;
 
 CREATE TABLE logs_attributes
 (
@@ -43,6 +43,6 @@ CREATE TABLE logs_attributes
       ON UPDATE NO ACTION ON DELETE CASCADE
 )
 WITHOUT OIDS;
-ALTER TABLE logs_attributes OWNER TO dspace;
+-- ALTER TABLE logs_attributes OWNER TO dspace;
 
-COMMIT;
+-- COMMIT;
