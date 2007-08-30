@@ -73,6 +73,7 @@ public class ContentEventDAO implements StatisticsDAO {
 		        context.commit();
 		        return true;
 		} catch (SQLException e) {
+			log.error("caught exception: ", e);
 			throw new StatisticsDAOException(e);
 		}
 	}
