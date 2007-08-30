@@ -38,13 +38,18 @@ public class ContentEventHandler implements StatisticalEventHandler {
 		}
 
 		try {
+			if (context == null)
+			{
+				log.info("null context in ContentEventHandler");
+			}
 			contentEventDAO=StatisticsDAOFactory.getContentEventDAO(context);
 			contentEventDAO.commit(logEvent);
 			if (context != null && context.isValid()) {
 				context.commit();
 		    }
 		} catch (Exception e) {
-			log.error(e.toString());
+			log.error("caught exception: ", e);
+			// log.error(e.toString());
 		}
 	}
 

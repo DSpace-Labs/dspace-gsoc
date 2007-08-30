@@ -37,7 +37,7 @@ public class JMSDispatcher implements MessageListener {
     	try {
 			this.context=new Context();
 		} catch (SQLException e) {
-			log.error(e.toString());
+			log.error("error initialising jms dispatcher context:", e);
 		}
     }
 
