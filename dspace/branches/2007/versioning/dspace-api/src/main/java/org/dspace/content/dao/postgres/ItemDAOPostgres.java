@@ -823,8 +823,10 @@ public class ItemDAOPostgres extends ItemDAO
                     " WHERE item_id=" + item.getID() +
                     " AND bundle_id=" + bundle.getID());
 
-            // FIXME: If true, this will leave the TableRowIterator open
-            return tri.hasNext();
+            boolean result = tri.hasNext();
+            tri.close();
+
+            return result;
         }
         catch (SQLException sqle)
         {
