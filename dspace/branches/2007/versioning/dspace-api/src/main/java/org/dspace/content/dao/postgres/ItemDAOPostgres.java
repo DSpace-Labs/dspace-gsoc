@@ -469,7 +469,7 @@ public class ItemDAOPostgres extends ItemDAO
             // "in_archive=true" condition, we are using the existence of a
             // persistent identifier as our 'existence criterion'.
             String query =
-                "SELECT p.value, p.type_id, p.resource_id, " +
+                "SELECT p.value, p.type_id, p.resource_id as item_id, " +
                 "i.withdrawn, i.last_modified " +
                 "FROM externalidentifier p, item i";
 
@@ -679,8 +679,6 @@ public class ItemDAOPostgres extends ItemDAO
             }
             else
             {
-                System.out.println(query.toString());
-                System.out.println(field.getID() + ":" + value.getValue());
                 tri = DatabaseManager.query(context, query.toString(),
                         field.getID(), value.getValue());
             }
