@@ -58,6 +58,7 @@ import org.dspace.content.Collection;
 import org.dspace.content.Community;
 import org.dspace.content.DCDate;
 import org.dspace.content.DSpaceObject;
+import org.dspace.content.InstallItem;
 import org.dspace.content.Item;
 import org.dspace.content.Bundle;
 import org.dspace.content.InstallItem;
@@ -75,6 +76,8 @@ import org.dspace.content.dao.WorkspaceItemDAOFactory;
 import org.dspace.content.uri.ExternalIdentifier;
 import org.dspace.eperson.EPerson;
 import org.dspace.eperson.Group;
+import org.dspace.eperson.dao.GroupDAO;
+import org.dspace.eperson.dao.GroupDAOFactory;
 import org.dspace.search.DSIndexer;
 import org.dspace.eperson.Group;
 
@@ -555,6 +558,7 @@ public class ArchiveManager
             CommandLineParser parser = new PosixParser();
             Options options = new Options();
             ItemDAO itemDAO = ItemDAOFactory.getInstance(c);
+            GroupDAO groupDAO = GroupDAOFactory.getInstance(c);
 
             options.addOption("a", "all", false, "print all items");
             options.addOption("m", "metadata", false, "print item metadata");
@@ -572,7 +576,7 @@ public class ArchiveManager
             }
             else if (line.hasOption('g')) 
             {
-                printGroups(Group.findAll(c, 1));
+                printGroups(groupDAO.getGroups(1));
             }
             else if (line.hasOption("m") && line.hasOption("i"))
             {
@@ -652,9 +656,9 @@ public class ArchiveManager
     
     /**
      * Prints out the list of groups using toString()
-     * @param g Group[]
+     * @param groups Group[]
      */
-    private static void printGroups(Group[] groups)
+    private static void printGroups(List<Group> groups)
     {
         for (Group g : groups)
         {
