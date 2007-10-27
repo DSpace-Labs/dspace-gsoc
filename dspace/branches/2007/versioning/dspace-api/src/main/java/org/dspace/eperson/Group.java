@@ -242,6 +242,7 @@ public class Group extends DSpaceObject
         return group;
     }
 
+    @Deprecated
     public void update() throws AuthorizeException
     {
         dao.update(this);
