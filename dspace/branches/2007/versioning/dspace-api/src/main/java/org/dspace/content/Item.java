@@ -178,7 +178,6 @@ public class Item extends DSpaceObject
     public void setArchived(boolean inArchive)
     {
         this.inArchive = inArchive;
-        context.addEvent(new Event(Event.CREATE, Constants.ITEM, getID(), null));
     }
 
     /**
@@ -636,7 +635,7 @@ public class Item extends DSpaceObject
      * bundle is orphaned.
      *
      * FIXME: Will this ever not be the case? Can multiple Items own the same
-     * Bundle?
+     * Bundle? (I think the answer is no).
      *
      * Yes, Versioning.
      *
@@ -1274,7 +1273,11 @@ public class Item extends DSpaceObject
     @Deprecated
     static Item create(Context context) throws AuthorizeException
     {
-        return ItemDAOFactory.getInstance(context).create();
+        Item item = ItemDAOFactory.getInstance(context).create();
+
+        context.addEvent(new Event(Event.CREATE, Constants.ITEM, item.getID(), null));
+
+        return item;
     }
 
     @Deprecated
@@ -1293,11 +1296,13 @@ public class Item extends DSpaceObject
         ItemDAO dao = ItemDAOFactory.getInstance(context);
         List<Item> items = dao.getItemsBySubmitter(eperson);
 
-        ArrayList list = new ArrayList();
+        ArrayList<Integer> list = new ArrayList<Integer>();
+        
         for (Item i : items)
         {
             list.add(i.getID());
         }
+
         return new ItemIterator(context, list);
     }
 
@@ -1365,6 +1370,9 @@ public class Item extends DSpaceObject
     @Deprecated
     public void move (Collection from, Collection to) throws AuthorizeException, IOException
     {
+        ArchiveManager.move(context, this, from, to);
+        
+        /*
         if (isOwningCollection(from))
         {
             setOwningCollection(to);
@@ -1373,6 +1381,7 @@ public class Item extends DSpaceObject
 
         to.addItem(this);
         from.removeItem(this);
+        */
     }
 
     /**
@@ -1383,36 +1392,6 @@ public class Item extends DSpaceObject
     @Deprecated
     public Collection[] getCollectionsNotLinked()
     {
-        Collection[] allCollections = Collection.findAll(context);
-        Collection[] linkedCollections = getCollections();
-        Collection[] notLinkedCollections = new Collection[allCollections.length - linkedCollections.length];
-
-        if ((allCollections.length - linkedCollections.length) == 0)
-        {
-            return notLinkedCollections;
-        }
-
-        int i = 0;
-
-        for (Collection collection : allCollections)
-        {
-            boolean alreadyLinked = false;
-
-            for (Collection linkedCommunity : linkedCollections)
-            {
-                if (collection.getID() == linkedCommunity.getID())
-                {
-                    alreadyLinked = true;
-                    break;
-                }
-            }
-
-            if (!alreadyLinked)
-            {
-                notLinkedCollections[i++] = collection;
-            }
-        }
-
-        return notLinkedCollections;
+        return collectionDAO.getCollectionsNotLinked(this).toArray(new Collection[0]);
     }
 }
