@@ -287,7 +287,6 @@ public class WorkflowManager
 
         for (TaskListItem tli : tlItems)
         {
-            log.info(tli);
             wfItems.add(dao.retrieve(tli.getWorkflowItemID()));
         }
 
