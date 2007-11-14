@@ -425,17 +425,18 @@ public class Item extends DSpaceObject
     {
         // We will not verify that they are valid entries in the registry
         // until update() is called.
-        for (int i = 0; i < values.length; i++)
+        for (String value : values)
         {
             DCValue dcv = new DCValue();
             dcv.schema = schema;
             dcv.element = element;
             dcv.qualifier = qualifier;
             dcv.language = lang;
-            if (values[i] != null)
+
+            if (value != null && !value.trim().equals(""))
             {
                 // remove control unicode char
-                String temp = values[i].trim();
+                String temp = value.trim();
                 char[] dcvalue = temp.toCharArray();
                 for (int charPos = 0; charPos < dcvalue.length; charPos++)
                 {
@@ -451,7 +452,8 @@ public class Item extends DSpaceObject
             }
             else
             {
-                dcv.value = null;
+                continue;
+//                dcv.value = null;
             }
             
             if (!metadata.contains(dcv))
@@ -497,9 +499,9 @@ public class Item extends DSpaceObject
         }
 
         Iterator<DCValue> i = metadata.iterator();
-        for (DCValue dcv = i.next(); i.hasNext(); )
+        while (i.hasNext())
         {
-            if (match(schema, element, qualifier, lang, dcv))
+            if (match(schema, element, qualifier, lang, i.next()))
             {
                 i.remove();
                 metadataChanged = true;
@@ -622,11 +624,6 @@ public class Item extends DSpaceObject
      */
     public void addBundle(Bundle b) throws AuthorizeException
     {
-        AuthorizeManager.authorizeAction(context, this, Constants.ADD);
-
-        log.info(LogManager.getHeader(context, "add_bundle", "item_id="
-                + getID() + ",bundle_id=" + b.getID()));
-
         // Check it's not already there
         for (Bundle bundle : getBundles())
         {
@@ -637,6 +634,8 @@ public class Item extends DSpaceObject
                 return;
             }
         }
+
+        AuthorizeManager.inheritPolicies(context, this, b);
 
         bundles.add(b);
 
@@ -670,8 +669,8 @@ public class Item extends DSpaceObject
                 i.remove();
             }
         }
-        context.addEvent(new Event(Event.REMOVE, Constants.ITEM, getID(), Constants.BUNDLE, b.getID(), b.getName()));
 
+        context.addEvent(new Event(Event.REMOVE, Constants.ITEM, getID(), Constants.BUNDLE, b.getID(), b.getName()));
     }
 
     /**
