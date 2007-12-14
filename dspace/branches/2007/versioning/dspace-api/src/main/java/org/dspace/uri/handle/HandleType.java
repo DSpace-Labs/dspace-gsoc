@@ -1,5 +1,5 @@
 /*
- * BundleDAOFactory.java
+ * HandleType.java
  *
  * Version: $Revision: 1727 $
  *
@@ -37,41 +37,24 @@
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
  * DAMAGE.
  */
-package org.dspace.content.dao;
+package org.dspace.uri.handle;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
-import org.dspace.content.dao.postgres.BundleDAOPostgres;
 import org.dspace.core.ConfigurationManager;
-import org.dspace.core.Context;
-import org.dspace.core.PluginManager;
+import org.dspace.uri.ExternalIdentifierType;
 
 /**
  * @author James Rutherford
  */
-public class BundleDAOFactory extends ContentDAOFactory
+public class HandleType extends ExternalIdentifierType
 {
-    public static BundleDAO getInstance(Context context)
+    public HandleType()
     {
-        List<BundleDAO> list = new ArrayList<BundleDAO>();
+        super("hdl", "http", "hdl.handle.net");
+    }
 
-        list.add(new BundleDAOCore(context));
-        if (ConfigurationManager.getBooleanProperty("dao.stack.bundle.enabled"))
-        {
-            Object[] hooks = PluginManager.getPluginSequence(BundleDAO.class);
-            list.addAll(Arrays.asList((BundleDAO[]) hooks));
-        }
-        list.add(new BundleDAOPostgres(context));
-
-        BundleDAO[] daos = list.toArray(new BundleDAO[list.size()]);
-        for (int i = 0; i < daos.length - 2; i++)
-        {
-            daos[i] = (BundleDAO) getInstance(daos[i], context);
-            daos[i].setChild(daos[i+1]);
-        }
-
-        return daos[0];
+    public String getPrefix()
+    {
+        // FIXME: I'm not sure this is kosher
+        return ConfigurationManager.getProperty("handle.prefix") + "/";
     }
 }
