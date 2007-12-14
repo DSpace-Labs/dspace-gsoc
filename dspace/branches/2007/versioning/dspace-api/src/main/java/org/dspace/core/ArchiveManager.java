@@ -39,7 +39,6 @@
  */
 package org.dspace.core;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.List;
 
@@ -71,12 +70,12 @@ import org.dspace.content.dao.CommunityDAO;
 import org.dspace.content.dao.CommunityDAOFactory;
 import org.dspace.content.dao.WorkspaceItemDAO;
 import org.dspace.content.dao.WorkspaceItemDAOFactory;
-import org.dspace.uri.ExternalIdentifier;
 import org.dspace.eperson.EPerson;
 import org.dspace.eperson.Group;
 import org.dspace.eperson.dao.GroupDAO;
 import org.dspace.eperson.dao.GroupDAOFactory;
 import org.dspace.eperson.Group;
+import org.dspace.uri.ExternalIdentifier;
 
 public class ArchiveManager
 {
