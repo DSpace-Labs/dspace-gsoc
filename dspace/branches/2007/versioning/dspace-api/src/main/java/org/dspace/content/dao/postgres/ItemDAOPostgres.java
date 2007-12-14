@@ -83,11 +83,7 @@ import org.dspace.storage.rdbms.TableRowIterator;
  */
 public class ItemDAOPostgres extends ItemDAO
 {
-    /** query to obtain all the items from the database */
-    private final String findAll = "SELECT * FROM item";
-
-    /** query to check the existance of an item id */
-    private final String getByID = "SELECT id FROM item WHERE item_id = ?";
+    private ItemDAO childDAO;
 
     /**
      * Query to get the head revision for a given item
@@ -145,6 +141,18 @@ public class ItemDAOPostgres extends ItemDAO
     }
 
     @Override
+    public ItemDAO getChild()
+    {
+        return childDAO;
+    }
+
+    @Override
+    public void setChild(ItemDAO childDAO)
+    {
+        this.childDAO = childDAO;
+    }
+
+    @Override
     public Item create() throws AuthorizeException
     {
         UUID uuid = UUID.randomUUID();
@@ -159,7 +167,7 @@ public class ItemDAOPostgres extends ItemDAO
             Item item = new ItemProxy(context, id);
             item.setIdentifier(new ObjectIdentifier(uuid));
 
-            return super.create(item);
+            return item;
         }
         catch (SQLException sqle)
         {
@@ -203,13 +211,6 @@ public class ItemDAOPostgres extends ItemDAO
     @Override
     public Item retrieve(int id)
     {
-        Item item = super.retrieve(id);
-
-        if (item != null)
-        {
-            return item;
-        }
-
         try
         {
             TableRow row = DatabaseManager.find(context, "item", id);
@@ -225,13 +226,6 @@ public class ItemDAOPostgres extends ItemDAO
     @Override
     public Item retrieve(UUID uuid)
     {
-        Item item = super.retrieve(uuid);
-
-        if (item != null)
-        {
-            return item;
-        }
-
         try
         {
             TableRow row = DatabaseManager.findByUnique(context, "item",
@@ -248,8 +242,6 @@ public class ItemDAOPostgres extends ItemDAO
     @Override
     public void update(Item item) throws AuthorizeException
     {
-        super.update(item);
-
         try
         {
             TableRow row = DatabaseManager.find(context, "item", item.getID());
@@ -275,8 +267,6 @@ public class ItemDAOPostgres extends ItemDAO
     @Override
     public void delete(int id) throws AuthorizeException
     {
-        super.delete(id);
-
         try
         {
             removeMetadataFromDatabase(id);
@@ -304,6 +294,12 @@ public class ItemDAOPostgres extends ItemDAO
         {
             throw new RuntimeException(sqle);
         }
+    }
+
+    @Override
+    public List<Item> getItems(MetadataValue value)
+    {
+        return new ArrayList<Item>();
     }
 
     @Override
@@ -414,8 +410,6 @@ public class ItemDAOPostgres extends ItemDAO
             // consistent. This is so that big harvests can be broken up into
             // several smaller operations (e.g. for OAI resumption tokens.)
             query += " ORDER BY p.resource_id";
-
-            log.debug(LogManager.getHeader(context, "harvest SQL", query));
 
             // Execute
             Object[] parametersArray = parameters.toArray();
@@ -604,8 +598,6 @@ public class ItemDAOPostgres extends ItemDAO
     {
         if (!linked(item, bundle))
         {
-            super.link(item, bundle);
-
             try
             {
                 TableRow row = DatabaseManager.create(context, "item2bundle");
@@ -629,8 +621,6 @@ public class ItemDAOPostgres extends ItemDAO
     {
         if (linked(item, bundle))
         {
-            super.unlink(item, bundle);
-
             try
             {
                 // Remove bundle mappings from DB
@@ -665,6 +655,11 @@ public class ItemDAOPostgres extends ItemDAO
         {
             throw new RuntimeException(sqle);
         }
+    }
+
+    @Override
+    public void decache(Item item)
+    {
     }
 
     ////////////////////////////////////////////////////////////////////
@@ -786,7 +781,7 @@ public class ItemDAOPostgres extends ItemDAO
 
                 if (field == null)
                 {
-                    log.error("Loading item - cannot found metadata field "
+                    log.error("Loading item - cannot find metadata field "
                             + fieldID);
                 }
                 else
