@@ -1,5 +1,5 @@
 /*
- * ExternalIdentifierDAOPostgresTest.java
+ * ExternalIdentifierDAOFactory.java
  *
  * Version: $Revision: 1727 $
  *
@@ -37,52 +37,18 @@
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
  * DAMAGE.
  */
-package org.dspace.content.uri.dao;
+package org.dspace.uri.dao;
 
-import java.util.List;
+import org.dspace.uri.dao.postgres.ExternalIdentifierDAOPostgres;
+import org.dspace.core.Context;
 
-import org.dspace.content.DSpaceObject;
-import org.dspace.content.uri.ExternalIdentifier;
-import org.dspace.content.uri.ExternalIdentifier.Type;
-import org.dspace.storage.dao.DAOTest;
-
-import org.junit.Test;
-import static org.junit.Assert.*;
-
-public class ExternalIdentifierDAOTest extends DAOTest
+/**
+ * @author James Rutherford
+ */
+public class ExternalIdentifierDAOFactory
 {
-    private ExternalIdentifierDAO instance;
-    
-    public ExternalIdentifierDAOTest()
+    public static ExternalIdentifierDAO getInstance(Context context)
     {
-        instance = ExternalIdentifierDAOFactory.getInstance(context);
-    }
-
-    @Test
-    public void create()
-    {
-        // This should test the following creation scenarios:
-        //  * attach newly minted identifier to DSpaceObject
-        //  * parse given canonical form into an ExternalIdentifier then
-        //    attach to the given DSpaceObject
-        //  * turn given type + value into ExternalIdentifier then attach to
-        //    the given DSpaceObject
-    }
-
-    @Test
-    public void retrieve()
-    {
-        // This should test the following retrieval methods:
-        //  * canonical form
-        //  * type + value
-    }
-
-    @Test
-    public void getExternalIdentifiers()
-    {
-        // This should test the following batch-retrieval methods:
-        //  * all for a given DSpaceObject
-        //  * all of a given type
-        //  * all of a given type with a given prefix
+        return new ExternalIdentifierDAOPostgres(context);
     }
 }
