@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
    <modelVersion>4.0.0</modelVersion>
    <groupId>org.dspace</groupId>
@@ -31,12 +32,8 @@
             <configuration>
                <archive>
                   <manifest>
-                     <addDefaultImplementationEntries>
-                        true
-                     </addDefaultImplementationEntries>
-                     <addDefaultSpecificationEntries>
-                        true
-                     </addDefaultSpecificationEntries>
+                     <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                     <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
                   </manifest>
                </archive>
             </configuration>
@@ -47,12 +44,8 @@
             <configuration>
                <archive>
                   <manifest>
-                     <addDefaultImplementationEntries>
-                        true
-                     </addDefaultImplementationEntries>
-                     <addDefaultSpecificationEntries>
-                        true
-                     </addDefaultSpecificationEntries>
+                     <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                     <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
                   </manifest>
                </archive>
             </configuration>
@@ -94,7 +87,6 @@
       <profile>
          <id>addons</id>
          <activation>
-            <activeByDefault>false</activeByDefault>
          </activation>
          <modules>
             <module>dspace-api</module>
@@ -113,7 +105,6 @@
       <profile>
          <id>distributions</id>
          <activation>
-            <activeByDefault>false</activeByDefault>
          </activation>
          <build>
             <plugins>
@@ -161,7 +152,6 @@
             <checksumPolicy>fail</checksumPolicy>
          </releases>
          <snapshots>
-            <enabled>true</enabled>
             <updatePolicy>never</updatePolicy>
             <checksumPolicy>fail</checksumPolicy>
          </snapshots>
@@ -487,9 +477,7 @@
          <name>DSpace Sourcecode License</name>
          <url>LICENSE.txt</url>
          <distribution>repo</distribution>
-         <comments>
-            A BSD compatable OSS license for the DSpace codebase.
-         </comments>
+         <comments>A BSD compatable OSS license for the DSpace codebase.</comments>
       </license>
    </licenses>
 
@@ -501,55 +489,31 @@
    <mailingLists>
       <mailingList>
          <name>DSpace Technical Users List</name>
-         <subscribe>
-            http://lists.sourceforge.net/mailman/listinfo/dspace-tech
-         </subscribe>
-         <unsubscribe>
-            http://lists.sourceforge.net/mailman/listinfo/dspace-tech
-         </unsubscribe>
+         <subscribe>http://lists.sourceforge.net/mailman/listinfo/dspace-tech</subscribe>
+         <unsubscribe>http://lists.sourceforge.net/mailman/listinfo/dspace-tech</unsubscribe>
          <post>dspace-tech AT lists.sourceforge.net</post>
-         <archive>
-            http://sourceforge.net/mailarchive/forum.php?forum_name=dspace-tech
-         </archive>
+         <archive>http://sourceforge.net/mailarchive/forum.php?forum_name=dspace-tech</archive>
       </mailingList>
       <mailingList>
          <name>DSpace Developers List</name>
-         <subscribe>
-            http://lists.sourceforge.net/mailman/listinfo/dspace-devel
-         </subscribe>
-         <unsubscribe>
-            http://lists.sourceforge.net/mailman/listinfo/dspace-devel
-         </unsubscribe>
+         <subscribe>http://lists.sourceforge.net/mailman/listinfo/dspace-devel</subscribe>
+         <unsubscribe>http://lists.sourceforge.net/mailman/listinfo/dspace-devel</unsubscribe>
          <post>dspace-devel AT lists.sourceforge.net</post>
-         <archive>
-            http://sourceforge.net/mailarchive/forum.php?forum_name=dspace-devel
-         </archive>
+         <archive>http://sourceforge.net/mailarchive/forum.php?forum_name=dspace-devel</archive>
       </mailingList>
       <mailingList>
          <name>DSpace Manakin List</name>
-         <subscribe>
-            http://lists.sourceforge.net/mailman/listinfo/dspace-manakin
-         </subscribe>
-         <unsubscribe>
-            http://lists.sourceforge.net/mailman/listinfo/dspace-manakin
-         </unsubscribe>
+         <subscribe>http://lists.sourceforge.net/mailman/listinfo/dspace-manakin</subscribe>
+         <unsubscribe>http://lists.sourceforge.net/mailman/listinfo/dspace-manakin</unsubscribe>
          <post>dspace-manakin AT lists.sourceforge.net</post>
-         <archive>
-            http://sourceforge.net/mailarchive/forum.php?forum_name=dspace-manakin
-         </archive>
+         <archive>http://sourceforge.net/mailarchive/forum.php?forum_name=dspace-manakin</archive>
       </mailingList>
       <mailingList>
          <name>DSpace SCM Commit Change-Log</name>
-         <subscribe>
-            http://lists.sourceforge.net/mailman/listinfo/dspace-changelog
-         </subscribe>
-         <unsubscribe>
-            http://lists.sourceforge.net/mailman/listinfo/dspace-changelog
-         </unsubscribe>
+         <subscribe>http://lists.sourceforge.net/mailman/listinfo/dspace-changelog</subscribe>
+         <unsubscribe>http://lists.sourceforge.net/mailman/listinfo/dspace-changelog</unsubscribe>
          <post>noreply AT lists.sourceforge.net</post>
-         <archive>
-            http://sourceforge.net/mailarchive/forum.php?forum_name=dspace-changelog
-         </archive>
+         <archive>http://sourceforge.net/mailarchive/forum.php?forum_name=dspace-changelog</archive>
       </mailingList>
    </mailingLists>
 
@@ -698,16 +662,22 @@
       into the snapshot repository below.
    -->
    <scm>
-      <connection>
-         scm:svn:http://dspace.svn.sourceforge.net/svnroot/dspace/trunk
-      </connection>
-      <developerConnection>
-         scm:svn:https://dspace.svn.sourceforge.net/svnroot/dspace/trunk
-      </developerConnection>
-      <url>
-         http://dspace.svn.sourceforge.net/viewvc/dspace/trunk
-      </url>
+      <connection>scm:svn:http://dspace.svn.sourceforge.net/svnroot/dspace/trunk</connection>
+      <developerConnection>scm:svn:https://dspace.svn.sourceforge.net/svnroot/dspace/trunk</developerConnection>
+      <url>http://dspace.svn.sourceforge.net/viewvc/dspace/trunk</url>
    </scm>
+   <dependencies>
+        <dependency>
+            <groupId>com.hp.hpl.jena</groupId>
+            <artifactId>jena</artifactId>
+            <version>2.5.5</version>
+        </dependency>
+        <dependency>
+            <groupId>de.fuberlin</groupId>
+            <artifactId>D2RQ-MVN</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+    </dependencies>
 
    <!-- 
       Distribution Management is currently used by the Continuum server
@@ -729,9 +699,7 @@
       </snapshotRepository>
       <site>
          <id>website</id>
-         <url>
-            scp://projects.dspace.org/var/www/projects.dspace.org/htdocs
-         </url>
+         <url>scp://projects.dspace.org/var/www/projects.dspace.org/htdocs</url>
       </site>
    </distributionManagement>
 
@@ -743,34 +711,16 @@
             <configuration>
                <links>
                   <link>http://projects.dspace.org/dspace/apidocs</link>
-                  <link>
-                     http://projects.dspace.org/dspace-api/apidocs
-                  </link>
-                  <link>
-                     http://projects.dspace.org/dspace-jspui/apidocs
-                  </link>
-                  <link>
-                     http://projects.dspace.org/dspace-oai/apidocs
-                  </link>
+                  <link>http://projects.dspace.org/dspace-api/apidocs</link>
+                  <link>http://projects.dspace.org/dspace-jspui/apidocs</link>
+                  <link>http://projects.dspace.org/dspace-oai/apidocs</link>
                   <link>http://java.sun.com/j2se/1.5.0/docs/api</link>
-                  <link>
-                     http://jakarta.apache.org/commons/collections/apidocs-COLLECTIONS_3_0/
-                  </link>
-                  <link>
-                     http://jakarta.apache.org/commons/dbcp/apidocs/
-                  </link>
-                  <link>
-                     http://jakarta.apache.org/commons/fileupload/apidocs/
-                  </link>
-                  <link>
-                     http://jakarta.apache.org/commons/httpclient/apidocs/
-                  </link>
-                  <link>
-                     http://jakarta.apache.org/commons/logging/api/
-                  </link>
-                  <link>
-                     http://jakarta.apache.org/commons/pool/apidocs/
-                  </link>
+                  <link>http://jakarta.apache.org/commons/collections/apidocs-COLLECTIONS_3_0/</link>
+                  <link>http://jakarta.apache.org/commons/dbcp/apidocs/</link>
+                  <link>http://jakarta.apache.org/commons/fileupload/apidocs/</link>
+                  <link>http://jakarta.apache.org/commons/httpclient/apidocs/</link>
+                  <link>http://jakarta.apache.org/commons/logging/api/</link>
+                  <link>http://jakarta.apache.org/commons/pool/apidocs/</link>
                   <link>http://www.junit.org/junit/javadoc/</link>
                   <link>http://logging.apache.org/log4j/docs/api/</link>
                   <link>http://jakarta.apache.org/regexp/apidocs/</link>

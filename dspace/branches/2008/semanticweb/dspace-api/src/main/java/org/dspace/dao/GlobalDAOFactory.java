@@ -41,16 +41,18 @@ package org.dspace.dao;
 
 import java.sql.SQLException;
 
+import org.dspace.core.ConfigurationManager;
+import org.dspace.dao.jena.GlobalDAOJena;
 import org.dspace.dao.postgres.GlobalDAOPostgres;
 
 /**
  * @author James Rutherford
  */
 public class GlobalDAOFactory
-{
+{    
     // FIXME: This should be a GlobalDAOException
     public static GlobalDAO getInstance() throws SQLException
     {
-        return new GlobalDAOPostgres();
+        return ConfigurationManager.getBooleanProperty( "org.dspace.dao.jena.enabled" ) ? new GlobalDAOJena() : new GlobalDAOPostgres();
     }
 }

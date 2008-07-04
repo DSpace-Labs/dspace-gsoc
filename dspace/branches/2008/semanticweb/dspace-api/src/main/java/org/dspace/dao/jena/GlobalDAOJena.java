@@ -1,95 +1,77 @@
 package org.dspace.dao.jena;
 
-import java.sql.Connection;
+import com.hp.hpl.jena.assembler.Assembler;
 import java.sql.SQLException;
-import org.dspace.dao.GlobalDAO;
-import org.dspace.storage.rdbms.DatabaseManager;
 import com.hp.hpl.jena.rdf.model.Model;
-import com.hp.hpl.jena.rdf.model.ModelFactory;
 import com.hp.hpl.jena.rdf.model.Resource;
+import com.hp.hpl.jena.util.FileManager;
+import java.util.Collection;
 import java.util.UUID;
+import org.dspace.content.Bitstream;
+import org.dspace.content.BitstreamFormat;
+import org.dspace.content.Bundle;
+import org.dspace.content.Community;
 import org.dspace.content.DSpaceObject;
+import org.dspace.content.Item;
+import org.dspace.core.ConfigurationManager;
+import org.dspace.dao.postgres.GlobalDAOPostgres;
+import org.dspace.eperson.EPerson;
+import org.dspace.eperson.Group;
 
-public class GlobalDAOJena extends GlobalDAO
+public class GlobalDAOJena extends GlobalDAOPostgres
 {
 
-    protected Model m;
-    private boolean transOpen;
+    protected Model tripleStore, d2rqStore;
 
     // FIXME: This should be a GlobalDAOException (pending Interface change)
     public GlobalDAOJena() throws SQLException
     {
-        m = ModelFactory.createDefaultModel();
-        log.info( "Created GlobalDAOJena" );
-    }
-
-    public boolean transactionOpen()
-    {
-        return transOpen;
-    }
-
-    public void startTransaction() throws SQLException
-    {
-        if ( m.supportsTransactions() )
-            m.begin();
-        transOpen = true;
-    }
-
-    public void endTransaction() throws SQLException
-    {
-        if ( transOpen && m.supportsTransactions() )
-            m.commit();
-        transOpen = false;
-    }
-
-    public void saveTransaction() throws SQLException
-    {
-        if ( transOpen && m.supportsTransactions() )
-            m.commit();
-    }
-
-    public void abortTransaction()
-    {
-        if ( transOpen && m.supportsTransactions() )
-            m.abort();
-        transOpen = false;
+        new de.fuberlin.wiwiss.d2rq.assembler.D2RQAssembler();
+        Model assemblerSpec = FileManager.get().loadModel( ConfigurationManager.getProperty( "org.dspace.dao.jena.assemblerspec" ) );
+        d2rqStore = Assembler.general.openModel( assemblerSpec.createResource( DSPACE.d2rqStore.getURI() ) );
+        tripleStore = Assembler.general.openModel( assemblerSpec.createResource( DSPACE.tripleStore.getURI() ) );
+        tripleStore.setNsPrefixes( d2rqStore ); // ensure they are always the same
     }
     
-    public Model getModel() {
-        return m;
+    public Model getTripleStore() {
+        return tripleStore;
+    }
+    
+    public Model getD2RQStore() {
+        return d2rqStore;
     }
     
     public String getResourceBase() {
-        return m.expandPrefix( "db:" );
+        return tripleStore.expandPrefix( "res:" );
     }
     
     public Resource getResource( DSpaceObject obj ) {
-        return getResource( obj.getIdentifier().getUUID().toString() );
+        return getResource( obj.getClass(), obj.getIdentifier().getUUID() );
     }
     
-    public Resource getResource( UUID uuid ) {
-        return getResource( uuid.toString() );
+    public Resource getResource( Class c, UUID uuid ) {
+        String type = "";
+        if ( c.equals( EPerson.class ) )
+            type = "eperson/";
+        else if ( c.equals( Bitstream.class ) )
+            type = "bistream/";
+        else if ( c.equals( BitstreamFormat.class ) )
+            type = "bitstreamformat/";
+        else if ( c.equals( Community.class ) )
+            type = "community/";
+        else if ( c.equals( Collection.class ) )
+            type = "collection/";
+        else if ( c.equals( Bundle.class ) )
+            type = "bundle/";
+        else if ( c.equals( Group.class ) )
+            type = "group/";
+        else if ( c.equals( Item.class ) )
+            type = "item/";
+        return getResource( type + uuid.toString() );
     }
     
     public Resource getResource( String local ) {
-        return m.getResource( getResourceBase() + local );
-    }
-
-    /**
-     * This method will only exist until no-one calls the RDBMS-centric
-     * Context.getDBConnection() any more.
-     */
-    @Deprecated
-    public Connection getConnection()
-    {
-        try
-        {
-            return DatabaseManager.getConnection();
-        } catch ( SQLException ex )
-        {
-            log.error( ex.getMessage() );
-        }
-        return null;
+        return tripleStore.getResource( getResourceBase() + local );
     }
 
 }

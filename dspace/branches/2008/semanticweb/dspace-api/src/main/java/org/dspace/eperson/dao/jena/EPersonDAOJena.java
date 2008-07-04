@@ -59,7 +59,7 @@ public class EPersonDAOJena extends EPersonDAO
         {
             String p = ConfigurationManager.getProperty( configPrefix + f );
             if ( p != null )
-                meta.put( f, dao.getModel().getProperty( dao.getModel().
+                meta.put( f, dao.getTripleStore().getProperty( dao.getTripleStore().
                                                          expandPrefix( p ) ) );
         }
     }
@@ -88,7 +88,7 @@ public class EPersonDAOJena extends EPersonDAO
         EPerson e = getChild().retrieve( field, value );
         if ( e == null )
         { // couldn't find metadata; try in triple store
-            Iterator<Resource> it = dao.getModel().listResourcesWithProperty( getProperty( field ),
+            Iterator<Resource> it = dao.getTripleStore().listResourcesWithProperty( getProperty( field ),
                                                                               value );
             if ( !it.hasNext() )
                 return null;
@@ -134,7 +134,7 @@ public class EPersonDAOJena extends EPersonDAO
         
         try
         {
-            dao.getModel().
+            dao.getTripleStore().
                     write( new FileWriter( new File( "/tmp/dspace-out.n3" ) ), "N3" );
         } catch ( IOException ex )
         {

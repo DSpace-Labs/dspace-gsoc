@@ -4,12 +4,16 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.log4j.Logger;
 import org.dspace.core.ConfigurationManager;
 import org.dspace.core.Context;
 import org.dspace.core.PluginManager;
 
 public class StackableDAOFactory
 {
+    
+    private static Logger log = Logger.getLogger( StackableDAOFactory.class );
+    
     public static StackableDAO getInstance(StackableDAO dao, Context context)
     {
         StackableDAO instantiated = null;
@@ -21,19 +25,23 @@ public class StackableDAOFactory
         catch (InstantiationException e)
         {
             e.printStackTrace();
+            log.error( e );
         }
         catch (IllegalAccessException e)
         {
             e.printStackTrace();
+            log.error( e );
         }
         catch (InvocationTargetException e)
         {
             e.printStackTrace();
             System.err.println(e.getCause());
+            log.error( e );
         }
         catch (NoSuchMethodException e)
         {
             e.printStackTrace();
+            log.error( e );
         }
 
         return instantiated;
