@@ -1,0 +1,414 @@
+@prefix map:     <file:///stdout#> .
+@prefix db:      <> .
+@prefix vocab:   <http://purl.org/dspace/model#> .
+@prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
+@prefix nfo:     <http://www.semanticdesktop.org/ontologies/nfo/#> .
+@prefix terms:   <http://purl.org/dc/terms/> .
+@prefix foaf:    <http://xmlns.com/foaf/0.1/> .
+
+@prefix :        <#> .
+@prefix ja:      <http://jena.hpl.hp.com/2005/11/Assembler#> .
+@prefix d2rq:    <http://www.wiwiss.fu-berlin.de/suhl/bizer/D2RQ/0.1#> .
+
+ ####################
+#                    #
+#  ASSEMBLER CONFIG  #
+#                    #
+ ####################
+
+<> ja:imports d2rq: .
+
+ja:SmartUnion		# This isn't so smart yet, but leaves the scope for it to happen later!
+    a rdfs:Class;	#   Also, the standard UnionModel Assembler seems to break D2RQ...
+    ja:assembler "com.hp.hpl.jena.assembler.assemblers.SmartUnionAssembler";
+    rdfs:comment "Jena Assembler specification for a smarter UNION model";
+    rdfs:label "Smart UNION model";
+    rdfs:subClassOf ja:Model;
+    .
+
+:d2rqStore
+	a d2rq:D2RQModel;
+	d2rq:mappingFile <DSpaceMapping.n3>;
+	d2rq:resourceBaseURI <http://localhost:2020/resource/>;
+	.
+
+:tripleStore
+	a ja:RDBModel;
+	ja:connection [
+	ja:dbURL <jdbc:mysql://localhost/dspace>;
+	ja:dbUser "dspace";
+	ja:dbPassword "letmein";
+	ja:dbType "MySQL";
+	ja:dbClass "com.mysql.jdbc.Driver"
+	];
+	ja:modelName "DSpaceTripleStore";
+	.
+
+:store
+	a ja:SmartUnion;
+	ja:primaryModel :tripleStore;
+	ja:alternativeModel :d2rqStore;
+	ja:prefixMapping [ ja:prefix "db"; ja:namespace "http://localhost:2020/resource/" ] ;
+	ja:prefixMapping [ ja:prefix "dspace"; ja:namespace "http://purl.org/dspace/model#" ]
+    	.
+
+ ####################
+#                    #
+#    D2RQ MAPPING    #
+#                    #
+ ####################
+
+map:db a d2rq:Database;
+	d2rq:jdbcDriver "org.postgresql.Driver";
+	d2rq:jdbcDSN "jdbc:postgresql://localhost:5432/dspace";
+	d2rq:username "dspace";
+	d2rq:password "letmein";
+	.
+
+# Table bitstream
+map:bitstream a d2rq:ClassMap;
+	d2rq:dataStorage map:db;
+	d2rq:uriPattern "bitstream-@@bitstream.uuid@@";
+	d2rq:class vocab:Bitstream;
+	.
+map:bitstream__label a d2rq:PropertyBridge;
+	d2rq:belongsToClassMap map:bitstream;
+	d2rq:property rdfs:label;
+	d2rq:pattern "@@bitstream.name@@";
+	.
+map:bitstream_fileurl a d2rq:PropertyBridge;
+	d2rq:belongsToClassMap map:bitstream;
+	d2rq:property nfo:fileUrl;
+	d2rq:uriPattern "@@bitstream.uuid@@";
+	.
+map:bitstream_name a d2rq:PropertyBridge;
+	d2rq:belongsToClassMap map:bitstream;
+	d2rq:property nfo:fileName;
+	d2rq:pattern "@@bitstream.name@@";
+	.
+map:bitstream_bitstream_format_id a d2rq:PropertyBridge;
+	d2rq:belongsToClassMap map:bitstream;
+	d2rq:property vocab:hasBitstreamFormat;
+	d2rq:refersToClassMap map:bitstreamformatregistry;
+	d2rq:join "bitstream.bitstream_format_id = bitstreamformatregistry.bitstream_format_id";
+	.
+map:bitstream_size_bytes a d2rq:PropertyBridge;
+	d2rq:belongsToClassMap map:bitstream;
+	d2rq:property nfo:fileSize;
+	d2rq:column "bitstream.size_bytes";
+	d2rq:datatype xsd:integer;
+	.
+map:bitstream_description a d2rq:PropertyBridge;
+	d2rq:belongsToClassMap map:bitstream;
+	d2rq:property terms:description;
+	d2rq:column "bitstream.description";
+	.
+map:bitstream_uuid a d2rq:PropertyBridge;
+	d2rq:belongsToClassMap map:bitstream;
+	d2rq:property vocab:uuid;
+	d2rq:column "bitstream.uuid";
+	.
+map:bitstream_hash a d2rq:PropertyBridge;
+	d2rq:belongsToClassMap map:bitstream;
+	d2rq:property nfo:hasHash;
+	d2rq:uriPattern "hash-@@bitstream.uuid@@";
+	.
+
+map:bitstreamhashobject a d2rq:ClassMap;
+	d2rq:dataStorage map:db;
+	d2rq:uriPattern "hash-@@bitstream.uuid@@";
+	d2rq:class nfo:FileHash;
+	.
+map:bitstream_checksum a d2rq:PropertyBridge;
+	d2rq:belongsToClassMap map:bitstreamhashobject;
+	d2rq:property nfo:hashValue;
+	d2rq:column "bitstream.checksum";
+	.
+map:bitstream_checksum_algorithm a d2rq:PropertyBridge;
+	d2rq:belongsToClassMap map:bitstreamhashobject;
+	d2rq:property nfo:hashAlgorithm;
+	d2rq:column "bitstream.checksum_algorithm";
+	.
+
+# Table bitstreamformatregistry
+map:bitstreamformatregistry a d2rq:ClassMap;
+	d2rq:dataStorage map:db;
+	d2rq:uriPattern "bitstreamformat-@@bitstreamformatregistry.uuid@@";
+	d2rq:class vocab:BitstreamFormat;
+	.
+map:bitstreamformatregistry__label a d2rq:PropertyBridge;
+	d2rq:belongsToClassMap map:bitstreamformatregistry;
+	d2rq:property rdfs:label;
+	d2rq:column "bitstreamformatregistry.short_description";
+	.
+map:bitstreamformatregistry_mime a d2rq:PropertyBridge;
+	d2rq:belongsToClassMap map:bitstreamformatregistry;
+	d2rq:property vocab:mimeType;
+	d2rq:column "bitstreamformatregistry.mimetype";
+	.
+map:bitstreamformatregistry_description a d2rq:PropertyBridge;
+	d2rq:belongsToClassMap map:bitstreamformatregistry;
+	d2rq:property terms:description;
+	d2rq:column "bitstreamformatregistry.description";
+	.
+map:bitstreamformatregistry_support_level a d2rq:PropertyBridge;
+	d2rq:belongsToClassMap map:bitstreamformatregistry;
+	d2rq:property vocab:support;
+	d2rq:column "bitstreamformatregistry.support_level";
+	d2rq:datatype xsd:int;
+	.
+map:bitstreamformatregistry_fileextension a d2rq:PropertyBridge;
+	d2rq:belongsToClassMap map:bitstreamformatregistry;
+	d2rq:property vocab:fileExtension;
+	d2rq:column "fileextension.extension";
+	d2rq:join "fileextension.bitstream_format_id = bitstreamformatregistry.bitstream_format_id";
+	.
+
+# Table bundle
+map:bundle a d2rq:ClassMap;
+	d2rq:dataStorage map:db;
+	d2rq:uriPattern "bundle-@@bundle.uuid@@";
+	d2rq:class vocab:Bundle;
+	.
+map:bundle__label a d2rq:PropertyBridge;
+	d2rq:belongsToClassMap map:bundle;
+	d2rq:property rdfs:label;
+	d2rq:pattern "@@bundle.name@@";
+	.
+map:bundle_primary_bitstream_id a d2rq:PropertyBridge;
+	d2rq:belongsToClassMap map:bundle;
+	d2rq:property vocab:hasBitstream;
+	d2rq:refersToClassMap map:bitstream;
+	d2rq:join "bundle.primary_bitstream_id = bitstream.bitstream_id";
+	.
+map:bundle_bitstreams a d2rq:PropertyBridge;
+	d2rq:belongsToClassMap map:bundle;
+	d2rq:property vocab:hasBitstream;
+	d2rq:refersToClassMap map:bitstream;
+	d2rq:join "bundle2bitstream.bundle_id = bundle.bundle_id";
+	d2rq:join "bundle2bitstream.bitstream_id = bitstream.bitstream_id";
+	.
+
+# Table collection
+map:collection a d2rq:ClassMap;
+	d2rq:dataStorage map:db;
+	d2rq:uriPattern "collection-@@collection.uuid@@";
+	d2rq:class vocab:Collection;
+	.
+map:collection__label a d2rq:PropertyBridge;
+	d2rq:belongsToClassMap map:collection;
+	d2rq:property rdfs:label;
+	d2rq:column "collection.name";
+	.
+map:collection_short_description a d2rq:PropertyBridge;
+	d2rq:belongsToClassMap map:collection;
+	d2rq:property terms:description;
+	d2rq:column "collection.short_description";
+	.
+map:collection_introductory_text a d2rq:PropertyBridge;
+	d2rq:belongsToClassMap map:collection;
+	d2rq:property vocab:longDescription;
+	d2rq:column "collection.introductory_text";
+	.
+map:collection_logo_bitstream_id a d2rq:PropertyBridge;
+	d2rq:belongsToClassMap map:collection;
+	d2rq:property vocab:logo;
+	d2rq:refersToClassMap map:bitstream;
+	d2rq:join "collection.logo_bitstream_id = bitstream.bitstream_id";
+	.
+map:collection_license a d2rq:PropertyBridge;
+	d2rq:belongsToClassMap map:collection;
+	d2rq:property vocab:license;
+	d2rq:column "collection.license";
+	.
+map:collection_submitter a d2rq:PropertyBridge;
+	d2rq:belongsToClassMap map:collection;
+	d2rq:property vocab:submitter;
+	d2rq:refersToClassMap map:epersongroup;
+	d2rq:join "collection.submitter = epersongroup.eperson_group_id";
+	.
+map:collection_admin a d2rq:PropertyBridge;
+	d2rq:belongsToClassMap map:collection;
+	d2rq:property vocab:admin;
+	d2rq:refersToClassMap map:epersongroup;
+	d2rq:join "collection.admin = epersongroup.eperson_group_id";
+	.
+map:collection_items a d2rq:PropertyBridge;
+	d2rq:belongsToClassMap map:collection;
+	d2rq:property vocab:hasItem;
+	d2rq:refersToClassMap map:item;
+	d2rq:join "collection2item.collection_id = collection.collection_id";
+	d2rq:join "collection2item.item_id = item.item_id";
+	.
+
+# Table community
+map:community a d2rq:ClassMap;
+	d2rq:dataStorage map:db;
+	d2rq:uriPattern "community-@@community.uuid@@";
+	d2rq:class vocab:Community;
+	.
+map:community__label a d2rq:PropertyBridge;
+	d2rq:belongsToClassMap map:community;
+	d2rq:property rdfs:label;
+	d2rq:column "community.name";
+	.
+map:community_short_description a d2rq:PropertyBridge;
+	d2rq:belongsToClassMap map:community;
+	d2rq:property terms:description;
+	d2rq:column "community.short_description";
+	.
+map:community_introductory_text a d2rq:PropertyBridge;
+	d2rq:belongsToClassMap map:community;
+	d2rq:property vocab:longDescription;
+	d2rq:column "community.introductory_text";
+	.
+map:community_logo_bitstream_id a d2rq:PropertyBridge;
+	d2rq:belongsToClassMap map:community;
+	d2rq:property vocab:logo;
+	d2rq:refersToClassMap map:bitstream;
+	d2rq:join "community.logo_bitstream_id = bitstream.bitstream_id";
+	.
+map:community_collections a d2rq:PropertyBridge;
+	d2rq:belongsToClassMap map:community;
+	d2rq:property vocab:hasCollection;
+	d2rq:refersToClassMap map:collection;
+	d2rq:join "community2collection.community_id = community.community_id";
+	d2rq:join "community2collection.collection_id = collection.collection_id";
+	.
+map:community_communities a d2rq:PropertyBridge;
+	d2rq:belongsToClassMap map:community;
+	d2rq:property vocab:hasSubCommunity;
+	d2rq:refersToClassMap map:community;
+	d2rq:join "community2community.parent_comm_id = community.community_id";
+	d2rq:join "community2community.child_comm_id = community.community_id";
+	.
+
+# Table eperson
+map:eperson a d2rq:ClassMap;
+	d2rq:dataStorage map:db;
+	d2rq:uriPattern "eperson-@@eperson.uuid@@";
+	d2rq:class vocab:EPerson;
+	.
+map:eperson__label a d2rq:PropertyBridge;
+	d2rq:belongsToClassMap map:eperson;
+	d2rq:property rdfs:label;
+	d2rq:pattern "@@eperson.lastname@@, @@eperson.firstname@@";
+	.
+map:eperson_firstname a d2rq:PropertyBridge;
+	d2rq:belongsToClassMap map:eperson;
+	d2rq:property foaf:firstName;
+	d2rq:column "eperson.firstname";
+	.
+map:eperson_lastname a d2rq:PropertyBridge;
+	d2rq:belongsToClassMap map:eperson;
+	d2rq:property foaf:surname;
+	d2rq:column "eperson.lastname";
+	.
+map:eperson_phone a d2rq:PropertyBridge;
+	d2rq:belongsToClassMap map:eperson;
+	d2rq:property foaf:phone;
+	d2rq:pattern "tel:@@eperson.phone@@";
+	.
+map:eperson_language a d2rq:PropertyBridge;
+	d2rq:belongsToClassMap map:eperson;
+	d2rq:property vocab:language;
+	d2rq:column "eperson.language";
+	.
+map:eperson_group a d2rq:PropertyBridge;
+	d2rq:belongsToClassMap map:eperson;
+	d2rq:property vocab:isPartOfGroup;
+	d2rq:refersToClassMap map:epersongroup;
+	d2rq:join "epersongroup2eperson.eperson_group_id = epersongroup.eperson_group_id";
+	d2rq:join "epersongroup2eperson.eperson_id = eperson.eperson_id";
+	.
+
+# Table epersongroup
+map:epersongroup a d2rq:ClassMap;
+	d2rq:dataStorage map:db;
+	d2rq:uriPattern "group-@@epersongroup.uuid@@";
+	d2rq:class vocab:Group;
+	.
+map:epersongroup__label a d2rq:PropertyBridge;
+	d2rq:belongsToClassMap map:epersongroup;
+	d2rq:property rdfs:label;
+	d2rq:pattern "@@epersongroup.name@@";
+	.
+map:epersongroup_member a d2rq:PropertyBridge;
+	d2rq:belongsToClassMap map:epersongroup;
+	d2rq:property vocab:hasMember;
+	d2rq:refersToClassMap map:eperson;
+	d2rq:join "epersongroup2eperson.eperson_group_id = epersongroup.eperson_group_id";
+	d2rq:join "epersongroup2eperson.eperson_id = eperson.eperson_id";
+	.
+#map:epersongroup_workspace_item a d2rq:PropertyBridge;		# Do we need to expose this?
+#	d2rq:belongsToClassMap map:epersongroup;		#   I don't think so!
+#	d2rq:property vocab:hasWorkspaceItem;
+#	d2rq:refersToClassMap map:workspaceitem;
+#	d2rq:join "epersongroup2workspaceitem.eperson_group_id = epersongroup.eperson_group_id";
+#	d2rq:join "epersongroup2workspaceitem.workspace_item_id = workspaceitem.workspace_item_id";
+#	.
+map:epersongroup_child a d2rq:PropertyBridge;
+	d2rq:belongsToClassMap map:epersongroup;
+	d2rq:property vocab:hasSubGroup;
+	d2rq:refersToClassMap map:epersongroup;
+	d2rq:join "group2group.parent_id = epersongroup.eperson_group_id";
+	d2rq:join "group2group.child_id = epersongroup.eperson_group_id";
+	.
+map:epersongroup_child a d2rq:PropertyBridge;
+	d2rq:belongsToClassMap map:epersongroup;
+	d2rq:property vocab:hasSubGroup;
+	d2rq:refersToClassMap map:epersongroup;
+	d2rq:join "group2groupcache.parent_id = epersongroup.eperson_group_id";
+	d2rq:join "group2groupcache.child_id = epersongroup.eperson_group_id";
+	.
+
+# Table item
+map:item a d2rq:ClassMap;
+	d2rq:dataStorage map:db;
+	d2rq:uriPattern "item-@@item.uuid@@";
+	d2rq:class vocab:Item;
+	.
+#map:item__label a d2rq:PropertyBridge;
+#	d2rq:belongsToClassMap map:item;
+#	d2rq:property rdfs:label;
+#	d2rq:pattern "Item #@@item.item_id@@";
+#	.
+map:item_submitter_id a d2rq:PropertyBridge;
+	d2rq:belongsToClassMap map:item;
+	d2rq:property vocab:submitter;
+	d2rq:refersToClassMap map:eperson;
+	d2rq:join "item.submitter_id = eperson.eperson_id";
+	.
+#map:item_in_archive a d2rq:PropertyBridge;
+#	d2rq:belongsToClassMap map:item;
+#	d2rq:property vocab:item_in_archive;
+#	d2rq:column "item.in_archive";
+#	d2rq:datatype xsd:boolean;
+#	.						# Do we want to display these,
+#map:item_withdrawn a d2rq:PropertyBridge;		#  or are they unnecessary?
+#	d2rq:belongsToClassMap map:item;
+#	d2rq:property vocab:item_withdrawn;
+#	d2rq:column "item.withdrawn";
+#	d2rq:datatype xsd:boolean;
+#	.
+map:item_last_modified a d2rq:PropertyBridge;
+	d2rq:belongsToClassMap map:item;
+	d2rq:property terms:modified;
+	d2rq:column "item.last_modified";
+#	d2rq:datatype xsd:dateTime; # can't convert timestamps from DSpace (fails to parse ms precision)
+	.
+map:item_owning_collection a d2rq:PropertyBridge;
+	d2rq:belongsToClassMap map:item;
+	d2rq:property vocab:isPartOfCollection;
+	d2rq:column "item.owning_collection";
+	d2rq:datatype xsd:int;
+	.
+map:item_bundles a d2rq:PropertyBridge;
+	d2rq:belongsToClassMap map:item;
+	d2rq:property vocab:hasBundle;
+	d2rq:refersToClassMap map:bundle;
+	d2rq:join "item2bundle.item_id = item.item_id";
+	d2rq:join "item2bundle.bundle_id = bundle.bundle_id";
+	.
