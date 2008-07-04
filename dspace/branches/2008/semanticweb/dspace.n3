@@ -1,0 +1,283 @@
+@prefix :        <http://purl.org/dspace/model#> .
+@prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
+@prefix owl:     <http://www.w3.org/2002/07/owl#> .
+@prefix terms:   <http://purl.org/dc/terms/> .
+@prefix vann:    <http://purl.org/vocab/vann/> .
+@prefix nfo:     <http://www.semanticdesktop.org/ontologies/nfo/#> .
+@prefix foaf:    <http://xmlns.com/foaf/0.1/> .
+
+#
+# Metadata on the Ontology
+#
+
+:     terms:description "To comment on this schema, please contact dspace-tech@lists.sourceforge.net"@en ;
+      terms:title "The DSpace Data Model Ontology" ;
+      vann:preferredNamespacePrefix
+              "dspace" ;
+      vann:preferredNamespaceUri
+              "http://purl.org/dspace/model#" .
+
+#
+# Classes
+#
+
+:Bitstream
+      a       rdfs:Class ;
+      rdfs:comment "A DSpace Bitstream"@en-US ;
+      rdfs:label "Bitstream"@en-US ;
+      rdfs:subClassOf :DSpaceObject ;
+      rdfs:subClassOf nfo:FileDataObject .
+
+:BitstreamFormat
+      a       rdfs:Class ;
+      rdfs:comment "A DSpace Bitstream Format" ;
+      rdfs:label "Bitstream Format"@en-US ;
+      rdfs:subClassOf rdfs:Class ;
+      rdfs:subClassOf terms:FileFormat .
+
+:Bundle
+      a       rdfs:Class ;
+      rdfs:comment "A DSpace Bundle"@en-US ;
+      rdfs:label "Bundle"@en-US ;
+      rdfs:subClassOf :DSpaceObject .
+
+:Collection
+      a       rdfs:Class ;
+      rdfs:comment "A DSpace Collection"@en-US ;
+      rdfs:label "Collection"@en-US ;
+      rdfs:subClassOf :DSpaceObject .
+
+:Community
+      a       rdfs:Class ;
+      rdfs:comment "A DSpace Community"@en-US ;
+      rdfs:label "Community"@en-US ;
+      rdfs:subClassOf :DSpaceObject .
+
+:DSpaceObject
+      a       rdfs:Class ;
+      rdfs:comment "DSpace Object is an abstract Class for any Specific DSpace Data Model Types."@en-US ;
+      rdfs:label "DSpace Object"@en-US ;
+      rdfs:subClassOf rdfs:Class .
+
+:EPerson
+      a       rdfs:Class ;
+      rdfs:comment "A DSpace EPerson"@en-US ;
+      rdfs:label "EPerson"@en-US ;
+      rdfs:subClassOf :DSpaceObject ;
+      rdfs:subClassOf foaf:Person .
+
+:Group
+      a       rdfs:Class ;
+      rdfs:comment "A DSpace Group"@en-US ;
+      rdfs:label "Group"@en-US ;
+      rdfs:subClassOf :DSpaceObject .
+
+:Item
+      a       rdfs:Class ;
+      rdfs:comment "A DSpace Item"@en-US ;
+      rdfs:label "Item"@en-US ;
+      rdfs:subClassOf :DSpaceObject .
+
+:Policy
+      a       rdfs:Class ;
+      rdfs:comment "A DSpace Policy"@en-US ;
+      rdfs:label "Policy"@en-US ;
+      rdfs:subClassOf rdfs:Class .
+
+:Site
+      a       rdfs:Class ;
+      rdfs:comment "A DSpace Site"@en-US ;
+      rdfs:label "Site"@en-US ;
+      rdfs:subClassOf :DSpaceObject .
+
+
+#
+# Properties
+#    Makes use of owl:unionOf; only current use of owl in the ontology, can it be removed? - pcoetzee
+#
+
+:admin
+      a       rdf:Property ;
+      rdfs:comment "Administrator of this Collection."@en-US ;
+      rdfs:domain :Collection ;
+      rdfs:label "Administrator"@en-US ;
+      rdfs:range :EPerson .
+
+:fileExtension
+      a       rdf:Property ;
+      rdfs:comment "Known file extension for the given BitstreamFormat."@en-US ;
+      rdfs:domain :BitstreamFormat ;
+      rdfs:label "File Extension"@en-US .
+
+:hasBitstream
+      a       rdf:Property ;
+      rdfs:comment "Bitstream Property"@en-US ;
+      rdfs:domain :Bundle ;
+      rdfs:isDefinedBy "http://purl.org/dspace/model#"^^xsd:anyURI ;
+      rdfs:label "Has Bitstream"@en-US ;
+      rdfs:range :Bitstream .
+
+:hasBitstreamFormat
+      a       rdf:Property ;
+      rdfs:comment "Bitstream Format Property"@en-US ;
+      rdfs:domain :Bitstream ;
+      rdfs:isDefinedBy "http://purl.org/dspace/model#"^^xsd:anyURI ;
+      rdfs:label "Has Format"@en-US ;
+      rdfs:range :BitstreamFormat .
+
+:hasBundle
+      a       rdf:Property ;
+      rdfs:comment "Has DSpace Bundle"@en-US ;
+      rdfs:domain :Item ;
+      rdfs:label "Has Bundle"@en-US ;
+      rdfs:range :Bundle .
+
+:hasCollection
+      a       rdf:Property ;
+      rdfs:comment "Has Collection"@en-US ;
+      rdfs:domain :Community ;
+      rdfs:isDefinedBy "http://purl.org/dspace/model#"^^xsd:anyURI ;
+      rdfs:label "Has Collection"@en-US ;
+      rdfs:range :Collection .
+
+:hasCommunity
+      a       rdf:Property ;
+      rdfs:comment "Has DSpace Community"@en-US ;
+      rdfs:domain
+              [ a       rdfs:Class ;
+                owl:unionOf (:Community :Site)
+              ] ;
+      rdfs:isDefinedBy "http://purl.org/dspace/model#"^^xsd:anyURI ;
+      rdfs:label "Has Community"@en-US ;
+      rdfs:range :Community .
+
+:hasItem
+      a       rdf:Property ;
+      rdfs:comment "Has Item"@en-US ;
+      rdfs:domain :Collection ;
+      rdfs:isDefinedBy "http://purl.org/dspace/model#"^^xsd:anyURI ;
+      rdfs:label "Has Item"@en-US ;
+      rdfs:range :Item .
+
+:hasMember
+      a       rdf:Property ;
+      rdfs:comment "Has DSpace Group Member"@en-US ;
+      rdfs:domain :Group ;
+      rdfs:label "Has Member"@en-US ;
+      rdfs:range :EPerson .
+
+:hasSubCommunity
+      a       rdf:Property ;
+      rdfs:comment "Has Sub-Community"@en-US ;
+      rdfs:domain :Community ;
+      rdfs:isDefinedBy "http://purl.org/dspace/model#"^^xsd:anyURI ;
+      rdfs:label "Has Sub-Community"@en-US ;
+      rdfs:range :Community .
+
+:hasSubGroup
+      a       rdf:Property ;
+      rdfs:comment "Has Sub-Group"@en-US ;
+      rdfs:domain :Group ;
+      rdfs:isDefinedBy "http://purl.org/dspace/model#"^^xsd:anyURI ;
+      rdfs:label "Has Sub-Group"@en-US ;
+      rdfs:range :Group .
+
+:isPartOfGroup
+      a       rdf:Property ;
+      rdfs:comment "Part of DSpace Group"@en-US ;
+      rdfs:domain :EPerson ;
+      rdfs:label "Part of DSpace Group"@en-US ;
+      rdfs:range :Group .
+
+:isPartOfItem
+      a       rdf:Property ;
+      rdfs:comment "Part of DSpace Item"@en-US ;
+      rdfs:domain :Bundle ;
+      rdfs:label "Part of DSpace Item"@en-US ;
+      rdfs:range :Item .
+
+:isPartOfCollection
+      a       rdf:Property ;
+      rdfs:comment "Part of Collection"@en-US ;
+      rdfs:domain :Item ;
+      rdfs:isDefinedBy "http://purl.org/dspace/model#"^^xsd:anyURI ;
+      rdfs:label "Part of Collection"@en-US ;
+      rdfs:range :Collection .
+
+:isPartOfCommunity
+      a       rdf:Property ;
+      rdfs:comment "Is part of DSpace Community"@en-US ;
+      rdfs:domain
+              [ a       rdfs:Class ;
+                owl:unionOf (:Collection :Community)
+              ] ;
+      rdfs:isDefinedBy "http://purl.org/dspace/model#"^^xsd:anyURI ;
+      rdfs:label "Part of Community"@en-US ;
+      rdfs:range :Community .
+
+:isPartOfSite
+      a       rdf:Property ;
+      rdfs:comment "Is Part of DSpace Site"@en-US ;
+      rdfs:domain :Community ;
+      rdfs:label "Part Of Site"@en-US ;
+      rdfs:range :Site .
+
+:language
+      a       rdf:Property ;
+      rdfs:comment "The EPerson's Language."@en-US ;
+      rdfs:domain :EPerson ;
+      rdfs:label "Language"@en-US .
+
+:license
+      a       rdf:Property ;
+      rdfs:comment "License for this Collection."@en-US ;
+      rdfs:domain :Collection ;
+      rdfs:label "License"@en-US .
+
+:logo
+      a       rdf:Property ;
+      rdfs:comment "A Community or Collection Logo"@en-US ;
+      rdfs:domain
+              [ a       rdfs:Class ;
+                owl:unionOf (:Collection :Community)
+              ] ;
+      rdfs:isDefinedBy "http://purl.org/dspace/model#"^^xsd:anyURI ;
+      rdfs:label "Logo"@en-US ;
+      rdfs:range :Bitstream .
+
+:longDescription
+      a       rdf:Property ;
+      rdfs:comment "Full Text Description of the Object (often contains HTML)"@en-US ;
+      rdfs:domain :Collection ;
+      rdfs:label "Full Description"@en-US .
+
+:mimeType
+      a       rdf:Property ;
+      rdfs:comment "MIME Type of the given BitstreamFormat."@en-US ;
+      rdfs:domain :BitstreamFormat ;
+      rdfs:label "MIME Type"@en-US .
+
+:submitter
+      a       rdf:Property ;
+      rdfs:comment "Submitter of this Item / Collection."@en-US ;
+      rdfs:domain
+              [ a       rdfs:Class ;
+                owl:unionOf (:Collection :Item)
+              ] ;
+      rdfs:label "Submitter"@en-US ;
+      rdfs:range :EPerson .
+
+:support
+      a       rdf:Property ;
+      rdfs:comment "Bitstream Format Support Level."@en-US ;
+      rdfs:domain :BitstreamFormat ;
+      rdfs:label "Support Level"@en-US .
+
+:uuid
+      a       rdf:Property ;
+      rdfs:comment "Universally Unique Identifier for this object."@en-US ;
+      rdfs:domain :DSpaceObject ;
+      rdfs:label "UUID"@en-US .
+
