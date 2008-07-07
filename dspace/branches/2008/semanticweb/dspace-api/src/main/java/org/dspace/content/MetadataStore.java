@@ -1,9 +1,9 @@
 /*
- * Upgrade15To16.java
+ * MetadataStore.java
  *
- * Version: $Revision: 1727 $
+ * Version: $Revision: 2755 $
  *
- * Date: $Date: 2007-01-19 10:52:10 +0000 (Fri, 19 Jan 2007) $
+ * Date: $Date: 2008-07-07 15:14:28 +0100 (Mon, 7 Jul 2008) $
  *
  * Copyright (c) 2002-2005, Hewlett-Packard Company and Massachusetts
  * Institute of Technology.  All rights reserved.
@@ -37,24 +37,43 @@
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
  * DAMAGE.
  */
-package org.dspace.administer.update1516;
+package org.dspace.content;
 
-import org.dspace.authorize.AuthorizeException;
-import org.dspace.core.ConfigurationManager;
+import com.hp.hpl.jena.rdf.model.Property;
+import com.hp.hpl.jena.rdf.model.Resource;
+import java.util.List;
 
 /**
- * @author Richard Jones
+ * Basic Interface for the MetadataStore. This is presently no less specialised
+ * than the Jena implementation, but serves as a jumping-off point; uses
+ * of Jena Resources, Properties etc should be removed later on.
+ * @author majorerror
  */
-public class Upgrade15To16
+public interface MetadataStore
 {
-    public static void main(String[] args)
-                throws Exception, AuthorizeException
-    {
-        ConfigurationManager.loadConfig( "/dspace/config/dspace.cfg" );
-        MigrateUUID uuid = new MigrateUUID();
-        uuid.migrate();
-
-        MigrateHandle hdl = new MigrateHandle();
-        hdl.migrate();
-    }
+    public List<Resource> getValues( String p );
+    
+    public List<Resource> getValues( Property p );
+    
+    public Resource getValue( String p );
+    
+    public Resource getValue( Property p );
+    
+    public void add( String p, String ... v );
+    
+    public void add( Property p, Resource ... v );
+    
+    public void clear( String p );
+    
+    public void clear( Property p );
+    
+    public void clear();
+    
+    public Resource getRoot();
+    
+    public void startTransaction();
+    
+    public void commitTransaction();
+    
+    public void abortTransaction();
 }

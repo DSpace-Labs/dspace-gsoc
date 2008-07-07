@@ -1,7 +1,6 @@
 package org.dspace.dao.jena;
 
 import com.hp.hpl.jena.rdf.model.Resource;
-import com.hp.hpl.jena.rdf.model.StmtIterator;
 import java.sql.SQLException;
 import java.util.UUID;
 import org.apache.log4j.Logger;
@@ -91,12 +90,9 @@ public class D2RQConnectorDAO<DAO, O extends DSpaceObject> extends StackableDAO<
         ((CRUD)child).delete( id );
     }
     
-    private void commit( O o ) {
+    public void commit( O o ) {
         Resource r = dao.getResource( o ).removeProperties();
         log.info( "Committing resource " + r );
-        StmtIterator it = dao.getD2RQStore().getResource( r.getURI() ).listProperties();
-        while ( it.hasNext() )
-            log.info( it.nextStatement() );
         r.getModel().add( dao.getD2RQStore().getResource( r.getURI() ).listProperties() );
     }
     
