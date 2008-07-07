@@ -220,8 +220,8 @@ public class ItemDAOCore extends ItemDAO
                 bundleDAO.update(bundle);
             }
 
+            /*      Not any more we don't! Handled elsewhere...
             // Next we take care of the metadata
-
             // First, we figure out what's in memory, and what's in the database
             List<MetadataValue> dbMetadata = mvDAO.getMetadataValues(item);
             List<DCValue> memMetadata = item.getMetadata();
@@ -327,7 +327,7 @@ public class ItemDAOCore extends ItemDAO
                     storedValue.setPlace(current);
                     mvDAO.update(storedValue);
                 }
-            }
+            }*/
 
             // deal with the item identifier/uuid
             ObjectIdentifier oid = item.getIdentifier();

@@ -39,6 +39,8 @@
  */
 package org.dspace.core;
 
+import com.hp.hpl.jena.rdf.model.Statement;
+import java.util.Iterator;
 import java.util.List;
 
 import org.apache.commons.cli.CommandLine;
@@ -482,11 +484,10 @@ public abstract class ArchiveManager
      */
     private static void printItemMetadata(Item item)
     {
-        System.out.println(item.getMetadata().toString());
-        for (Object o : item.getMetadata())
-        {
-            System.out.println(o.toString());
-        }
+        System.out.println(item.getMetadataStore().toString());
+        Iterator<Statement> it = item.getMetadataStore().getRoot().listProperties();
+        while( it.hasNext() )
+            System.out.println( it.next() );
     }
     
     /**
