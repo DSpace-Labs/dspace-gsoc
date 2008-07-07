@@ -118,14 +118,6 @@ public class ItemProxy extends Item
     }
 
     @Override
-    public List<DCValue> getMetadata()
-    {
-        loadMetadata();
-
-        return super.getMetadata();
-    }
-
-    @Override
     public DCValue[] getMetadata(String mdString)
     {
         loadMetadata();
@@ -140,14 +132,6 @@ public class ItemProxy extends Item
         loadMetadata();
 
         return super.getMetadata(schema, element, qualifier, language);
-    }
-
-    @Override
-    public void setMetadata(List<DCValue> metadata)
-    {
-        metadataLoaded = true;
-
-        super.setMetadata(metadata);
     }
 
     @Override

@@ -700,6 +700,7 @@ public class ItemDAOPostgres extends ItemDAO
     @Override
     public void loadMetadata(Item item)
     {
+        /*          No-Op
         MetadataFieldDAO mfDAO = MetadataFieldDAOFactory.getInstance(context);
         MetadataSchemaDAO msDAO = MetadataSchemaDAOFactory.getInstance(context);
 
@@ -748,7 +749,7 @@ public class ItemDAOPostgres extends ItemDAO
         catch (SQLException sqle)
         {
             throw new RuntimeException(sqle);
-        }
+        }*/
     }
 
     /**
