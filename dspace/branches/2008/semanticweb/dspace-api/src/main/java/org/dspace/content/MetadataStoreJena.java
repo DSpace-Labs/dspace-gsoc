@@ -39,6 +39,7 @@
  */
 package org.dspace.content;
 
+import com.hp.hpl.jena.rdf.model.Literal;
 import com.hp.hpl.jena.rdf.model.Property;
 import com.hp.hpl.jena.rdf.model.Resource;
 import com.hp.hpl.jena.rdf.model.ResourceFactory;
@@ -140,11 +141,25 @@ public class MetadataStoreJena implements MetadataStore
     {
         return root;
     }
-    
-    private Property prop( String s )
+
+    public List<String> resourcesToStrings( List<Resource> rs )
     {
-        return ResourceFactory.createProperty( root.getModel().expandPrefix( s ) );
+        List<String> out = new ArrayList<String>( rs.size() );
+        for ( Resource r : rs)
+            out.add( resourceToString( r ) );
+        return out;
     }
+
+    public String resourceToString( Resource r )
+    {
+        if ( r.isLiteral() )
+            return ((Literal)r).getLexicalForm();
+        else if ( r.isAnon() )
+            return "Resource [" + r.getId().getLabelString() + "]";
+        else
+            return r.getURI();
+    }
+    
 
     public void startTransaction()
     {
@@ -162,6 +177,12 @@ public class MetadataStoreJena implements MetadataStore
     {
         if ( dao.getTripleStore().supportsTransactions() )
             dao.getTripleStore().abort();
+    }
+    
+    
+    private Property prop( String s )
+    {
+        return ResourceFactory.createProperty( root.getModel().expandPrefix( s ) );
     }
 
 }

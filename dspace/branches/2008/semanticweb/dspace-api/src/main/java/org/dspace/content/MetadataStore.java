@@ -71,6 +71,10 @@ public interface MetadataStore
     
     public Resource getRoot();
     
+    public List<String> resourcesToStrings( List<Resource> rs );
+    
+    public String resourceToString( Resource r );
+    
     public void startTransaction();
     
     public void commitTransaction();
