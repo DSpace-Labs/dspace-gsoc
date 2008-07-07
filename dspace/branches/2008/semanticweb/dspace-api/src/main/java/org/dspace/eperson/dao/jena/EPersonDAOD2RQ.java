@@ -5,7 +5,6 @@ import org.dspace.authorize.AuthorizeException;
 import org.dspace.core.Context;
 import org.dspace.dao.jena.D2RQConnectorDAO;
 import org.dspace.eperson.EPerson;
-import org.dspace.eperson.EPerson.EPersonMetadataField;
 import org.dspace.eperson.dao.EPersonDAO;
 
 public class EPersonDAOD2RQ extends EPersonDAO {
@@ -22,6 +21,7 @@ public class EPersonDAOD2RQ extends EPersonDAO {
     
     @Override
     public void setChild( EPersonDAO dao ) {
+        childDAO = dao;
         connector.setChild( dao );
     }
     
@@ -40,12 +40,6 @@ public class EPersonDAOD2RQ extends EPersonDAO {
     public EPerson retrieve( UUID uuid )
     {
         return connector.retrieve( uuid );
-    }
-
-    @Override
-    public EPerson retrieve(EPersonMetadataField field, String value)
-    {
-        return connector.getChild().retrieve(field, value);
     }
 
     @Override

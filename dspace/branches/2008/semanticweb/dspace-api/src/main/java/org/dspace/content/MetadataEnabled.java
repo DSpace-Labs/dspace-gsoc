@@ -1,9 +1,9 @@
 /*
- * Upgrade15To16.java
+ * MetadataEnabled.java
  *
- * Version: $Revision: 1727 $
+ * Version: $Revision: 2755 $
  *
- * Date: $Date: 2007-01-19 10:52:10 +0000 (Fri, 19 Jan 2007) $
+ * Date: $Date: 2008-07-07 15:14:28 +0100 (Mon, 7 Jul 2008) $
  *
  * Copyright (c) 2002-2005, Hewlett-Packard Company and Massachusetts
  * Institute of Technology.  All rights reserved.
@@ -37,24 +37,16 @@
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
  * DAMAGE.
  */
-package org.dspace.administer.update1516;
+package org.dspace.content;
 
-import org.dspace.authorize.AuthorizeException;
-import org.dspace.core.ConfigurationManager;
+import org.dspace.uri.ObjectIdentifier;
 
-/**
- * @author Richard Jones
- */
-public class Upgrade15To16
+public interface MetadataEnabled
 {
-    public static void main(String[] args)
-                throws Exception, AuthorizeException
-    {
-        ConfigurationManager.loadConfig( "/dspace/config/dspace.cfg" );
-        MigrateUUID uuid = new MigrateUUID();
-        uuid.migrate();
+    public MetadataStore getMetadataStore();
 
-        MigrateHandle hdl = new MigrateHandle();
-        hdl.migrate();
-    }
+    public void setMetadataStore( MetadataStore store );
+
+    public ObjectIdentifier getIdentifier();
+
 }

@@ -57,20 +57,33 @@ import java.util.List;
 /**
  * Abstract base class for DSpace objects
  */
-public abstract class DSpaceObject implements Identifiable
+public abstract class DSpaceObject implements Identifiable, MetadataEnabled
 {
     private static Logger log = Logger.getLogger(DSpaceObject.class);
-    
+
     // accumulate information to add to "detail" element of content Event,
     // e.g. to document metadata fields touched, etc.
     private StringBuffer eventDetails = null;
-
+    
     protected Context context;
     protected int id;
     // protected UUID uuid;
     protected ObjectIdentifier oid;
     protected List<ExternalIdentifier> identifiers;
-    
+    protected MetadataStore meta;
+
+    public MetadataStore getMetadataStore()
+    {
+        if ( meta == null )
+            meta = new MetadataStoreJena( this );
+        return meta;
+    }
+
+    public void setMetadataStore( MetadataStore store )
+    {
+        meta = store;
+    }
+
     /**
      * Reset the cache of event details.
      */
@@ -86,15 +99,14 @@ public abstract class DSpaceObject implements Identifiable
      * the cache if it needs to.
      * @param d detail string to add.
      */
-    protected void addDetails(String detail)
+    protected void addDetails( String detail )
     {
-        if (eventDetails == null)
+        if ( eventDetails == null )
         {
-            eventDetails = new StringBuffer(detail);
-        }
-        else
+            eventDetails = new StringBuffer( detail );
+        } else
         {
-            eventDetails.append(", ").append(detail);
+            eventDetails.append( ", " ).append( detail );
         }
     }
 
@@ -103,7 +115,7 @@ public abstract class DSpaceObject implements Identifiable
      */
     protected String getDetails()
     {
-        return (eventDetails == null ? null : eventDetails.toString());
+        return ( eventDetails == null ? null : eventDetails.toString() );
     }
 
     /**
@@ -117,7 +129,7 @@ public abstract class DSpaceObject implements Identifiable
      * Get the internal ID (database primary key) of this object
      * 
      * @return internal ID of object
-     */ 
+     */
     public int getID()
     {
         return id;
@@ -128,16 +140,15 @@ public abstract class DSpaceObject implements Identifiable
         return oid;
     }
 
-    public void setSimpleIdentifier(SimpleIdentifier sid)
-        throws UnsupportedIdentifierException
+    public void setSimpleIdentifier( SimpleIdentifier sid )
+            throws UnsupportedIdentifierException
     {
-        if (sid instanceof ObjectIdentifier)
+        if ( sid instanceof ObjectIdentifier )
         {
-            this.setIdentifier((ObjectIdentifier) sid);
-        }
-        else
+            this.setIdentifier( (ObjectIdentifier) sid );
+        } else
         {
-            throw new UnsupportedIdentifierException("DSpaceObjects must use ObjectIdentifiers, not SimpleIdentifiers");
+            throw new UnsupportedIdentifierException( "DSpaceObjects must use ObjectIdentifiers, not SimpleIdentifiers" );
         }
     }
 
@@ -146,7 +157,7 @@ public abstract class DSpaceObject implements Identifiable
         return oid;
     }
 
-    public void setIdentifier(ObjectIdentifier oid)
+    public void setIdentifier( ObjectIdentifier oid )
     {
         // ensure that the identifier is configured for the item
         this.oid = oid;
@@ -160,21 +171,20 @@ public abstract class DSpaceObject implements Identifiable
     @Deprecated
     public ExternalIdentifier getExternalIdentifier()
     {
-        if ((identifiers != null) && (identifiers.size() > 0))
+        if ( ( identifiers != null ) && ( identifiers.size() > 0 ) )
         {
-            return identifiers.get(0);
-        }
-        else
+            return identifiers.get( 0 );
+        } else
         {
-            log.warn("no external identifiers found. type=" + getType() +
-                    ", id=" + getID());
+            log.warn( "no external identifiers found. type=" + getType() +
+                      ", id=" + getID() );
             return null;
         }
     }
 
     public List<ExternalIdentifier> getExternalIdentifiers()
     {
-        if (identifiers == null)
+        if ( identifiers == null )
         {
             identifiers = new ArrayList<ExternalIdentifier>();
         }
@@ -182,19 +192,19 @@ public abstract class DSpaceObject implements Identifiable
         return identifiers;
     }
 
-    public void addExternalIdentifier(ExternalIdentifier identifier)
+    public void addExternalIdentifier( ExternalIdentifier identifier )
             throws UnsupportedIdentifierException
     {
-        identifier.setObjectIdentifier(this.getIdentifier());
-        this.identifiers.add(identifier);
+        identifier.setObjectIdentifier( this.getIdentifier() );
+        this.identifiers.add( identifier );
     }
 
-    public void setExternalIdentifiers(List<ExternalIdentifier> identifiers)
+    public void setExternalIdentifiers( List<ExternalIdentifier> identifiers )
             throws UnsupportedIdentifierException
     {
-        for (ExternalIdentifier eid :  identifiers)
+        for ( ExternalIdentifier eid : identifiers )
         {
-            eid.setObjectIdentifier(this.getIdentifier());
+            eid.setObjectIdentifier( this.getIdentifier() );
         }
         this.identifiers = identifiers;
     }
@@ -211,23 +221,22 @@ public abstract class DSpaceObject implements Identifiable
     ////////////////////////////////////////////////////////////////////
     // Utility methods
     ////////////////////////////////////////////////////////////////////
-
     public String toString()
     {
-        return ToStringBuilder.reflectionToString(this,
-                ToStringStyle.MULTI_LINE_STYLE);
+        return ToStringBuilder.reflectionToString( this,
+                                            ToStringStyle.MULTI_LINE_STYLE );
     }
 
-    public boolean equals(Object o)
+    public boolean equals( Object o )
     {
-        return EqualsBuilder.reflectionEquals(this, o);
+        return EqualsBuilder.reflectionEquals( this, o );
     }
 
-    public boolean equals(DSpaceObject other)
+    public boolean equals( DSpaceObject other )
     {
-        if (this.getType() == other.getType())
+        if ( this.getType() == other.getType() )
         {
-            if (this.getID() == other.getID())
+            if ( this.getID() == other.getID() )
             {
                 return true;
             }
@@ -236,11 +245,12 @@ public abstract class DSpaceObject implements Identifiable
         return false;
     }
 
-    public boolean contains(List<? extends DSpaceObject> dsos, DSpaceObject dso)
+    public boolean contains( List<? extends DSpaceObject> dsos,
+                              DSpaceObject dso )
     {
-        for (DSpaceObject obj : dsos)
+        for ( DSpaceObject obj : dsos )
         {
-            if (obj.equals(dso))
+            if ( obj.equals( dso ) )
             {
                 return true;
             }
@@ -250,6 +260,7 @@ public abstract class DSpaceObject implements Identifiable
 
     public int hashCode()
     {
-        return HashCodeBuilder.reflectionHashCode(this);
+        return HashCodeBuilder.reflectionHashCode( this );
     }
+
 }

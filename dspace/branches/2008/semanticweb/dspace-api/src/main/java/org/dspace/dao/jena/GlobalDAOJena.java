@@ -11,7 +11,7 @@ import org.dspace.content.Bitstream;
 import org.dspace.content.BitstreamFormat;
 import org.dspace.content.Bundle;
 import org.dspace.content.Community;
-import org.dspace.content.DSpaceObject;
+import org.dspace.content.MetadataEnabled;
 import org.dspace.content.Item;
 import org.dspace.core.ConfigurationManager;
 import org.dspace.dao.postgres.GlobalDAOPostgres;
@@ -27,10 +27,14 @@ public class GlobalDAOJena extends GlobalDAOPostgres
     public GlobalDAOJena() throws SQLException
     {
         new de.fuberlin.wiwiss.d2rq.assembler.D2RQAssembler();
-        Model assemblerSpec = FileManager.get().loadModel( ConfigurationManager.getProperty( "org.dspace.dao.jena.assemblerspec" ) );
-        d2rqStore = Assembler.general.openModel( assemblerSpec.createResource( DSPACE.d2rqStore.getURI() ) );
-        tripleStore = Assembler.general.openModel( assemblerSpec.createResource( DSPACE.tripleStore.getURI() ) );
-        tripleStore.setNsPrefixes( d2rqStore ); // ensure they are always the same
+        Model assemblerSpec = FileManager.get().loadModel( 
+                ConfigurationManager.getProperty( 
+                    "org.dspace.dao.jena.assemblerspec" ) );
+        d2rqStore = Assembler.general.openModel( 
+                assemblerSpec.createResource( DSPACE.d2rqStore.getURI() ) );
+        tripleStore = Assembler.general.openModel( 
+                assemblerSpec.createResource( DSPACE.tripleStore.getURI() ) );
+        tripleStore.setNsPrefixes( d2rqStore );
     }
     
     public Model getTripleStore() {
@@ -45,12 +49,12 @@ public class GlobalDAOJena extends GlobalDAOPostgres
         return tripleStore.expandPrefix( "res:" );
     }
     
-    public Resource getResource( DSpaceObject obj ) {
+    public Resource getResource( MetadataEnabled obj ) {
         return getResource( obj.getClass(), obj.getIdentifier().getUUID() );
     }
     
     public Resource getResource( Class c, UUID uuid ) {
-        String type = "";
+        String type = "resource/";
         if ( c.equals( EPerson.class ) )
             type = "eperson/";
         else if ( c.equals( Bitstream.class ) )
