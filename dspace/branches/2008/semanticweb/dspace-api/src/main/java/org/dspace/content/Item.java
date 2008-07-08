@@ -384,7 +384,7 @@ public class Item extends DSpaceObject
         // Build up list of matching values
         List<DCValue> values = new ArrayList<DCValue>();
 
-        Iterator<Statement> it = meta.getRoot().listProperties();
+        Iterator<Statement> it = getMetadataStore().getRoot().listProperties();
         
         while( it.hasNext() )
         {
@@ -496,9 +496,9 @@ public class Item extends DSpaceObject
                 continue;
             }
             
-            meta.add( ResourceFactory.createProperty( schema + "/" + element 
+            getMetadataStore().add( ResourceFactory.createProperty( schema + "/" + element 
                         + (qualifier == null ?  "" : "." + qualifier) ), 
-                    (Resource)meta.getRoot().getModel()
+                    (Resource)getMetadataStore().getRoot().getModel()
                         .createLiteral( value, lang ) );
 
             addDetails(schema+"."+element+((qualifier==null)? "": "."+qualifier));
@@ -600,13 +600,13 @@ public class Item extends DSpaceObject
     public void clearMetadata(String schema, String element, String qualifier,
             String lang)
     {
-        Iterator<Statement> it = meta.getRoot().listProperties();
+        Iterator<Statement> it = getMetadataStore().getRoot().listProperties();
         
         while( it.hasNext() )
         {
             Statement curr = it.next();
             if ( match(schema, element, qualifier, lang, curr.getPredicate(), curr.getResource() ) )
-                meta.getRoot().getModel().remove( curr );
+                getMetadataStore().getRoot().getModel().remove( curr );
         }
     }
 
