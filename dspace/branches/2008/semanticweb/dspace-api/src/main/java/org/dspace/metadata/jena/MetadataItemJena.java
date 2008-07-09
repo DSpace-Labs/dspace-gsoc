@@ -2,6 +2,7 @@ package org.dspace.metadata.jena;
 
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.DSpaceObject;
+import org.dspace.content.DSpaceObjectCore;
 import org.dspace.core.Constants;
 import org.dspace.metadata.LiteralValue;
 import org.dspace.metadata.MetadataItem;
@@ -10,9 +11,8 @@ import org.dspace.metadata.MetadataManagerFactory;
 import org.dspace.metadata.Predicate;
 import org.dspace.metadata.URIResource;
 import org.dspace.metadata.Value;
-import org.dspace.uri.ObjectIdentifierService;
 
-public class MetadataItemJena extends DSpaceObject implements MetadataItem
+public class MetadataItemJena extends DSpaceObjectCore implements MetadataItem
 {
     
     private DSpaceObject subj;

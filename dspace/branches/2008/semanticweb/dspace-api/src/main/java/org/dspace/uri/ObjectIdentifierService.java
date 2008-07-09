@@ -44,7 +44,6 @@ import org.dspace.core.Context;
 import org.dspace.uri.dao.ObjectIdentifierDAO;
 import org.dspace.uri.dao.ObjectIdentifierDAOFactory;
 import org.dspace.uri.dao.ObjectIdentifierStorageException;
-import org.dspace.uri.dao.ExternalIdentifierStorageException;
 import org.apache.log4j.Logger;
 
 import java.util.UUID;
@@ -72,7 +71,13 @@ public class ObjectIdentifierService
     {
         UUID uuid = UUID.randomUUID();
         ObjectIdentifier oid = new ObjectIdentifier(uuid, dso.getType(), dso.getID());
-        dso.setIdentifier(oid);
+        try
+        {
+            dso.setIdentifier(oid);
+        } catch ( UnsupportedIdentifierException ex )
+        {
+            log.error( ex );
+        }
         return oid;
     }
 

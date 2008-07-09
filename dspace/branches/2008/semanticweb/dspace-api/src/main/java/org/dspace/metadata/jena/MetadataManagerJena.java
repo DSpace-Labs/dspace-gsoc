@@ -56,15 +56,15 @@ public class MetadataManagerJena implements MetadataManager
     {
         auth( o, Constants.READ );
         return getMetadata( (Selector) new SelectorCore()
-                    {
+        {
 
-                        @Override
-                        public DSpaceObject getSubject()
-                        {
-                            return o;
-                        }
+            @Override
+            public DSpaceObject getSubject()
+            {
+                return o;
+            }
 
-                    }, depth );
+        }, depth );
     }
 
     public MetadataCollection getMetadata( Selector s )
@@ -83,6 +83,7 @@ public class MetadataManagerJena implements MetadataManager
             MetadataItem m = it.next();
             try {
                 auth( m.getSubject(), Constants.READ );
+                auth( m.getPredicate(), Constants.READ );
                 c.add( m );
                 if ( m.isDSpaceObject() && depth > 1 )
                 {
@@ -101,7 +102,7 @@ public class MetadataManagerJena implements MetadataManager
 
                                 },
                                 depth - 1 ).getMetadata();
-                        while ( cit.hasNext() )
+                        while ( cit.hasNext() ) // already auth'd
                             c.add( cit.next() );
                     } catch ( AuthorizeException e ) { }
                 }
@@ -119,7 +120,8 @@ public class MetadataManagerJena implements MetadataManager
             {
                 try {
                     auth( m.getSubject(), Constants.WRITE );
-                    dao.getTripleStore().add( tran.translate( m ) );
+                    auth( m.getPredicate(), Constants.WRITE );
+                    dao.getTripleStore().add( tran.translateItem( m ) );
                 } catch ( AuthorizeException e ) { }
             }
             commitTransaction();
@@ -150,10 +152,11 @@ public class MetadataManagerJena implements MetadataManager
 
     public void removeMetadata( Selector s ) throws AuthorizeException
     {
-        if ( s.isValueMatcher() && s.getSubject() != null ) 
+        if ( s.isValueMatcher() && s.getSubject() != null && s.getPredicate() != null ) 
         {
             auth( s.getSubject(), Constants.REMOVE );
-            Statement st = tran.translate( s );
+            auth( s.getPredicate(), Constants.REMOVE );
+            Statement st = tran.translateItem( s );
             dao.getTripleStore().removeAll( st.getSubject(), 
                         st.getPredicate(), st.getObject() );
         } else 
@@ -164,7 +167,9 @@ public class MetadataManagerJena implements MetadataManager
             {
                 Statement curr = it.next();
                 try {
-                    auth( tran.translate( curr ).getSubject(), Constants.REMOVE );
+                    MetadataItem m = tran.translate( curr );
+                    auth( m.getSubject(), Constants.REMOVE );
+                    auth( m.getPredicate(), Constants.REMOVE );
                     dao.getTripleStore().remove( curr );
                 } catch ( AuthorizeException e ) { }
             }

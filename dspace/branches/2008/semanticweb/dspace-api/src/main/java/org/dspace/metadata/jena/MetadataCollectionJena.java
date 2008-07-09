@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
+import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.DSpaceObject;
 import org.dspace.metadata.MetadataCollection;
 import org.dspace.metadata.MetadataItem;
@@ -64,7 +65,10 @@ public class MetadataCollectionJena implements MetadataCollection
 
             public void remove()
             {
-                meta[i].remove();
+                try
+                {
+                    meta[i].remove();
+                } catch ( AuthorizeException ex ) { }
             }
             
         };
@@ -115,21 +119,21 @@ public class MetadataCollectionJena implements MetadataCollection
         } );
     }
 
-    public void addMetadata( MetadataItem... items )
+    public void addMetadata( MetadataItem... items ) throws AuthorizeException
     {
         manager.addMetadata( items );
         for ( MetadataItem m : items )
             metadata.add( m );
     }
 
-    public void addMetadata( DSpaceObject o, Predicate p, Value v )
+    public void addMetadata( DSpaceObject o, Predicate p, Value v ) throws AuthorizeException
     {
         MetadataItem i = MetadataFactory.createItem( o, p, v );
         manager.addMetadata( i );
         addMetadata( i );
     }
 
-    public void addMetadata( DSpaceObject o, Predicate p, DSpaceObject v )
+    public void addMetadata( DSpaceObject o, Predicate p, DSpaceObject v ) throws AuthorizeException
     {
         MetadataItem i = MetadataFactory.createItem( o, p, v );
         manager.addMetadata( i );

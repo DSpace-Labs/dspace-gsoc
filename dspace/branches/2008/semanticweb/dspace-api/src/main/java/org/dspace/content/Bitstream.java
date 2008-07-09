@@ -66,7 +66,7 @@ import org.dspace.uri.ObjectIdentifier;
  * @author Robert Tansley
  * @version $Revision$
  */
-public class Bitstream extends DSpaceObject
+public class Bitstream extends DSpaceObjectCore
 {
     /** log4j logger */
     private static Logger log = Logger.getLogger(Bitstream.class);

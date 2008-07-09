@@ -42,7 +42,7 @@ public class SelectorCore extends MetadataItemJena implements Selector
     
     public static com.hp.hpl.jena.rdf.model.Selector toJenaSelector( 
             final Selector o, final StatementTranslator tran ) {
-        final Statement stat = tran.translate( o );
+        final Statement stat = tran.translateItem( o );
         return new com.hp.hpl.jena.rdf.model.Selector() {
 
             public boolean test( Statement s )
