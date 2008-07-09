@@ -63,6 +63,7 @@ import org.dspace.uri.ExternalIdentifier;
 
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Class representing a ResourcePolicy
@@ -84,8 +85,7 @@ public class ResourcePolicy implements Identifiable
 
     private SimpleIdentifier sid;
 
-    // FIXME: Figure out a way to replace all of this using the
-    // ObjectIdentifier class.
+    private UUID resourceUUID;
     private int resourceID;
     private int resourceTypeID;
 
@@ -174,6 +174,7 @@ public class ResourcePolicy implements Identifiable
     {
         setResourceType(o.getType());
         setResourceID(o.getID());
+        setResourceUUID(o.getIdentifier().getUUID());
     }
 
     /**
@@ -200,6 +201,25 @@ public class ResourcePolicy implements Identifiable
     public void setResourceID(int resourceID)
     {
         this.resourceID = resourceID;
+    }
+
+    /**
+     * Get the UUID of a resource pointed to by the policy (is null if policy
+     * doesn't apply to a single resource, or UUID not set.)
+     */
+    
+    public UUID getResourceUUID()
+    {
+        return resourceUUID;
+    }
+
+    /**
+     * If the policy refers to a single resource, this is the UUID of that
+     * resource.
+     */
+    public void setResourceUUID(UUID uuid)
+    {
+        resourceUUID = uuid;
     }
 
     /**

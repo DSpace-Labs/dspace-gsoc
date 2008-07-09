@@ -168,6 +168,7 @@ public class AuthorizeManager
             // denied, assemble and throw exception
             int otype = o.getType();
             int oid = o.getID();
+            String uuid = o.getIdentifier().getUUID().toString();
             int userid;
             EPerson e = c.getCurrentUser();
 
@@ -196,7 +197,7 @@ public class AuthorizeManager
 
             throw new AuthorizeException("Authorization denied for action "
                     + actionText + " on " + Constants.typeText[otype] + ":"
-                    + oid + " by user " + userid + " in context " + c, o, action);
+                    + oid + ":" + uuid + " by user " + userid + " in context " + c, o, action);
         }
     }
 
