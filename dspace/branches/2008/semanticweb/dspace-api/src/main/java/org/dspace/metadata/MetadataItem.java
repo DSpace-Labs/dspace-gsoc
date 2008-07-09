@@ -1,5 +1,6 @@
 package org.dspace.metadata;
 
+import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.DSpaceObject;
 
 public interface MetadataItem extends Comparable<MetadataItem>
@@ -25,6 +26,6 @@ public interface MetadataItem extends Comparable<MetadataItem>
 
     public DSpaceObject getDSpaceObject();
     
-    public void remove();
+    public void remove() throws AuthorizeException;
 
 }
