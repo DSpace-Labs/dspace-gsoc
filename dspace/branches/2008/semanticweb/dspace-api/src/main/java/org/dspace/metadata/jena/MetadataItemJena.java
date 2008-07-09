@@ -1,5 +1,6 @@
 package org.dspace.metadata.jena;
 
+import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.DSpaceObject;
 import org.dspace.core.Constants;
 import org.dspace.metadata.LiteralValue;
@@ -104,7 +105,7 @@ public class MetadataItemJena extends DSpaceObject implements MetadataItem
         return obj;
     }
 
-    public void remove()
+    public void remove() throws AuthorizeException
     {
         getManager().removeMetadata( new SelectorCore( this ) );
     }
@@ -135,8 +136,8 @@ public class MetadataItemJena extends DSpaceObject implements MetadataItem
     }
     
     private MetadataManager getManager() {
-        if ( manager == null )
-            manager = MetadataManagerFactory.get();
+            if ( manager == null )
+                manager = MetadataManagerFactory.get();
         return manager;
     }
     
