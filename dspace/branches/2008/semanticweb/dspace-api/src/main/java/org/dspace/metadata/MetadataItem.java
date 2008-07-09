@@ -4,6 +4,8 @@ import org.dspace.content.DSpaceObject;
 
 public interface MetadataItem extends Comparable<MetadataItem>
 {
+    
+    public void setManager( MetadataManager m );
 
     public DSpaceObject getSubject();
 
