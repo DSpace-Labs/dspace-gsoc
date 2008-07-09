@@ -10,6 +10,7 @@ import org.dspace.metadata.MetadataManagerFactory;
 import org.dspace.metadata.Predicate;
 import org.dspace.metadata.URIResource;
 import org.dspace.metadata.Value;
+import org.dspace.uri.ObjectIdentifierService;
 
 public class MetadataItemJena extends DSpaceObject implements MetadataItem
 {

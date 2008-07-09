@@ -45,6 +45,12 @@ public class MetadataFactory
                                      null );
     }
 
+    public static LiteralValue createTypedLiteral( String string, String lang, RDFDatatype dType )
+    {
+        return new LiteralValueJena( Node.createLiteral( string, lang, dType ),
+                                     null );
+    }
+
     public static LiteralValue createTypedLiteral( Object value )
     {
         LiteralLabel ll = null;

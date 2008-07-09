@@ -12,7 +12,6 @@ import org.dspace.content.BitstreamFormat;
 import org.dspace.content.Bundle;
 import org.dspace.content.Community;
 import org.dspace.content.DSpaceObject;
-import org.dspace.content.MetadataEnabled;
 import org.dspace.content.Item;
 import org.dspace.core.ConfigurationManager;
 import org.dspace.dao.postgres.GlobalDAOPostgres;
@@ -77,7 +76,7 @@ public class GlobalDAOJena extends GlobalDAOPostgres
         return tripleStore.expandPrefix( "res:" );
     }
     
-    public Resource getResource( MetadataEnabled obj ) {
+    public Resource getResource( DSpaceObject obj ) {
         return getResource( obj.getClass(), obj.getIdentifier().getUUID() );
     }
     
