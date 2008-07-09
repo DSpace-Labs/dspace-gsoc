@@ -33,5 +33,10 @@ public class LiteralValueJena extends LiteralImpl implements LiteralValue
         return o instanceof LiteralValue ? 
             ((LiteralValue)o).getLexicalForm().compareTo( getLexicalForm() ) : 1;
     }
+
+    public boolean isLiteralValue()
+    {
+        return true;
+    }
     
 }

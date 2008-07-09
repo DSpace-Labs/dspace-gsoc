@@ -57,7 +57,7 @@ import java.util.List;
 /**
  * Abstract base class for DSpace objects
  */
-public abstract class DSpaceObject implements Identifiable, MetadataEnabled
+public abstract class DSpaceObject implements Identifiable
 {
     private static Logger log = Logger.getLogger(DSpaceObject.class);
 
@@ -70,19 +70,6 @@ public abstract class DSpaceObject implements Identifiable, MetadataEnabled
     // protected UUID uuid;
     protected ObjectIdentifier oid;
     protected List<ExternalIdentifier> identifiers;
-    protected MetadataStore meta;
-
-    public MetadataStore getMetadataStore()
-    {
-        if ( meta == null )
-            meta = new MetadataStoreJena( this );
-        return meta;
-    }
-
-    public void setMetadataStore( MetadataStore store )
-    {
-        meta = store;
-    }
 
     /**
      * Reset the cache of event details.

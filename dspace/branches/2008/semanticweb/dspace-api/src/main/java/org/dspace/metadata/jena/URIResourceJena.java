@@ -62,4 +62,9 @@ public class URIResourceJena extends ResourceImpl implements URIResource
                 : -1;
     }
 
+    public boolean isLiteralValue()
+    {
+        return false;
+    }
+
 }

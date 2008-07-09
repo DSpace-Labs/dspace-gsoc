@@ -39,11 +39,6 @@
  */
 package org.dspace.content;
 
-import com.hp.hpl.jena.rdf.model.Literal;
-import com.hp.hpl.jena.rdf.model.Property;
-import com.hp.hpl.jena.rdf.model.Resource;
-import com.hp.hpl.jena.rdf.model.ResourceFactory;
-import com.hp.hpl.jena.rdf.model.Statement;
 import org.apache.log4j.Logger;
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.authorize.AuthorizeManager;
@@ -85,6 +80,12 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.StringTokenizer;
+import org.dspace.metadata.LiteralValue;
+import org.dspace.metadata.MetadataItem;
+import org.dspace.metadata.MetadataManagerFactory;
+import org.dspace.metadata.Predicate;
+import org.dspace.metadata.Value;
+import org.dspace.metadata.jena.MetadataFactory;
 
 /**
  * Class representing an item in DSpace. Note that everything is held in memory
@@ -384,12 +385,13 @@ public class Item extends DSpaceObject
         // Build up list of matching values
         List<DCValue> values = new ArrayList<DCValue>();
 
-        Iterator<Statement> it = getMetadataStore().getRoot().listProperties();
+        Iterator<MetadataItem> it = MetadataManagerFactory.get( context )
+                .getMetadata( this ).getMetadata();
         
         while( it.hasNext() )
         {
-            Statement curr = it.next();
-            if ( match(schema, element, qualifier, lang, curr.getPredicate(), curr.getResource() ) )
+            MetadataItem curr = it.next();
+            if ( match(schema, element, qualifier, lang, curr.getPredicate(), curr.getValue() ) )
             {
                 // We will return a copy of the object in case it is altered
                 // FIXME: Want to dispose of DCValue completely!
@@ -397,8 +399,8 @@ public class Item extends DSpaceObject
                 String[] local = curr.getPredicate().getLocalName().split( "\\." );
                 copy.element = local[0];
                 copy.qualifier = local.length > 1 ? local[1] : "";
-                copy.value = curr.getResource().toString();
-                copy.language = curr.getResource().isLiteral() ? curr.getLiteral().getLanguage() : "";
+                copy.value = curr.getLiteralValue().getLexicalForm();
+                copy.language = curr.getLiteralValue().getLanguage();
                 copy.schema = curr.getPredicate().getNameSpace();
 
                 values.add(copy);
@@ -496,10 +498,10 @@ public class Item extends DSpaceObject
                 continue;
             }
             
-            getMetadataStore().add( ResourceFactory.createProperty( schema + "/" + element 
+            MetadataManagerFactory.get( context ).addMetadata( this,
+                    MetadataFactory.createPredicate( schema + "/" + element 
                         + (qualifier == null ?  "" : "." + qualifier) ), 
-                    (Resource)getMetadataStore().getRoot().getModel()
-                        .createLiteral( value, lang ) );
+                    MetadataFactory.createTypedLiteral( value, lang, null ) );
 
             addDetails(schema+"."+element+((qualifier==null)? "": "."+qualifier));
         }
@@ -600,14 +602,7 @@ public class Item extends DSpaceObject
     public void clearMetadata(String schema, String element, String qualifier,
             String lang)
     {
-        Iterator<Statement> it = getMetadataStore().getRoot().listProperties();
-        
-        while( it.hasNext() )
-        {
-            Statement curr = it.next();
-            if ( match(schema, element, qualifier, lang, curr.getPredicate(), curr.getResource() ) )
-                getMetadataStore().getRoot().getModel().remove( curr );
-        }
+        MetadataManagerFactory.get( context ).removeAllMetadata( this );
     }
 
     /**
@@ -1233,7 +1228,7 @@ public class Item extends DSpaceObject
      * @return <code>true</code> if there is a match
      */
     protected boolean match(String schema, String element, String qualifier,
-            String language, Property p, Resource r)
+            String language, Predicate p, Value v)
     {
         String[] local = p.getLocalName().split( "\\." );
         // We will attempt to disprove a match - if we can't we have a match
@@ -1264,7 +1259,7 @@ public class Item extends DSpaceObject
         if (language == null)
         {
             // Value must be null language to match
-            if (r.isLiteral() && ((Literal)r).getLanguage() != null)
+            if ( ((LiteralValue)v).getLanguage() != null )
             {
                 // Value is qualified, so no match
                 return false;
@@ -1273,7 +1268,7 @@ public class Item extends DSpaceObject
         else if (!language.equals(Item.ANY))
         {
             // Not a wildcard, so language must match exactly
-            if ( r.isLiteral() && !((Literal)r).getLanguage().equals( language ) )
+            if ( !((LiteralValue)v).getLanguage().equals( language ) )
             {
                 return false;
             }
@@ -1288,7 +1283,7 @@ public class Item extends DSpaceObject
         }
 
         // If we get this far, we have a match
-        return true;
+        return v.isLiteralValue();
     }
 
     ////////////////////////////////////////////////////////////////////

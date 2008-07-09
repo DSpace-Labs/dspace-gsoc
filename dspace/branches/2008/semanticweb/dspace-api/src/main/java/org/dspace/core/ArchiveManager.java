@@ -39,7 +39,6 @@
  */
 package org.dspace.core;
 
-import com.hp.hpl.jena.rdf.model.Statement;
 import java.util.Iterator;
 import java.util.List;
 
@@ -68,6 +67,8 @@ import org.dspace.eperson.EPerson;
 import org.dspace.eperson.Group;
 import org.dspace.eperson.dao.GroupDAO;
 import org.dspace.eperson.dao.GroupDAOFactory;
+import org.dspace.metadata.MetadataItem;
+import org.dspace.metadata.MetadataManagerFactory;
 import org.dspace.uri.ExternalIdentifier;
 
 public abstract class ArchiveManager
@@ -478,16 +479,18 @@ public abstract class ArchiveManager
     }
 
     /**
-     * Prints out the Item's metadata twice in two forms
+     * Prints out the Item's metadata
      * 
      * @param item Item
      */
     private static void printItemMetadata(Item item)
     {
-        System.out.println(item.getMetadataStore().toString());
-        Iterator<Statement> it = item.getMetadataStore().getRoot().listProperties();
-        while( it.hasNext() )
-            System.out.println( it.next() );
+        try
+        {
+            Iterator<MetadataItem> it = MetadataManagerFactory.get().getMetadata( item ).getMetadata();
+            while( it.hasNext() )
+                System.out.println( it.next() );
+        } catch ( AuthorizeException ex ) { }
     }
     
     /**
