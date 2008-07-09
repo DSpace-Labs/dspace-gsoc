@@ -11,6 +11,7 @@ import org.dspace.content.Bitstream;
 import org.dspace.content.BitstreamFormat;
 import org.dspace.content.Bundle;
 import org.dspace.content.Community;
+import org.dspace.content.DSpaceObject;
 import org.dspace.content.MetadataEnabled;
 import org.dspace.content.Item;
 import org.dspace.core.ConfigurationManager;
@@ -21,20 +22,47 @@ import org.dspace.eperson.Group;
 public class GlobalDAOJena extends GlobalDAOPostgres
 {
 
-    protected Model tripleStore, d2rqStore;
+    protected Model tripleStore, d2rqStore, assemblerSpec;
 
     // FIXME: This should be a GlobalDAOException (pending Interface change)
     public GlobalDAOJena() throws SQLException
     {
-        new de.fuberlin.wiwiss.d2rq.assembler.D2RQAssembler();
-        Model assemblerSpec = FileManager.get().loadModel( 
+        assemblerSpec = FileManager.get().loadModel( 
                 ConfigurationManager.getProperty( 
                     "org.dspace.dao.jena.assemblerspec" ) );
-        d2rqStore = Assembler.general.openModel( 
-                assemblerSpec.createResource( DSPACE.d2rqStore.getURI() ) );
-        tripleStore = Assembler.general.openModel( 
-                assemblerSpec.createResource( DSPACE.tripleStore.getURI() ) );
+        d2rqStore = assembleModel( DSPACE.d2rqStore );
+        tripleStore = assembleModel( DSPACE.tripleStore );
         tripleStore.setNsPrefixes( d2rqStore );
+    }
+    
+    public DSpaceObject assembleDSO( String uri )
+    {
+        return (DSpaceObject)assemble( assemblerSpec.createResource( uri ) );
+    }
+    
+    public DSpaceObject assembleDSO( Resource r )
+    {
+        return (DSpaceObject)assemble( r );
+    }
+    
+    public Model assembleModel( String uri )
+    {
+        return assembleModel( assemblerSpec.createResource( uri ) );
+    }
+    
+    public Model assembleModel( Resource r )
+    {
+        return Assembler.general.openModel( r );
+    }
+    
+    public Object assemble( String uri )
+    {
+        return assemble( assemblerSpec.createResource( uri ) );
+    }
+    
+    public Object assemble( Resource r )
+    {
+        return Assembler.general.open( (Resource)r.inModel( assemblerSpec ) );
     }
     
     public Model getTripleStore() {
