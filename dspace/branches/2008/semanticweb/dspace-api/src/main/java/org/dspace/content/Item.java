@@ -94,7 +94,7 @@ import org.dspace.metadata.jena.MetadataFactory;
  * @author James Rutherford
  * @version $Revision$
  */
-public class Item extends DSpaceObject
+public class Item extends DSpaceObjectCore
 {
     private static Logger log = Logger.getLogger(Item.class);
 
@@ -385,27 +385,30 @@ public class Item extends DSpaceObject
         // Build up list of matching values
         List<DCValue> values = new ArrayList<DCValue>();
 
-        Iterator<MetadataItem> it = MetadataManagerFactory.get( context )
-                .getMetadata( this ).getMetadata();
-        
-        while( it.hasNext() )
+        try
         {
-            MetadataItem curr = it.next();
-            if ( match(schema, element, qualifier, lang, curr.getPredicate(), curr.getValue() ) )
-            {
-                // We will return a copy of the object in case it is altered
-                // FIXME: Want to dispose of DCValue completely!
-                DCValue copy = new DCValue();
-                String[] local = curr.getPredicate().getLocalName().split( "\\." );
-                copy.element = local[0];
-                copy.qualifier = local.length > 1 ? local[1] : "";
-                copy.value = curr.getLiteralValue().getLexicalForm();
-                copy.language = curr.getLiteralValue().getLanguage();
-                copy.schema = curr.getPredicate().getNameSpace();
+            Iterator<MetadataItem> it = MetadataManagerFactory.get( context )
+                .getMetadata( this ).getMetadata();
 
-                values.add(copy);
+            while( it.hasNext() )
+            {
+                MetadataItem curr = it.next();
+                if ( match(schema, element, qualifier, lang, curr.getPredicate(), curr.getValue() ) )
+                {
+                    // We will return a copy of the object in case it is altered
+                    // FIXME: Want to dispose of DCValue completely!
+                    DCValue copy = new DCValue();
+                    String[] local = curr.getPredicate().getLocalName().split( "\\." );
+                    copy.element = local[0];
+                    copy.qualifier = local.length > 1 ? local[1] : "";
+                    copy.value = curr.getLiteralValue().getLexicalForm();
+                    copy.language = curr.getLiteralValue().getLanguage();
+                    copy.schema = curr.getPredicate().getNameSpace();
+
+                    values.add(copy);
+                }
             }
-        }
+        } catch ( AuthorizeException ex ) { }
 
         return values.toArray(new DCValue[0]);
     }
@@ -497,11 +500,13 @@ public class Item extends DSpaceObject
             {
                 continue;
             }
-            
-            MetadataManagerFactory.get( context ).addMetadata( this,
+            try
+            {
+                MetadataManagerFactory.get( context ).addMetadata( this,
                     MetadataFactory.createPredicate( schema + "/" + element 
                         + (qualifier == null ?  "" : "." + qualifier) ), 
                     MetadataFactory.createTypedLiteral( value, lang, null ) );
+            } catch ( AuthorizeException ex ) { }
 
             addDetails(schema+"."+element+((qualifier==null)? "": "."+qualifier));
         }
@@ -602,7 +607,10 @@ public class Item extends DSpaceObject
     public void clearMetadata(String schema, String element, String qualifier,
             String lang)
     {
-        MetadataManagerFactory.get( context ).removeAllMetadata( this );
+        try
+        {
+            MetadataManagerFactory.get( context ).removeAllMetadata( this );
+        } catch ( AuthorizeException ex ) { }
     }
 
     /**

@@ -1,6 +1,7 @@
 package org.dspace.metadata;
 
 import java.util.Iterator;
+import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.DSpaceObject;
 
 public interface MetadataCollection
@@ -16,10 +17,10 @@ public interface MetadataCollection
 
     public Iterator<MetadataItem> getMetadata( URIResource r );
     
-    public void addMetadata( MetadataItem ... items );
+    public void addMetadata( MetadataItem ... items ) throws AuthorizeException;
     
-    public void addMetadata( DSpaceObject o, Predicate p, Value v );
+    public void addMetadata( DSpaceObject o, Predicate p, Value v ) throws AuthorizeException;
     
-    public void addMetadata( DSpaceObject o, Predicate p, DSpaceObject v );
+    public void addMetadata( DSpaceObject o, Predicate p, DSpaceObject v ) throws AuthorizeException;
 
 }

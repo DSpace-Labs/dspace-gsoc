@@ -50,7 +50,7 @@ import org.dspace.authorize.AuthorizeException;
  * Represents the root of the DSpace Archive.
  * By default, the handle suffix "0" represents the Site, e.g. "1721.1/0"
  */
-public class Site extends DSpaceObject
+public class Site extends DSpaceObjectCore
 {
     /** "database" identifier of the site */
     public static final int SITE_ID = 0;

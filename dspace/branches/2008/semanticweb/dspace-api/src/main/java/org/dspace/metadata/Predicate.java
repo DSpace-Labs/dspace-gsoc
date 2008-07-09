@@ -1,6 +1,8 @@
 package org.dspace.metadata;
 
-public interface Predicate extends Comparable<Predicate>
+import org.dspace.content.DSpaceObject;
+
+public interface Predicate extends Comparable<Predicate>, DSpaceObject
 {
 
     public String getURI();

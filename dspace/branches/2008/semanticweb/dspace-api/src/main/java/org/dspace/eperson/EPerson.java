@@ -41,7 +41,6 @@ package org.dspace.eperson;
 
 import org.apache.log4j.Logger;
 import org.dspace.authorize.AuthorizeException;
-import org.dspace.content.DSpaceObject;
 import org.dspace.core.Constants;
 import org.dspace.core.Context;
 import org.dspace.core.Utils;
@@ -51,10 +50,10 @@ import org.dspace.event.Event;
 import org.dspace.uri.ExternalIdentifier;
 import org.dspace.uri.UnsupportedIdentifierException;
 
-import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import org.dspace.content.DSpaceObjectCore;
 
 /**
  * Class representing an e-person.
@@ -62,7 +61,7 @@ import java.util.Map;
  * @author David Stuve
  * @version $Revision$
  */
-public class EPerson extends DSpaceObject
+public class EPerson extends DSpaceObjectCore
 {
     private static Logger log = Logger.getLogger(EPerson.class);
 

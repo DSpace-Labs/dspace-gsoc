@@ -44,7 +44,7 @@ import java.util.List;
 
 import org.apache.log4j.Logger;
 import org.dspace.authorize.AuthorizeException;
-import org.dspace.content.DSpaceObject;
+import org.dspace.content.DSpaceObjectCore;
 import org.dspace.core.Constants;
 import org.dspace.core.Context;
 import org.dspace.eperson.dao.EPersonDAO;
@@ -61,7 +61,7 @@ import org.dspace.uri.UnsupportedIdentifierException;
  * @author David Stuve
  * @version $Revision$
  */
-public class Group extends DSpaceObject
+public class Group extends DSpaceObjectCore
 {
     // findAll sortby types
     public static final int ID = 0; // sort by ID

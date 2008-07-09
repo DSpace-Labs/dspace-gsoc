@@ -71,7 +71,7 @@ import org.dspace.uri.ObjectIdentifier;
  * @author James Rutherford
  * @version $Revision$
  */
-public class Bundle extends DSpaceObject
+public class Bundle extends DSpaceObjectCore
 {
     private static Logger log = Logger.getLogger(Bundle.class);
 

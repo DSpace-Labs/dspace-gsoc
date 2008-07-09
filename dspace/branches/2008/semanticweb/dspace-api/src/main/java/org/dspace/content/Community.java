@@ -77,7 +77,7 @@ import org.dspace.event.Event;
  * @author James Rutherford
  * @version $Revision$
  */
-public class Community extends DSpaceObject
+public class Community extends DSpaceObjectCore
 {
     private static Logger log = Logger.getLogger(Community.class);
 

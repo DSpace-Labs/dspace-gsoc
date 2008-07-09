@@ -88,7 +88,7 @@ public class StatementTranslator
                         dao.assembleDSO( s.getResource() ) );
     }
     
-    public Iterator<Statement> translate( final Iterator<MetadataItem> it ) {
+    public Iterator<Statement> translateItems( final Iterator<MetadataItem> it ) {
         final StatementTranslator tran = this;
         return new Iterator<Statement>() 
         {
@@ -100,7 +100,7 @@ public class StatementTranslator
 
             public Statement next()
             {
-                return tran.translate( it.next() );
+                return tran.translateItem( it.next() );
             }
 
             public void remove()
@@ -111,23 +111,23 @@ public class StatementTranslator
         };
     }
     
-    public List<Statement> translate( Collection<MetadataItem> coll )
+    public List<Statement> translateItems( Collection<MetadataItem> coll )
     {
         List<Statement> out = new ArrayList<Statement>();
         for ( MetadataItem m : coll )
-            out.add( translate( m ) );
+            out.add( translateItem( m ) );
         return out;
     }
     
-    public Statement[] translate( MetadataItem[] coll )
+    public Statement[] translateItems( MetadataItem[] coll )
     {
         List<Statement> out = new ArrayList<Statement>();
         for ( MetadataItem m : coll )
-            out.add( translate( m ) );
+            out.add( translateItem( m ) );
         return out.toArray( new Statement[ coll.length ]);
     }
     
-    public Statement translate( MetadataItem m )
+    public Statement translateItem( MetadataItem m )
     {
         return m.isDSpaceObject() ? 
                 ResourceFactory.createStatement( 

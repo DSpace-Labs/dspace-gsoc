@@ -90,7 +90,7 @@ import org.dspace.event.Event;
  * @author James Rutherford
  * @version $Revision$
  */
-public class Collection extends DSpaceObject
+public class Collection extends DSpaceObjectCore
 {
     private static Logger log = Logger.getLogger(Collection.class);
 

@@ -1,76 +1,72 @@
-package org.dspace.metadata.jena;
+/*
+ * DSpaceObject.java
+ *
+ * Version: $Revision: 3241 $
+ *
+ * Date: $Date: 2008-07-09 15:47:10 +0100 (Wed, 09 Jul 2008) $
+ *
+ * Copyright (c) 2002-2005, Hewlett-Packard Company and Massachusetts
+ * Institute of Technology.  All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are
+ * met:
+ *
+ * - Redistributions of source code must retain the above copyright
+ * notice, this list of conditions and the following disclaimer.
+ *
+ * - Redistributions in binary form must reproduce the above copyright
+ * notice, this list of conditions and the following disclaimer in the
+ * documentation and/or other materials provided with the distribution.
+ *
+ * - Neither the name of the Hewlett-Packard Company nor the name of the
+ * Massachusetts Institute of Technology nor the names of their
+ * contributors may be used to endorse or promote products derived from
+ * this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * HOLDERS OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR
+ * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
+ * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
+ * DAMAGE.
+ */
+package org.dspace.content;
 
-import com.hp.hpl.jena.enhanced.EnhGraph;
-import com.hp.hpl.jena.graph.Node;
-import com.hp.hpl.jena.rdf.model.Resource;
-import com.hp.hpl.jena.rdf.model.impl.ModelCom;
-import com.hp.hpl.jena.rdf.model.impl.ResourceImpl;
-import java.util.ArrayList;
-import java.util.List;
+import org.apache.commons.lang.builder.EqualsBuilder;
+import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
 import org.apache.commons.lang.builder.ToStringStyle;
 import org.apache.log4j.Logger;
-import org.dspace.content.DSpaceObject;
-import org.dspace.core.Constants;
 import org.dspace.core.Context;
-import org.dspace.metadata.Predicate;
 import org.dspace.uri.ExternalIdentifier;
+import org.dspace.uri.Identifiable;
 import org.dspace.uri.ObjectIdentifier;
 import org.dspace.uri.SimpleIdentifier;
 import org.dspace.uri.UnsupportedIdentifierException;
 
-public class PredicateJena extends ResourceImpl implements Predicate, DSpaceObject
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Abstract base class for DSpace objects
+ */
+public abstract class DSpaceObjectCore implements DSpaceObject
 {
+    private static Logger log = Logger.getLogger(DSpaceObject.class);
 
-    public PredicateJena()
-    {
-        super();
-    }
-
-    public PredicateJena( ModelCom m )
-    {
-        super( m );
-    }
-
-    public PredicateJena( Node n, EnhGraph m )
-    {
-        super( n, m );
-    }
-
-    public PredicateJena( String uri )
-    {
-        super( uri );
-    }
-
-    public PredicateJena( String nameSpace, String localName )
-    {
-        super( nameSpace, localName );
-    }
-
-    public PredicateJena( String uri, ModelCom m )
-    {
-        super( uri, m );
-    }
-
-    public PredicateJena( Resource r, ModelCom m )
-    {
-        super( r, m );
-    }
-
-    public PredicateJena( String nameSpace, String localName, ModelCom m )
-    {
-        super( nameSpace, localName, m );
-    }
-
-    public int compareTo( Predicate o )
-    {
-        return o.getURI().compareTo( getURI() );
-    }
-
-    private static Logger log = Logger.getLogger( PredicateJena.class );
+    // accumulate information to add to "detail" element of content Event,
+    // e.g. to document metadata fields touched, etc.
     private StringBuffer eventDetails = null;
     
     protected Context context;
+    protected int id;
     protected ObjectIdentifier oid;
     protected List<ExternalIdentifier> identifiers;
 
@@ -95,19 +91,11 @@ public class PredicateJena extends ResourceImpl implements Predicate, DSpaceObje
         return ( eventDetails == null ? null : eventDetails.toString() );
     }
     
-    public int getType()
-    {
-        return Constants.METADATAPREDICATE;
-    }
-    
-    public String getName()
-    {
-        return "Predicate <" + getURI() + ">";
-    }
+    public abstract int getType();
     
     public int getID()
     {
-        return -1;
+        return id;
     }
 
     public SimpleIdentifier getSimpleIdentifier()
@@ -178,16 +166,33 @@ public class PredicateJena extends ResourceImpl implements Predicate, DSpaceObje
         }
         this.identifiers = identifiers;
     }
+    
+    public abstract String getName();
 
     ////////////////////////////////////////////////////////////////////
     // Utility methods
     ////////////////////////////////////////////////////////////////////
+    public String toString()
+    {
+        return ToStringBuilder.reflectionToString( this,
+                                            ToStringStyle.MULTI_LINE_STYLE );
+    }
+
+    public boolean equals( Object o )
+    {
+        return EqualsBuilder.reflectionEquals( this, o );
+    }
+
     public boolean equals( DSpaceObject other )
     {
-        if ( other instanceof Predicate )
-            return compareTo( (Predicate)other ) == 0;
-        if ( getType() == other.getType() && getID() == other.getID() )
-            return true;
+        if ( this.getType() == other.getType() )
+        {
+            if ( this.getID() == other.getID() )
+            {
+                return true;
+            }
+        }
+
         return false;
     }
 
@@ -195,9 +200,18 @@ public class PredicateJena extends ResourceImpl implements Predicate, DSpaceObje
                               DSpaceObject dso )
     {
         for ( DSpaceObject obj : dsos )
+        {
             if ( obj.equals( dso ) )
+            {
                 return true;
+            }
+        }
         return false;
     }
-    
+
+    public int hashCode()
+    {
+        return HashCodeBuilder.reflectionHashCode( this );
+    }
+
 }
