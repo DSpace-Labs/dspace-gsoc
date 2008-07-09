@@ -181,8 +181,10 @@ public class ResourcePolicyDAOPostgres extends ResourcePolicyDAO
             TableRowIterator tri = DatabaseManager.queryTable(context,
                     "resourcepolicy",
                     "SELECT policy_id FROM resourcepolicy " +
-                    "WHERE resource_type_id = ? AND resource_id = ? ",
-                    dso.getType(), dso.getID());
+                    "WHERE (resource_type_id = ? AND resource_id = ?) OR " +
+                    "resource_uuid = ? ",
+                    dso.getType(), dso.getID(), 
+                    dso.getIdentifier().getUUID().toString());
 
             return returnAsList(tri);
         }
@@ -219,9 +221,10 @@ public class ResourcePolicyDAOPostgres extends ResourcePolicyDAO
             TableRowIterator tri = DatabaseManager.queryTable(context,
                     "resourcepolicy",
                     "SELECT policy_id FROM resourcepolicy " +
-                    "WHERE resource_type_id = ? AND resource_id = ? " +
-                    "AND epersongroup_id = ? ",
-                    dso.getType(), dso.getID(), group.getID());
+                    "WHERE ((resource_type_id = ? AND resource_id = ?) " +
+                    " OR resource_uuid = ?) AND epersongroup_id = ? ",
+                    dso.getType(), dso.getID(), 
+                    dso.getIdentifier().getUUID().toString(), group.getID());
 
             return returnAsList(tri);
         }
@@ -239,9 +242,10 @@ public class ResourcePolicyDAOPostgres extends ResourcePolicyDAO
             TableRowIterator tri = DatabaseManager.queryTable(context,
                     "resourcepolicy",
                     "SELECT policy_id FROM resourcepolicy " +
-                    "WHERE resource_type_id = ? AND resource_id = ? " +
-                    "AND action_id = ? ",
-                    dso.getType(), dso.getID(), actionID);
+                    "WHERE ((resource_type_id = ? AND resource_id = ?) " +
+                    " OR resource_uuid = ?) AND action_id = ? ",
+                    dso.getType(), dso.getID(), 
+                    dso.getIdentifier().getUUID().toString(), actionID);
 
             return returnAsList(tri);
         }
@@ -287,6 +291,7 @@ public class ResourcePolicyDAOPostgres extends ResourcePolicyDAO
             TableRow row)
     {
         UUID uuid = UUID.fromString(row.getStringColumn("uuid"));
+        String resourceUUID = row.getStringColumn("resource_uuid");
         int resourceID = row.getIntColumn("resource_id");
         int resourceTypeID = row.getIntColumn("resource_type_id");
         int actionID = row.getIntColumn("action_id");
@@ -296,6 +301,8 @@ public class ResourcePolicyDAOPostgres extends ResourcePolicyDAO
         Date endDate = row.getDateColumn("end_date");
 
         rp.setSimpleIdentifier(new SimpleIdentifier(uuid));
+        if (resourceUUID != null && resourceUUID.length() > 1)
+            rp.setResourceUUID(UUID.fromString(resourceUUID));
         rp.setResourceID(resourceID);
         rp.setResourceType(resourceTypeID);
         rp.setAction(actionID);
@@ -315,6 +322,7 @@ public class ResourcePolicyDAOPostgres extends ResourcePolicyDAO
         int groupID = rp.getGroupID();
         Date startDate = rp.getStartDate();
         Date endDate = rp.getEndDate();
+        UUID resourceUUID = rp.getResourceUUID();
 
         // FIXME This would be much cleaner with a ResourcePolicyMetadata enum
         if (resourceID > 0)
@@ -372,6 +380,14 @@ public class ResourcePolicyDAOPostgres extends ResourcePolicyDAO
         else
         {
             row.setColumnNull("end_date");
+        }
+        if (resourceUUID != null)
+        {
+            row.setColumn("resource_uuid", resourceUUID.toString());
+        }
+        else
+        {
+            row.setColumnNull("resource_uuid");
         }
     }
 }
