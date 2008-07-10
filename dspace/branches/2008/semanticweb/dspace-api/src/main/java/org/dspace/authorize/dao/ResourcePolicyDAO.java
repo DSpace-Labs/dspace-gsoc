@@ -47,12 +47,13 @@ import org.apache.log4j.Logger;
 import org.dspace.authorize.ResourcePolicy;
 import org.dspace.core.Context;
 import org.dspace.content.DSpaceObject;
+import org.dspace.dao.CRUD;
 import org.dspace.eperson.Group;
 
 /**
  * @author James Rutherford
  */
-public abstract class ResourcePolicyDAO
+public abstract class ResourcePolicyDAO implements CRUD<ResourcePolicy>
 {
     protected Logger log = Logger.getLogger(ResourcePolicyDAO.class);
 
