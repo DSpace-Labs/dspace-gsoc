@@ -6,6 +6,8 @@ import com.hp.hpl.jena.assembler.assemblers.AssemblerBase;
 import com.hp.hpl.jena.rdf.model.Resource;
 import com.hp.hpl.jena.shared.PropertyNotFoundException;
 import com.hp.hpl.jena.vocabulary.RDF;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -25,26 +27,23 @@ import org.dspace.eperson.dao.GroupDAOFactory;
 public class DSpaceObjectAssembler extends AssemblerBase
 {
 
-    private Map<Resource, CRUD> daos;
+    private Map<Resource, Class> daos;
     private Context context;
     private Logger log = Logger.getLogger( DSpaceObjectAssembler.class );
 
     public DSpaceObjectAssembler( Context c )
     {
         context = c;
-        daos = new HashMap<Resource, CRUD>();
-        // FIXME: I dislike having to create ALL the CRUDs at once....
-        //          could there be a better way?
-        daos.put( DSPACE.Bitstream, BitstreamDAOFactory.getInstance( context ) );
-        daos.put( DSPACE.BitstreamFormat,
-                  BitstreamFormatDAOFactory.getInstance( context ) );
-        daos.put( DSPACE.Bundle, BundleDAOFactory.getInstance( context ) );
-        daos.put( DSPACE.Collection, CollectionDAOFactory.getInstance( context ) );
-        daos.put( DSPACE.Community, CommunityDAOFactory.getInstance( context ) );
-        daos.put( DSPACE.EPerson, EPersonDAOFactory.getInstance( context ) );
-        daos.put( DSPACE.Group, GroupDAOFactory.getInstance( context ) );
-        daos.put( DSPACE.Item, ItemDAOFactory.getInstance( context ) );
-        daos.put( DSPACE.Policy, ResourcePolicyDAOFactory.getInstance( context ) );
+        daos = new HashMap<Resource, Class>();
+        daos.put( DSPACE.Bitstream, BitstreamDAOFactory.class );
+        daos.put( DSPACE.BitstreamFormat, BitstreamFormatDAOFactory.class );
+        daos.put( DSPACE.Bundle, BundleDAOFactory.class );
+        daos.put( DSPACE.Collection, CollectionDAOFactory.class );
+        daos.put( DSPACE.Community, CommunityDAOFactory.class );
+        daos.put( DSPACE.EPerson, EPersonDAOFactory.class );
+        daos.put( DSPACE.Group, GroupDAOFactory.class );
+        daos.put( DSPACE.Item, ItemDAOFactory.class );
+        daos.put( DSPACE.Policy, ResourcePolicyDAOFactory.class );
     }
 
     @Override
@@ -62,7 +61,7 @@ public class DSpaceObjectAssembler extends AssemblerBase
                 return a.open( r );
             }
 
-            CRUD c = daos.get( type );
+            CRUD c = getCrud( daos.get( type ) );
             return c.retrieve( UUID.fromString( r.getLocalName() ) );
         } catch ( PropertyNotFoundException e )
         {
@@ -74,8 +73,7 @@ public class DSpaceObjectAssembler extends AssemblerBase
                     + ", trying to get from property..." );
             try
             {
-                return daos.get( type )
-                    .retrieve( UUID.fromString( 
+                return getCrud( daos.get( type ) ).retrieve( UUID.fromString( 
                         r.getRequiredProperty( DSPACE.uuid ).getString() ) );
             } catch ( PropertyNotFoundException ex )
             {
@@ -83,6 +81,31 @@ public class DSpaceObjectAssembler extends AssemblerBase
             }
             return a.open( r );
         }
+    }
+    
+    private CRUD getCrud( Class c )
+    {
+        try
+        {
+            Method m = c.getMethod( "getInstance", Context.class );
+            return (CRUD)m.invoke( null, context );
+        } catch ( IllegalAccessException ex )
+        {
+            log.error( ex );
+        } catch ( IllegalArgumentException ex )
+        {
+            log.error( ex );
+        } catch ( InvocationTargetException ex )
+        {
+            log.error( ex );
+        } catch ( NoSuchMethodException ex )
+        {
+            log.error( ex );
+        } catch ( SecurityException ex )
+        {
+            log.error( ex );
+        }
+        return null;
     }
 
 }
