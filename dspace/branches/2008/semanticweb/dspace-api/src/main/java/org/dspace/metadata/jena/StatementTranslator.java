@@ -12,6 +12,7 @@ import java.util.Iterator;
 import java.util.List;
 import org.apache.log4j.Logger;
 import org.dspace.content.DSpaceObject;
+import org.dspace.core.Context;
 import org.dspace.dao.jena.GlobalDAOJena;
 import org.dspace.metadata.MetadataItem;
 import org.dspace.metadata.Predicate;
@@ -19,10 +20,11 @@ import org.dspace.metadata.Predicate;
 public class StatementTranslator 
 {
     
-    private GlobalDAOJena dao;
     private Logger log = Logger.getLogger( StatementTranslator.class );
+    private GlobalDAOJena dao;
+    private Context context;
     
-    public StatementTranslator()
+    public StatementTranslator( Context c )
     {
         try
         {
@@ -33,8 +35,9 @@ public class StatementTranslator
         }
     }
     
-    public StatementTranslator( GlobalDAOJena dao )
+    public StatementTranslator( GlobalDAOJena dao, Context c )
     {
+        context = c;
         this.dao = dao;
     }
     
@@ -79,13 +82,13 @@ public class StatementTranslator
     
     public MetadataItem translate( Statement s )
     {
-        DSpaceObject subject = dao.assembleDSO( s.getSubject() );
+        DSpaceObject subject = dao.assembleDSO( s.getSubject(), context );
         Predicate p = MetadataFactory.createPredicate( s.getPredicate().getURI() );
         return s.getResource().isLiteral() ? 
                 MetadataFactory.createItem( subject, p, 
                         MetadataFactory.createLiteral( s.getLiteral() ) )
                 : MetadataFactory.createItem( subject, p, 
-                        dao.assembleDSO( s.getResource() ) );
+                        dao.assembleDSO( s.getResource(), context ) );
     }
     
     public Iterator<Statement> translateItems( final Iterator<MetadataItem> it ) {

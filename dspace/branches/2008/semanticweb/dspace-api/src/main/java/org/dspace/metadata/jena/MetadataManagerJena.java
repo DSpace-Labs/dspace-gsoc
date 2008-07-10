@@ -39,7 +39,7 @@ public class MetadataManagerJena implements MetadataManager
         try
         {
             dao = new GlobalDAOJena();
-            tran = new StatementTranslator( dao );
+            tran = new StatementTranslator( dao, context );
         } catch ( SQLException ex )
         {
             log.error( ex );

@@ -14,6 +14,7 @@ import org.dspace.content.Community;
 import org.dspace.content.DSpaceObject;
 import org.dspace.content.Item;
 import org.dspace.core.ConfigurationManager;
+import org.dspace.core.Context;
 import org.dspace.dao.postgres.GlobalDAOPostgres;
 import org.dspace.eperson.EPerson;
 import org.dspace.eperson.Group;
@@ -34,14 +35,16 @@ public class GlobalDAOJena extends GlobalDAOPostgres
         tripleStore.setNsPrefixes( d2rqStore );
     }
     
-    public DSpaceObject assembleDSO( String uri )
+    public DSpaceObject assembleDSO( String uri, Context c )
     {
-        return (DSpaceObject)assemble( assemblerSpec.createResource( uri ) );
+        return assembleDSO( assemblerSpec.createResource( uri ), c );
     }
     
-    public DSpaceObject assembleDSO( Resource r )
+    public DSpaceObject assembleDSO( Resource r, Context c )
     {
-        return (DSpaceObject)assemble( r );
+        // TODO: Is there value + a way to get the context in without manually
+        //         creating the assembler?
+        return (DSpaceObject)new DSpaceObjectAssembler( c ).open( r );
     }
     
     public Model assembleModel( String uri )
