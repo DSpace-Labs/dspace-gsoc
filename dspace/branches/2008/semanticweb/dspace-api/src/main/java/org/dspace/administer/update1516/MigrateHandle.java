@@ -53,28 +53,67 @@ import org.dspace.uri.dao.ExternalIdentifierStorageException;
 import org.dspace.uri.handle.Handle;
 
 import java.sql.SQLException;
+import org.apache.log4j.Logger;
 
 /**
  * @author Richard Jones
  */
 public class MigrateHandle
 {
+    
+    /**
+     * Pre: All handles in DB must be valid (ie exist in their relevant table)
+     * Check for invalid handles using:
+     * SELECT * FROM handle WHERE 
+	(resource_type_id = 0 AND resource_id NOT IN 
+            (SELECT bitstream_id FROM bitstream)) OR
+	(resource_type_id = 1 AND resource_id NOT IN 
+            (SELECT bundle_id FROM bundle)) OR
+	(resource_type_id = 2 AND resource_id NOT IN 
+            (SELECT item_id FROM item)) OR
+	(resource_type_id = 3 AND resource_id NOT IN 
+            (SELECT collection_id FROM collection)) OR
+	(resource_type_id = 4 AND resource_id NOT IN 
+            (SELECT community_id FROM community)) OR
+	(resource_type_id = 6 AND resource_id NOT IN 
+            (SELECT eperson_group_id FROM epersongroup)) OR
+	(resource_type_id = 7 AND resource_id NOT IN 
+            (SELECT eperson_id FROM eperson));
+     * 
+     * Use the obvious variation (DELETE FROM) to remove these, if desired.
+     * Not done automatically as potentially expensive for a large DB!
+     */
     public void migrate()
-            throws SQLException, ExternalIdentifierStorageException, IdentifierException
+            throws SQLException, ExternalIdentifierStorageException, 
+                    IdentifierException
     {
         Context context = new Context();
         context.setIgnoreAuthorization(true);
 
-        ExternalIdentifierDAO dao = ExternalIdentifierDAOFactory.getInstance(context);
+        ExternalIdentifierDAO dao = ExternalIdentifierDAOFactory
+                .getInstance(context);
 
         String query = "SELECT * FROM handle";
         TableRowIterator tri = DatabaseManager.query(context, query);
         while (tri.hasNext())
         {
             TableRow row = tri.next();
-            ObjectIdentifier oid = ObjectIdentifierService.get(context, row.getIntColumn("resource_type_id"), row.getIntColumn("resource_id"));
-            ExternalIdentifier eid = new Handle(row.getStringColumn("handle"), oid);
-            dao.update(eid);
+            ObjectIdentifier oid = ObjectIdentifierService.get(context, 
+                    row.getIntColumn("resource_type_id"), 
+                    row.getIntColumn("resource_id"));
+            ExternalIdentifier eid = new Handle(row.getStringColumn("handle"), 
+                    oid);
+            try
+            {
+                dao.update(eid);
+            } catch ( IllegalStateException ex )
+            {
+                Logger.getLogger( MigrateHandle.class ).error( 
+                        "Error migrating Handle for resource with type = " 
+                        + row.getIntColumn("resource_type_id") + ", id = " 
+                        + row.getIntColumn("resource_id") 
+                        + "... It probably doesn't exist. Skipping." );
+            }
         }
         tri.close();
 
