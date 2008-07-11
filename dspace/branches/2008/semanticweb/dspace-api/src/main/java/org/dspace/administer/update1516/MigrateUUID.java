@@ -30,6 +30,8 @@ public class MigrateUUID
         context.setIgnoreAuthorization( true );
         ObjectIdentifierDAO oidDAO = ObjectIdentifierDAOFactory.getInstance(context);
         
+        // BitstreamFormat
+        migrate( context, oidDAO, "bitstreamformatregistry", "bitstream_format_id", -1 );
         // Comunities
         migrate( context, oidDAO, "community", "community_id", Constants.COMMUNITY );
         // Collections
