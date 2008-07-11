@@ -40,7 +40,6 @@
 package org.dspace.administer.update1516;
 
 import org.dspace.authorize.AuthorizeException;
-import org.dspace.core.ConfigurationManager;
 
 /**
  * @author Richard Jones
@@ -50,7 +49,6 @@ public class Upgrade15To16
     public static void main(String[] args)
                 throws Exception, AuthorizeException
     {
-        ConfigurationManager.loadConfig( "/dspace/config/dspace.cfg" );
         MigrateUUID uuid = new MigrateUUID();
         uuid.migrate();
 
