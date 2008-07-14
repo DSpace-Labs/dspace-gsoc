@@ -8,8 +8,10 @@ import com.hp.hpl.jena.graph.impl.LiteralLabel;
 import com.hp.hpl.jena.rdf.model.Literal;
 import com.hp.hpl.jena.rdf.model.Property;
 import com.hp.hpl.jena.rdf.model.Resource;
+import com.hp.hpl.jena.rdf.model.impl.ModelCom;
 import java.util.Calendar;
 import org.dspace.content.DSpaceObject;
+import org.dspace.core.Context;
 import org.dspace.metadata.LiteralValue;
 import org.dspace.metadata.MetadataItem;
 import org.dspace.metadata.Predicate;
@@ -29,9 +31,7 @@ public class MetadataFactory
         if ( !r.isURIResource() )
             throw new UnsupportedOperationException( 
                     "Cannot create non-URI resources" );
-        URIResourceJena res = new URIResourceJena( r.getURI() );
-        res = (URIResourceJena)((Resource)res).inModel( r.getModel() );
-        return res;
+        return new URIResourceJena( r.getURI(), (ModelCom)r.getModel() );
     }
 
     public static LiteralValue createPlainLiteral( String string )
@@ -70,19 +70,27 @@ public class MetadataFactory
         return new LiteralValueJena( l.asNode(), null );
     }
 
-    public static Predicate createPredicate( String uriref )
+    public static Predicate createPredicate( Context c, String uriref )
     {
-        return new PredicateJena( uriref );
+        return new PredicateJena( c, uriref );
     }
 
-    public static Predicate createPredicate( Property p )
+    public static Predicate createPredicate( Context c, Property p )
     {
-        return new PredicateJena( p.getURI() );
+        return new PredicateJena( c, p.getURI() );
     }
 
-    public static Predicate createPredicate( String namespace, String localName )
+    public static Predicate createPredicate( Context c, String namespace, 
+            String localName )
     {
-        return new PredicateJena( namespace, localName );
+        return new PredicateJena( c, namespace, localName );
+    }
+
+    public static Predicate createPredicate( Context c, String schema, 
+            String element, String qualifier )
+    {
+        return new PredicateJena( c, schema + ":" + element + 
+                (qualifier==null ? "" : "." + qualifier) );
     }
     
     public static MetadataItem createItem( DSpaceObject o, Predicate p, Value v )

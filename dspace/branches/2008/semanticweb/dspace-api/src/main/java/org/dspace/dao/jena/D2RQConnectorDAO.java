@@ -10,19 +10,18 @@ import org.dspace.core.Context;
 import org.dspace.dao.CRUD;
 import org.dspace.dao.StackableDAO;
 
-public class D2RQConnectorDAO<DAO, O extends DSpaceObject> extends StackableDAO<DAO>
-        implements CRUD<O> {
+public class D2RQConnectorDAO<DAO extends CRUD<O>, O extends DSpaceObject> 
+        extends StackableDAO<DAO> implements CRUD<O> {
     
     private DAO child;
-    private GlobalDAOJena dao;
+    private static GlobalDAOJena dao;
     private Context context;
     protected Logger log = Logger.getLogger( D2RQConnectorDAO.class );
     
     public D2RQConnectorDAO() {
         try
         {
-            log.info( "Loading D2RQConnectorDAO()" );
-            dao = new GlobalDAOJena();
+            dao = dao == null ? new GlobalDAOJena() : dao;
         } catch ( SQLException ex )
         {
             log.error( ex );
@@ -31,8 +30,9 @@ public class D2RQConnectorDAO<DAO, O extends DSpaceObject> extends StackableDAO<
 
     public D2RQConnectorDAO( Context context )
     {
-        log.info( "Loading D2RQConnectorDAO(context)" );
         this.context = context;
+        if ( dao != null )
+            return;
         if ( !( context.getGlobalDAO() instanceof GlobalDAOJena ) )
             log.error( "Jena DAO requires an instance of GlobalDAOJena to operate" );
         else
@@ -53,25 +53,26 @@ public class D2RQConnectorDAO<DAO, O extends DSpaceObject> extends StackableDAO<
     
     private void assertCrud() {
         if ( child == null || !(child instanceof CRUD) )
-            throw new UnsupportedOperationException( "Cannot perform CRUD operations without child to stack to" );
+            throw new UnsupportedOperationException( 
+                 "Cannot perform CRUD operations without child to stack to" );
     }
 
     public O retrieve( int id )
     {
         assertCrud();
-        return (O) ((CRUD)child).retrieve( id );
+        return child.retrieve( id );
     }
 
     public O retrieve( UUID uuid )
     {
         assertCrud();
-        return (O) ((CRUD)child).retrieve( uuid );
+        return child.retrieve( uuid );
     }
 
     public O create() throws AuthorizeException
     {
         assertCrud();
-        O o = (O) ((CRUD)child).create();
+        O o = child.create();
         commit( o );
         return o;
     }
@@ -79,7 +80,7 @@ public class D2RQConnectorDAO<DAO, O extends DSpaceObject> extends StackableDAO<
     public void update( O t ) throws AuthorizeException
     {
         assertCrud();
-        ((CRUD)child).update( t );
+        child.update( t );
         commit( t );
     }
 
@@ -87,13 +88,14 @@ public class D2RQConnectorDAO<DAO, O extends DSpaceObject> extends StackableDAO<
     {
         dao.getResource( retrieve( id ) ).removeProperties();
         assertCrud();
-        ((CRUD)child).delete( id );
+        child.delete( id );
     }
     
     public void commit( O o ) {
         Resource r = dao.getResource( o ).removeProperties();
         log.info( "Committing resource " + r );
-        r.getModel().add( dao.getD2RQStore().getResource( r.getURI() ).listProperties() );
+        r.getModel().add( 
+               dao.getD2RQStore().getResource( r.getURI() ).listProperties() );
     }
     
 }

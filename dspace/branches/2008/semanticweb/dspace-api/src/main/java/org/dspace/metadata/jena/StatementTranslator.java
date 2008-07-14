@@ -1,9 +1,11 @@
 package org.dspace.metadata.jena;
 
+import com.hp.hpl.jena.rdf.model.Literal;
 import com.hp.hpl.jena.rdf.model.Property;
 import com.hp.hpl.jena.rdf.model.Resource;
 import com.hp.hpl.jena.rdf.model.ResourceFactory;
 import com.hp.hpl.jena.rdf.model.Statement;
+import com.hp.hpl.jena.vocabulary.RDF;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -13,7 +15,9 @@ import java.util.List;
 import org.apache.log4j.Logger;
 import org.dspace.content.DSpaceObject;
 import org.dspace.core.Context;
+import org.dspace.dao.jena.DSPACE;
 import org.dspace.dao.jena.GlobalDAOJena;
+import org.dspace.metadata.LiteralValue;
 import org.dspace.metadata.MetadataItem;
 import org.dspace.metadata.Predicate;
 
@@ -83,12 +87,24 @@ public class StatementTranslator
     public MetadataItem translate( Statement s )
     {
         DSpaceObject subject = dao.assembleDSO( s.getSubject(), context );
-        Predicate p = MetadataFactory.createPredicate( s.getPredicate().getURI() );
-        return s.getResource().isLiteral() ? 
-                MetadataFactory.createItem( subject, p, 
-                        MetadataFactory.createLiteral( s.getLiteral() ) )
-                : MetadataFactory.createItem( subject, p, 
+        Predicate p = MetadataFactory.createPredicate( context, s.getPredicate().getURI() );
+        if ( s.getObject().isLiteral() )
+        {
+            return MetadataFactory.createItem( subject, p, 
+                    MetadataFactory.createLiteral( s.getLiteral() ) );
+        } else
+        {
+            // Is this a DSO?
+            if ( s.getResource().hasProperty( RDF.type ) && 
+                    s.getResource().getRequiredProperty( RDF.type ).
+                        getResource().getNameSpace().equals( 
+                            DSPACE.DSpaceObject.getNameSpace() ) )
+                return MetadataFactory.createItem( subject, p, 
                         dao.assembleDSO( s.getResource(), context ) );
+            
+            return MetadataFactory.createItem( subject, p, 
+                    MetadataFactory.createURIResource( s.getResource() ) );
+        }
     }
     
     public Iterator<Statement> translateItems( final Iterator<MetadataItem> it ) {
@@ -140,7 +156,22 @@ public class StatementTranslator
                 ResourceFactory.createStatement( 
                         dao.getResource( m.getSubject() ), 
                         (Property)m.getPredicate(), 
-                        (Resource)m.getLiteralValue() );
+                        (Literal)m.getLiteralValue() );
+    }
+    
+    public Resource translate( DSpaceObject o )
+    {
+        return o == null ? null : dao.getResource( o );
+    }
+    
+    public Resource translate( LiteralValue v )
+    {
+        return v == null ? null : (Resource)v;
+    }
+    
+    public Property translate( Property p )
+    {
+        return p == null ? null : (Property)p;
     }
     
 }

@@ -2,64 +2,106 @@ package org.dspace.metadata.jena;
 
 import com.hp.hpl.jena.enhanced.EnhGraph;
 import com.hp.hpl.jena.graph.Node;
+import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.rdf.model.Resource;
+import com.hp.hpl.jena.rdf.model.Statement;
 import com.hp.hpl.jena.rdf.model.impl.ModelCom;
-import com.hp.hpl.jena.rdf.model.impl.ResourceImpl;
+import com.hp.hpl.jena.rdf.model.impl.PropertyImpl;
+import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
-import org.apache.commons.lang.builder.ToStringBuilder;
-import org.apache.commons.lang.builder.ToStringStyle;
 import org.apache.log4j.Logger;
 import org.dspace.content.DSpaceObject;
 import org.dspace.core.Constants;
 import org.dspace.core.Context;
+import org.dspace.dao.jena.DSPACE;
+import org.dspace.dao.jena.GlobalDAOJena;
 import org.dspace.metadata.Predicate;
 import org.dspace.uri.ExternalIdentifier;
 import org.dspace.uri.ObjectIdentifier;
+import org.dspace.uri.ObjectIdentifierService;
 import org.dspace.uri.SimpleIdentifier;
 import org.dspace.uri.UnsupportedIdentifierException;
+import org.dspace.uri.dao.ObjectIdentifierDAOFactory;
+import org.dspace.uri.dao.ObjectIdentifierStorageException;
 
-public class PredicateJena extends ResourceImpl implements Predicate, DSpaceObject
+public class PredicateJena extends PropertyImpl 
+        implements Predicate, DSpaceObject
 {
 
-    public PredicateJena()
-    {
-        super();
-    }
-
-    public PredicateJena( ModelCom m )
-    {
-        super( m );
-    }
-
-    public PredicateJena( Node n, EnhGraph m )
+    public PredicateJena( Context c, Node n, EnhGraph m )
     {
         super( n, m );
+        context = c;
+        checkUUID();
     }
 
-    public PredicateJena( String uri )
+    public PredicateJena( Context c, String uri )
     {
         super( uri );
+        context = c;
+        checkUUID();
     }
 
-    public PredicateJena( String nameSpace, String localName )
+    public PredicateJena( Context c, String nameSpace, String localName )
     {
         super( nameSpace, localName );
+        context = c;
+        checkUUID();
     }
 
-    public PredicateJena( String uri, ModelCom m )
+    public PredicateJena( Context c, String uri, ModelCom m )
     {
         super( uri, m );
+        context = c;
+        checkUUID();
     }
 
-    public PredicateJena( Resource r, ModelCom m )
+    public PredicateJena( Context c, Resource r, ModelCom m )
     {
-        super( r, m );
+        super( r.asNode(), m );
+        context = c;
+        checkUUID();
     }
 
-    public PredicateJena( String nameSpace, String localName, ModelCom m )
+    public PredicateJena( Context c, String nameSpace, String localName, ModelCom m )
     {
         super( nameSpace, localName, m );
+        context = c;
+        checkUUID();
+    }
+    
+    private void checkUUID()
+    {
+        try
+        {
+            Model m = getModel();
+            if ( m == null )
+                m = (context.getGlobalDAO() instanceof GlobalDAOJena ? 
+                    (GlobalDAOJena)context.getGlobalDAO() : new GlobalDAOJena())
+                        .getTripleStore();
+            Iterator<Statement> it = m.listStatements( this, DSPACE.uuid, 
+                                            (Resource)null );
+            if ( it.hasNext() )
+            {
+                String uuid = it.next().getLiteral().getLexicalForm();
+                setIdentifier( new ObjectIdentifier( uuid ) );
+            } else
+            {
+                ObjectIdentifierService.mint( context, this );
+                ObjectIdentifierDAOFactory.getInstance( context ).create( oid );
+                String uuid = oid.getUUID().toString();
+                m.add( this, DSPACE.uuid, uuid );
+            }
+        } catch ( ObjectIdentifierStorageException ex )
+        {
+            log.error( ex );
+        } catch ( SQLException ex )
+        {
+            log.error( "Unable to check for UUID on property <" + getURI() 
+                                            + ">!", ex );
+        }
     }
 
     public int compareTo( Predicate o )
@@ -123,7 +165,8 @@ public class PredicateJena extends ResourceImpl implements Predicate, DSpaceObje
             this.setIdentifier( (ObjectIdentifier) sid );
         } else
         {
-            throw new UnsupportedIdentifierException( "DSpaceObjects must use ObjectIdentifiers, not SimpleIdentifiers" );
+            throw new UnsupportedIdentifierException( 
+           "DSpaceObjects must use ObjectIdentifiers, not SimpleIdentifiers" );
         }
     }
 

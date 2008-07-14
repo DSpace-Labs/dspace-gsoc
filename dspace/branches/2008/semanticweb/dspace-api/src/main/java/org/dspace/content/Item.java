@@ -86,6 +86,7 @@ import org.dspace.metadata.MetadataManagerFactory;
 import org.dspace.metadata.Predicate;
 import org.dspace.metadata.Value;
 import org.dspace.metadata.jena.MetadataFactory;
+import org.dspace.metadata.jena.SelectorCore;
 
 /**
  * Class representing an item in DSpace. Note that everything is held in memory
@@ -239,6 +240,9 @@ public class Item extends DSpaceObjectCore
         oid.setResourceTypeID(this.getType());
         oid.setResourceID(this.getID());
 
+        // now let the superclass do its thing
+        super.setIdentifier(oid);
+
         // store the canonical form of the identifier
         DCValue dcv = ConfigurationManager.getMetadataProperty("identifier.metadata.canonical-field.internal");
         if (dcv != null)
@@ -265,9 +269,6 @@ public class Item extends DSpaceObjectCore
                 this.addUniqueMetadata(dc.schema, dc.element, dc.qualifier, null, IdentifierService.getURL(oid).toString());
             }
         }
-
-        // now let the superclass do its thing
-        super.setIdentifier(oid);
     }
 
     public void addExternalIdentifier(ExternalIdentifier identifier)
@@ -380,33 +381,65 @@ public class Item extends DSpaceObjectCore
      * @return metadata fields that match the parameters
      */
     public DCValue[] getMetadata(String schema, String element, String qualifier,
-            String lang)
+            final String lang)
     {
         // Build up list of matching values
         List<DCValue> values = new ArrayList<DCValue>();
 
         try
         {
+            final DSpaceObject subj = this;
+            final Predicate pred = MetadataFactory.createPredicate(context, schema, element, qualifier);
             Iterator<MetadataItem> it = MetadataManagerFactory.get( context )
-                .getMetadata( this ).getMetadata();
+                .getMetadata( new SelectorCore() {
+                
+                @Override
+                public boolean matches( MetadataItem m )
+                {
+                    if ( !m.isLiteral() )
+                        return false;
+                    if ( lang == null )
+                        if ( m.getLiteralValue().getLanguage() != null )
+                            return false;
+                    else if ( !lang.equals( Item.ANY ) )
+                        return m.getLiteralValue().getLanguage().equals( lang );
+                    return true;
+                }
+                
+                @Override
+                public boolean isValueMatcher()
+                {
+                    return false;
+                }
+                
+                @Override
+                public DSpaceObject getSubject()
+                {
+                    return subj;
+                }
+                
+                @Override
+                public Predicate getPredicate()
+                {
+                    return pred;
+                }
+                
+            } ).getMetadata();
 
             while( it.hasNext() )
             {
                 MetadataItem curr = it.next();
-                if ( match(schema, element, qualifier, lang, curr.getPredicate(), curr.getValue() ) )
-                {
-                    // We will return a copy of the object in case it is altered
-                    // FIXME: Want to dispose of DCValue completely!
-                    DCValue copy = new DCValue();
-                    String[] local = curr.getPredicate().getLocalName().split( "\\." );
-                    copy.element = local[0];
-                    copy.qualifier = local.length > 1 ? local[1] : "";
-                    copy.value = curr.getLiteralValue().getLexicalForm();
-                    copy.language = curr.getLiteralValue().getLanguage();
-                    copy.schema = curr.getPredicate().getNameSpace();
+                // We will return a copy of the object in case it is altered
+                // FIXME: Want to dispose of DCValue completely!
+                DCValue copy = new DCValue();
+                String[] local = curr.getPredicate().getLocalName().split( "\\." );
+                copy.element = local[0];
+                copy.qualifier = local.length > 1 ? local[1] : "";
+                copy.value = curr.getLiteralValue().getLexicalForm();
+                copy.language = curr.getLiteralValue().getLanguage();
+                copy.schema = curr.getPredicate().getNameSpace();
 
-                    values.add(copy);
-                }
+                values.add(copy);
             }
         } catch ( AuthorizeException ex ) { }
 
@@ -503,8 +536,8 @@ public class Item extends DSpaceObjectCore
             try
             {
                 MetadataManagerFactory.get( context ).addMetadata( this,
-                    MetadataFactory.createPredicate( schema + "/" + element 
-                        + (qualifier == null ?  "" : "." + qualifier) ), 
+                    MetadataFactory.createPredicate( context, schema, element, 
+                        qualifier ), 
                     MetadataFactory.createTypedLiteral( value, lang, null ) );
             } catch ( AuthorizeException ex ) { }
 

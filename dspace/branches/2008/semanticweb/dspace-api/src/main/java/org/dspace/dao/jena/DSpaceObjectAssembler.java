@@ -28,12 +28,14 @@ public class DSpaceObjectAssembler extends AssemblerBase
 {
 
     private Map<Resource, Class> daos;
+    private Map<Resource, Object> cache;
     private Context context;
     private Logger log = Logger.getLogger( DSpaceObjectAssembler.class );
+    private Assembler chain;
 
-    public DSpaceObjectAssembler( Context c )
+    public DSpaceObjectAssembler( Assembler chain )
     {
-        context = c;
+        this.chain = chain;
         daos = new HashMap<Resource, Class>();
         daos.put( DSPACE.Bitstream, BitstreamDAOFactory.class );
         daos.put( DSPACE.BitstreamFormat, BitstreamFormatDAOFactory.class );
@@ -44,29 +46,46 @@ public class DSpaceObjectAssembler extends AssemblerBase
         daos.put( DSPACE.Group, GroupDAOFactory.class );
         daos.put( DSPACE.Item, ItemDAOFactory.class );
         daos.put( DSPACE.Policy, ResourcePolicyDAOFactory.class );
+        cache = new HashMap<Resource, Object>();
+    }
+    
+    public void setContext( Context c )
+    {
+        context = c;
     }
 
     @Override
     public Object open( Assembler a, Resource r, Mode m )
     {
+        if ( cache.containsKey( r ) )
+            return cache.get( r );
+        Object out = get( r );
+        cache.put( r, out );
+        return out;
+    }
+    
+    private Object get( Resource r )
+    {
         Resource type = null;
         try
         {
             type = r.getRequiredProperty( RDF.type ).getResource();
-
+            
             if ( !daos.containsKey( type ) )
             {
                 log.warn( "No CRUD available for classes of type " + type 
-                        + ". Chaining." );
-                return a.open( r );
+                        + "." );
+                return chain.open( r );
             }
 
             CRUD c = getCrud( daos.get( type ) );
-            return c.retrieve( UUID.fromString( r.getLocalName() ) );
+            String[] parts = r.getURI().split( "/" );
+            return c.retrieve( UUID.fromString( parts[parts.length - 1] ) );
         } catch ( PropertyNotFoundException e )
         {
-            log.warn( "Unable to get type of " + r + ". Chaining." );
-            return a.open( r );
+            log.warn( "Unable to get type of " + r + "." );
+            e.printStackTrace();
+            return chain.open( r );
         } catch ( IllegalArgumentException e )
         {
             log.warn( "Unable to parse UUID " + r.getLocalName() 
@@ -77,9 +96,9 @@ public class DSpaceObjectAssembler extends AssemblerBase
                         r.getRequiredProperty( DSPACE.uuid ).getString() ) );
             } catch ( PropertyNotFoundException ex )
             {
-                log.warn( "Couldn't find property. Chaining." );
+                log.warn( "Couldn't find property." );
             }
-            return a.open( r );
+            return chain.open( r );
         }
     }
     
