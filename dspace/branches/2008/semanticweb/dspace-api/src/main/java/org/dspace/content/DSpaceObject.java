@@ -42,6 +42,7 @@ package org.dspace.content;
 import org.dspace.uri.Identifiable;
 
 import java.util.List;
+import org.dspace.uri.ExternalIdentifier;
 
 /**
  * Abstract base class for DSpace objects
@@ -85,6 +86,13 @@ public interface DSpaceObject extends Identifiable
      * @param d detail string to add.
      */
     //protected void addDetails( String detail );
+
+    /**
+     * Get a single external identifiers associated with the object
+     *
+     * @return
+     */
+    public ExternalIdentifier getExternalIdentifier();
 
     /**
      * @return summary of event details, or null if there are none.

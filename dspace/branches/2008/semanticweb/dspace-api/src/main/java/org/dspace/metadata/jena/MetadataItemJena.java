@@ -2,8 +2,6 @@ package org.dspace.metadata.jena;
 
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.DSpaceObject;
-import org.dspace.content.DSpaceObjectCore;
-import org.dspace.core.Constants;
 import org.dspace.metadata.LiteralValue;
 import org.dspace.metadata.MetadataItem;
 import org.dspace.metadata.MetadataManager;
@@ -12,7 +10,7 @@ import org.dspace.metadata.Predicate;
 import org.dspace.metadata.URIResource;
 import org.dspace.metadata.Value;
 
-public class MetadataItemJena extends DSpaceObjectCore implements MetadataItem
+public class MetadataItemJena implements MetadataItem
 {
     
     private DSpaceObject subj;
@@ -123,17 +121,12 @@ public class MetadataItemJena extends DSpaceObjectCore implements MetadataItem
                         o.getDSpaceObject().getIdentifier().getUUID() ) 
                 : o.getLiteralValue().compareTo( val ) );
     }
-
+    
     @Override
-    public int getType()
+    public String toString()
     {
-        return Constants.METADATAITEM;
-    }
-
-    @Override
-    public String getName()
-    {
-        return "Metadata about " + subj.getName();
+        return "[" + (subj == null ? "null" : subj.getName()) + ", " + pred + ", " 
+                + (isDSpaceObject() ? "(DSO) " + (obj == null ? "null" : obj.getName()) : "(LV) " + val) + "]";
     }
     
     private MetadataManager getManager() {

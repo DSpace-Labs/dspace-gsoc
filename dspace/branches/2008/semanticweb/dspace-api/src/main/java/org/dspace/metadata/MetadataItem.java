@@ -3,7 +3,7 @@ package org.dspace.metadata;
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.DSpaceObject;
 
-public interface MetadataItem extends Comparable<MetadataItem>, DSpaceObject
+public interface MetadataItem extends Comparable<MetadataItem>
 {
     
     public void setManager( MetadataManager m );

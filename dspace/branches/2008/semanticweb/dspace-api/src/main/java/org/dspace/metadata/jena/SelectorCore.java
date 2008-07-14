@@ -42,7 +42,14 @@ public class SelectorCore extends MetadataItemJena implements Selector
     
     public static com.hp.hpl.jena.rdf.model.Selector toJenaSelector( 
             final Selector o, final StatementTranslator tran ) {
-        final Statement stat = tran.translateItem( o );
+        final Resource subject = tran.translate( o.getSubject() );
+        final Property predicate = (Property)o.getPredicate();
+        final Resource object = o.isDSpaceObject() ? 
+            tran.translate( o.getDSpaceObject() ) : 
+            tran.translate( o.getLiteralValue() );
+        //System.out.println( ">> Selecting based on " + subject + ", " 
+        //      + predicate + ", " + object + " (" + (o.isValueMatcher() ?
+        //      "is value matcher" : "is complex") + ")..." );
         return new com.hp.hpl.jena.rdf.model.Selector() {
 
             public boolean test( Statement s )
@@ -57,17 +64,17 @@ public class SelectorCore extends MetadataItemJena implements Selector
 
             public Resource getSubject()
             {
-                return stat.getSubject();
+                return subject;
             }
 
             public Property getPredicate()
             {
-                return stat.getPredicate();
+                return predicate;
             }
 
             public RDFNode getObject()
             {
-                return stat.getObject();
+                return object;
             }
             
         };

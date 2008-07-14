@@ -5,14 +5,16 @@ import java.sql.SQLException;
 import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.rdf.model.Resource;
 import com.hp.hpl.jena.util.FileManager;
-import java.util.Collection;
+import de.fuberlin.wiwiss.d2rq.assembler.D2RQAssembler;
 import java.util.UUID;
 import org.dspace.content.Bitstream;
 import org.dspace.content.BitstreamFormat;
 import org.dspace.content.Bundle;
+import org.dspace.content.Collection;
 import org.dspace.content.Community;
 import org.dspace.content.DSpaceObject;
 import org.dspace.content.Item;
+import org.dspace.content.proxy.ItemProxy;
 import org.dspace.core.ConfigurationManager;
 import org.dspace.core.Context;
 import org.dspace.dao.postgres.GlobalDAOPostgres;
@@ -23,6 +25,7 @@ public class GlobalDAOJena extends GlobalDAOPostgres
 {
 
     protected Model tripleStore, d2rqStore, assemblerSpec;
+    private DSpaceObjectAssembler asm;
 
     // FIXME: This should be a GlobalDAOException (pending Interface change)
     public GlobalDAOJena() throws SQLException
@@ -30,9 +33,17 @@ public class GlobalDAOJena extends GlobalDAOPostgres
         assemblerSpec = FileManager.get().loadModel( 
                 ConfigurationManager.getProperty( 
                     "org.dspace.dao.jena.assemblerspec" ) );
-        d2rqStore = assembleModel( DSPACE.d2rqStore );
-        tripleStore = assembleModel( DSPACE.tripleStore );
+        Assembler.general.implementWith( assemblerSpec.createResource( 
+                    assemblerSpec.expandPrefix( "d2rq:D2RQModel" ) ), 
+                new D2RQAssembler() );
+        d2rqStore = assembleModel( 
+                (Resource)DSPACE.d2rqStore.inModel( assemblerSpec ) );
+        tripleStore = assembleModel( 
+                (Resource)DSPACE.tripleStore.inModel( assemblerSpec ) );
         tripleStore.setNsPrefixes( d2rqStore );
+        // TODO: Is there value + a way to get the context in without manually
+        //         creating the assembler?
+        asm = new DSpaceObjectAssembler( Assembler.general );
     }
     
     public DSpaceObject assembleDSO( String uri, Context c )
@@ -42,9 +53,8 @@ public class GlobalDAOJena extends GlobalDAOPostgres
     
     public DSpaceObject assembleDSO( Resource r, Context c )
     {
-        // TODO: Is there value + a way to get the context in without manually
-        //         creating the assembler?
-        return (DSpaceObject)new DSpaceObjectAssembler( c ).open( r );
+        asm.setContext( c );
+        return (DSpaceObject)asm.open( r );
     }
     
     public Model assembleModel( String uri )
@@ -64,7 +74,7 @@ public class GlobalDAOJena extends GlobalDAOPostgres
     
     public Object assemble( Resource r )
     {
-        return Assembler.general.open( (Resource)r.inModel( assemblerSpec ) );
+        return Assembler.general.open( r );
     }
     
     public Model getTripleStore() {
@@ -80,6 +90,9 @@ public class GlobalDAOJena extends GlobalDAOPostgres
     }
     
     public Resource getResource( DSpaceObject obj ) {
+        if ( obj.getIdentifier() == null )
+            throw new UnsupportedOperationException( 
+                    "Cannot get Resource for un-identified object!" );
         return getResource( obj.getClass(), obj.getIdentifier().getUUID() );
     }
     
@@ -99,8 +112,10 @@ public class GlobalDAOJena extends GlobalDAOPostgres
             type = "bundle/";
         else if ( c.equals( Group.class ) )
             type = "group/";
-        else if ( c.equals( Item.class ) )
+        else if ( c.equals( Item.class ) || c.equals( ItemProxy.class ) )
             type = "item/";
+        else
+            log.warn( "Couldn't work out resource class for " + c );
         return getResource( type + uuid.toString() );
     }
     

@@ -73,10 +73,10 @@ public class Constants
     public static final int EPERSON = 7;
 
     /** Type of single metadata item */
-    public static final int METADATAITEM = 7;
+    public static final int METADATAITEM = 8;
 
     /** Type of metadata predicate */
-    public static final int METADATAPREDICATE = 8;
+    public static final int METADATAPREDICATE = 9;
 
     /**
      * lets you look up type names from the type IDs

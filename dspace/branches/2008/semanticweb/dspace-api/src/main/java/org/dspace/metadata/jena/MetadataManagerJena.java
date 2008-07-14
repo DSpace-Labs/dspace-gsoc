@@ -38,11 +38,14 @@ public class MetadataManagerJena implements MetadataManager
         remove = new HashMap<DSpaceObject,Boolean>();
         try
         {
-            dao = new GlobalDAOJena();
+            if ( c.getGlobalDAO() instanceof GlobalDAOJena )
+                dao = (GlobalDAOJena)c.getGlobalDAO();
+            else
+                dao = new GlobalDAOJena();
             tran = new StatementTranslator( dao, context );
         } catch ( SQLException ex )
         {
-            log.error( ex );
+            log.error( "SQL Exception creating new DAO", ex );
         }
     }
 
@@ -76,7 +79,7 @@ public class MetadataManagerJena implements MetadataManager
     {
         Collection<MetadataItem> c = new HashSet<MetadataItem>();
         Iterator<MetadataItem> it = tran.translate(
-                (Iterator<Statement>) dao.getTripleStore().listStatements(
+                (Iterator<Statement>) dao.getD2RQStore().listStatements(
                 SelectorCore.toJenaSelector( s, tran ) ) );
         while ( it.hasNext() )
         {
@@ -127,9 +130,9 @@ public class MetadataManagerJena implements MetadataManager
             commitTransaction();
         } catch ( Exception e )
         {
-            abortTransaction();
             log.error( "Unexpected error adding metadata, transaction aborted",
                        e );
+            abortTransaction();
         }
     }
 
@@ -201,23 +204,40 @@ public class MetadataManagerJena implements MetadataManager
 
     private Boolean auth( DSpaceObject subject, int action ) throws AuthorizeException
     {
+        if ( subject == null )
+            throw new AuthorizeException( "Cannot auth null" );
         switch( action )
         {
             case Constants.READ : 
-                    if ( read.containsKey( subject ) && read.get( subject ) )
-                        return true;
-                    else
-                        throw new AuthorizeException();
+                    if ( read.containsKey( subject )  )
+                    {
+                        if ( read.get( subject ) )
+                            return true;
+                        else
+                            throw new AuthorizeException( 
+                                    "Cached auth failed for " 
+                                    + subject.getName() );
+                    }
             case Constants.WRITE : 
-                    if ( write.containsKey( subject ) && write.get( subject ) )
-                        return true;
-                    else
-                        throw new AuthorizeException();
+                    if ( write.containsKey( subject ) )
+                    {
+                        if ( write.get( subject ) )
+                            return true;
+                        else
+                            throw new AuthorizeException( 
+                                    "Cached auth failed for " 
+                                    + subject.getName() );
+                    }
             case Constants.REMOVE : 
-                    if ( remove.containsKey( subject ) && remove.get( subject ) )
-                        return true;
-                    else
-                        throw new AuthorizeException();
+                    if ( remove.containsKey( subject ) )
+                    {
+                        if ( remove.get( subject ) )
+                            return true;
+                        else
+                            throw new AuthorizeException( 
+                                    "Cached auth failed for " 
+                                    + subject.getName() );
+                    }
             default : break;
         }
         boolean res = true;
