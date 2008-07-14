@@ -20,6 +20,7 @@ import org.dspace.dao.jena.GlobalDAOJena;
 import org.dspace.metadata.LiteralValue;
 import org.dspace.metadata.MetadataItem;
 import org.dspace.metadata.Predicate;
+import org.dspace.metadata.URIResource;
 
 public class StatementTranslator 
 {
@@ -86,7 +87,15 @@ public class StatementTranslator
     
     public MetadataItem translate( Statement s )
     {
-        DSpaceObject subject = dao.assembleDSO( s.getSubject(), context );
+        URIResource subject;
+        if ( s.getSubject().hasProperty( RDF.type ) && 
+                    s.getSubject().getRequiredProperty( RDF.type ).
+                        getResource().getNameSpace().startsWith( 
+                        dao.getResourceBase() ) )
+            subject = dao.assembleDSO( s.getSubject(), context );
+        else
+            subject = MetadataFactory.createURIResource( s.getSubject() );
+        
         Predicate p = MetadataFactory.createPredicate( context, s.getPredicate().getURI() );
         if ( s.getObject().isLiteral() )
         {
@@ -97,8 +106,8 @@ public class StatementTranslator
             // Is this a DSO?
             if ( s.getResource().hasProperty( RDF.type ) && 
                     s.getResource().getRequiredProperty( RDF.type ).
-                        getResource().getNameSpace().equals( 
-                            DSPACE.DSpaceObject.getNameSpace() ) )
+                        getResource().getNameSpace().startsWith( 
+                        dao.getResourceBase() ) )
                 return MetadataFactory.createItem( subject, p, 
                         dao.assembleDSO( s.getResource(), context ) );
             
@@ -150,18 +159,18 @@ public class StatementTranslator
     {
         return m.isDSpaceObject() ? 
                 ResourceFactory.createStatement( 
-                        dao.getResource( m.getSubject() ), 
+                        ResourceFactory.createResource( m.getSubject().getURI() ), 
                         (Property)m.getPredicate(), 
-                        dao.getResource( m.getDSpaceObject() ) ) : 
+                        ResourceFactory.createResource( m.getDSpaceObject().getURI() ) ) : 
                 ResourceFactory.createStatement( 
-                        dao.getResource( m.getSubject() ), 
+                        ResourceFactory.createResource( m.getSubject().getURI() ), 
                         (Property)m.getPredicate(), 
                         (Literal)m.getLiteralValue() );
     }
     
-    public Resource translate( DSpaceObject o )
+    public Resource translate( URIResource o )
     {
-        return o == null ? null : dao.getResource( o );
+        return o == null ? null : dao.getTripleStore().getResource( o.getURI() );
     }
     
     public Resource translate( LiteralValue v )

@@ -13,33 +13,33 @@ import org.dspace.metadata.Value;
 public class MetadataItemJena implements MetadataItem
 {
     
-    private DSpaceObject subj;
+    private URIResource subj;
     private Predicate pred;
     private Value val;
     private DSpaceObject obj;
     private MetadataManager manager;
 
-    public MetadataItemJena( MetadataManager m, DSpaceObject o, Predicate p, Value v )
+    public MetadataItemJena( MetadataManager m, URIResource o, Predicate p, Value v )
     {
         this( o, p, v );
         manager = m;
     }
 
-    public MetadataItemJena( MetadataManager m, DSpaceObject o, Predicate p, 
+    public MetadataItemJena( MetadataManager m, URIResource o, Predicate p, 
             DSpaceObject v )
     {
         this( o, p, v );
         manager = m;
     }
 
-    public MetadataItemJena( DSpaceObject o, Predicate p, Value v )
+    public MetadataItemJena( URIResource o, Predicate p, Value v )
     {
         subj = o;
         pred = p;
         val = v;
     }
 
-    public MetadataItemJena( DSpaceObject o, Predicate p, DSpaceObject v )
+    public MetadataItemJena( URIResource o, Predicate p, DSpaceObject v )
     {
         subj = o;
         pred = p;
@@ -59,7 +59,7 @@ public class MetadataItemJena implements MetadataItem
         this.manager = m;
     }
 
-    public DSpaceObject getSubject()
+    public URIResource getSubject()
     {
         return subj;
     }
@@ -111,7 +111,7 @@ public class MetadataItemJena implements MetadataItem
 
     public int compareTo( MetadataItem o )
     {
-        int v = o.getSubject().getIdentifier().getUUID().compareTo( subj.getIdentifier().getUUID() );
+        int v = o.getSubject().compareTo( subj );
         if ( v != 0 )
             return v;
         v = o.getPredicate().compareTo( pred );
@@ -125,8 +125,8 @@ public class MetadataItemJena implements MetadataItem
     @Override
     public String toString()
     {
-        return "[" + (subj == null ? "null" : subj.getName()) + ", " + pred + ", " 
-                + (isDSpaceObject() ? "(DSO) " + (obj == null ? "null" : obj.getName()) : "(LV) " + val) + "]";
+        return "[" + (subj == null ? "null" : subj.getURI()) + ", " + pred + ", " 
+                + (isDSpaceObject() ? "(DSO) " + (obj == null ? "null" : obj.getURI()) : "(Value) " + val) + "]";
     }
     
     private MetadataManager getManager() {

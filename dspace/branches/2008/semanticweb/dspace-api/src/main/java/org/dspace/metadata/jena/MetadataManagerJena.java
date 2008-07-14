@@ -1,5 +1,7 @@
 package org.dspace.metadata.jena;
 
+import com.hp.hpl.jena.rdf.model.RDFNode;
+import com.hp.hpl.jena.rdf.model.ResourceFactory;
 import com.hp.hpl.jena.rdf.model.Statement;
 import java.sql.SQLException;
 import java.util.Collection;
@@ -19,6 +21,7 @@ import org.dspace.metadata.MetadataItem;
 import org.dspace.metadata.MetadataManager;
 import org.dspace.metadata.Predicate;
 import org.dspace.metadata.Selector;
+import org.dspace.metadata.URIResource;
 import org.dspace.metadata.Value;
 
 public class MetadataManagerJena implements MetadataManager
@@ -49,20 +52,20 @@ public class MetadataManagerJena implements MetadataManager
         }
     }
 
-    public MetadataCollection getMetadata( DSpaceObject o ) throws AuthorizeException
+    public MetadataCollection getMetadata( URIResource o ) throws AuthorizeException
     {
         auth( o, Constants.READ );
         return getMetadata( o, 1 );
     }
 
-    public MetadataCollection getMetadata( final DSpaceObject o, int depth ) throws AuthorizeException
+    public MetadataCollection getMetadata( final URIResource o, int depth ) throws AuthorizeException
     {
         auth( o, Constants.READ );
         return getMetadata( (Selector) new SelectorCore()
         {
 
             @Override
-            public DSpaceObject getSubject()
+            public URIResource getSubject()
             {
                 return o;
             }
@@ -143,12 +146,12 @@ public class MetadataManagerJena implements MetadataManager
             addMetadata( it.next() );
     }
 
-    public void addMetadata( DSpaceObject o, Predicate p, Value v )
+    public void addMetadata( URIResource o, Predicate p, Value v )
     {
         addMetadata( MetadataFactory.createItem( o, p, v ) );
     }
 
-    public void addMetadata( DSpaceObject o, Predicate p, DSpaceObject v )
+    public void addMetadata( URIResource o, Predicate p, DSpaceObject v )
     {
         addMetadata( MetadataFactory.createItem( o, p, v ) );
     }
@@ -179,9 +182,11 @@ public class MetadataManagerJena implements MetadataManager
         }
     }
 
-    public void removeAllMetadata( DSpaceObject o )
+    public void removeAllMetadata( URIResource o )
     {
-        dao.getResource( o ).removeProperties();
+        dao.getTripleStore().removeAll( 
+                ResourceFactory.createResource( o.getURI() ), null, 
+                (RDFNode)null );
     }
 
     public void beginTransaction()
@@ -200,6 +205,13 @@ public class MetadataManagerJena implements MetadataManager
     {
         if ( dao.getTripleStore().supportsTransactions() )
             dao.getTripleStore().commit();
+    }
+    
+    private Boolean auth( URIResource subject, int action ) throws AuthorizeException
+    {
+        if ( subject instanceof DSpaceObject )
+            return auth( (DSpaceObject)subject, action );
+        return true;
     }
 
     private Boolean auth( DSpaceObject subject, int action ) throws AuthorizeException

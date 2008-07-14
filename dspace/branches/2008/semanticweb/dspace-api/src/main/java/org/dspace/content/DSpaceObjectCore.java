@@ -39,20 +39,21 @@
  */
 package org.dspace.content;
 
-import org.apache.commons.lang.builder.EqualsBuilder;
-import org.apache.commons.lang.builder.HashCodeBuilder;
+import java.sql.SQLException;
 import org.apache.commons.lang.builder.ToStringBuilder;
 import org.apache.commons.lang.builder.ToStringStyle;
 import org.apache.log4j.Logger;
 import org.dspace.core.Context;
 import org.dspace.uri.ExternalIdentifier;
-import org.dspace.uri.Identifiable;
 import org.dspace.uri.ObjectIdentifier;
 import org.dspace.uri.SimpleIdentifier;
 import org.dspace.uri.UnsupportedIdentifierException;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.dspace.dao.jena.GlobalDAOJena;
+import org.dspace.metadata.URIResource;
+import org.dspace.metadata.Value;
 
 /**
  * Abstract base class for DSpace objects
@@ -170,17 +171,76 @@ public abstract class DSpaceObjectCore implements DSpaceObject
     public abstract String getName();
 
     ////////////////////////////////////////////////////////////////////
+    // URIResource methods
+    ////////////////////////////////////////////////////////////////////
+    private GlobalDAOJena daoj;
+    public String getURI()
+    {
+        try
+        {
+            if ( daoj == null )
+                daoj = context.getGlobalDAO() instanceof GlobalDAOJena
+                        ? (GlobalDAOJena) context.getGlobalDAO()
+                        : new GlobalDAOJena();
+            return daoj.getResource( this ).getURI();
+        } catch ( SQLException ex )
+        {
+            log.error( ex );
+        }
+        return "";
+    }
+    
+    public String getNameSpace()
+    {
+        try
+        {
+            if ( daoj == null )
+                daoj = context.getGlobalDAO() instanceof GlobalDAOJena
+                        ? (GlobalDAOJena) context.getGlobalDAO()
+                        : new GlobalDAOJena();
+            return daoj.getResource( this ).getNameSpace();
+        } catch ( SQLException ex )
+        {
+            log.error( ex );
+        }
+        return "";
+    }
+    
+    public String getLocalName()
+    {
+        try
+        {
+            if ( daoj == null )
+                daoj = context.getGlobalDAO() instanceof GlobalDAOJena
+                        ? (GlobalDAOJena) context.getGlobalDAO()
+                        : new GlobalDAOJena();
+            return daoj.getResource( this ).getLocalName();
+        } catch ( SQLException ex )
+        {
+            log.error( ex );
+        }
+        return "";
+    }
+    
+    public boolean isLiteralValue()
+    {
+        return false;
+    }
+    
+    public int compareTo( Value o )
+    {
+        return o instanceof URIResource ? 
+                ( (URIResource) o ).getURI().compareTo( getURI() )
+                : -1;
+    }
+
+    ////////////////////////////////////////////////////////////////////
     // Utility methods
     ////////////////////////////////////////////////////////////////////
     public String toString()
     {
         return ToStringBuilder.reflectionToString( this,
                                             ToStringStyle.MULTI_LINE_STYLE );
-    }
-
-    public boolean equals( Object o )
-    {
-        return EqualsBuilder.reflectionEquals( this, o );
     }
 
     public boolean equals( DSpaceObject other )
@@ -207,11 +267,6 @@ public abstract class DSpaceObjectCore implements DSpaceObject
             }
         }
         return false;
-    }
-
-    public int hashCode()
-    {
-        return HashCodeBuilder.reflectionHashCode( this );
     }
 
 }
