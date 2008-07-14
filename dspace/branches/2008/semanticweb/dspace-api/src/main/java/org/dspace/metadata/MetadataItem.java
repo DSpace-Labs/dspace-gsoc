@@ -8,7 +8,7 @@ public interface MetadataItem extends Comparable<MetadataItem>
     
     public void setManager( MetadataManager m );
 
-    public DSpaceObject getSubject();
+    public URIResource getSubject();
 
     public Predicate getPredicate();
 

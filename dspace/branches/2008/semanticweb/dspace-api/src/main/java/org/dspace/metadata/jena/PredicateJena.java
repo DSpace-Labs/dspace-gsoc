@@ -18,6 +18,8 @@ import org.dspace.core.Context;
 import org.dspace.dao.jena.DSPACE;
 import org.dspace.dao.jena.GlobalDAOJena;
 import org.dspace.metadata.Predicate;
+import org.dspace.metadata.URIResource;
+import org.dspace.metadata.Value;
 import org.dspace.uri.ExternalIdentifier;
 import org.dspace.uri.ObjectIdentifier;
 import org.dspace.uri.ObjectIdentifierService;
@@ -103,10 +105,12 @@ public class PredicateJena extends PropertyImpl
                                             + ">!", ex );
         }
     }
-
-    public int compareTo( Predicate o )
+    
+    public int compareTo( Value o )
     {
-        return o.getURI().compareTo( getURI() );
+        return o instanceof URIResource ? 
+                ( (URIResource) o ).getURI().compareTo( getURI() )
+                : -1;
     }
 
     private static Logger log = Logger.getLogger( PredicateJena.class );
@@ -240,6 +244,11 @@ public class PredicateJena extends PropertyImpl
         for ( DSpaceObject obj : dsos )
             if ( obj.equals( dso ) )
                 return true;
+        return false;
+    }
+
+    public boolean isLiteralValue()
+    {
         return false;
     }
     

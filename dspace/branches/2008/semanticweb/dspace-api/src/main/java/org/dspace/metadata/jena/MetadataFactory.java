@@ -93,12 +93,12 @@ public class MetadataFactory
                 (qualifier==null ? "" : "." + qualifier) );
     }
     
-    public static MetadataItem createItem( DSpaceObject o, Predicate p, Value v )
+    public static MetadataItem createItem( URIResource o, Predicate p, Value v )
     {
         return new MetadataItemJena( o, p, v );
     }
     
-    public static MetadataItem createItem( DSpaceObject o, Predicate p, DSpaceObject v )
+    public static MetadataItem createItem( URIResource o, Predicate p, DSpaceObject v )
     {
         return new MetadataItemJena( o, p, v );
     }

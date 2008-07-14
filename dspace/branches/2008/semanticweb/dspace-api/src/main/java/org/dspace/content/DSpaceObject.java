@@ -42,12 +42,13 @@ package org.dspace.content;
 import org.dspace.uri.Identifiable;
 
 import java.util.List;
+import org.dspace.metadata.URIResource;
 import org.dspace.uri.ExternalIdentifier;
 
 /**
  * Abstract base class for DSpace objects
  */
-public interface DSpaceObject extends Identifiable
+public interface DSpaceObject extends Identifiable, URIResource
 {
 
     /**
