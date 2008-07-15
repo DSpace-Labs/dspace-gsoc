@@ -9,9 +9,12 @@ import com.hp.hpl.jena.rdf.model.Literal;
 import com.hp.hpl.jena.rdf.model.Property;
 import com.hp.hpl.jena.rdf.model.Resource;
 import com.hp.hpl.jena.rdf.model.impl.ModelCom;
+import java.sql.SQLException;
 import java.util.Calendar;
+import org.apache.log4j.Logger;
 import org.dspace.content.DSpaceObject;
 import org.dspace.core.Context;
+import org.dspace.dao.jena.GlobalDAOJena;
 import org.dspace.metadata.LiteralValue;
 import org.dspace.metadata.MetadataItem;
 import org.dspace.metadata.Predicate;
@@ -89,8 +92,23 @@ public class MetadataFactory
     public static Predicate createPredicate( Context c, String schema, 
             String element, String qualifier )
     {
-        return new PredicateJena( c, schema + ":" + element + 
-                (qualifier==null ? "" : "." + qualifier) );
+        return new PredicateJena( c, expand( schema + ":" + element + 
+                (qualifier==null ? "" : "." + qualifier), c ) );
+    }
+    
+    public static String expand( String r, Context c )
+    {
+        try
+        {
+            GlobalDAOJena dao = c.getGlobalDAO() instanceof GlobalDAOJena
+                    ? (GlobalDAOJena) c.getGlobalDAO()
+                    : new GlobalDAOJena();
+            return dao.getTripleStore().expandPrefix( r );
+        } catch ( SQLException ex )
+        {
+            Logger.getLogger( MetadataFactory.class ).error( ex );
+        }
+        return r;
     }
     
     public static MetadataItem createItem( URIResource o, Predicate p, Value v )

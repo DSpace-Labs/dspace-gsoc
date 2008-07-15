@@ -5,7 +5,7 @@
 @prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
 @prefix nfo:     <http://www.semanticdesktop.org/ontologies/nfo/#> .
-@prefix terms:   <http://purl.org/dc/terms/> .
+@prefix dc:      <http://purl.org/dc/terms/> .
 @prefix foaf:    <http://xmlns.com/foaf/0.1/> .
 
 @prefix :        <#> .
@@ -99,7 +99,7 @@ map:bitstream_size_bytes a d2rq:PropertyBridge;
 	.
 map:bitstream_description a d2rq:PropertyBridge;
 	d2rq:belongsToClassMap map:bitstream;
-	d2rq:property terms:description;
+	d2rq:property dc:description;
 	d2rq:column "bitstream.description";
 	.
 map:bitstream_uuid a d2rq:PropertyBridge;
@@ -147,7 +147,7 @@ map:bitstreamformatregistry_mime a d2rq:PropertyBridge;
 	.
 map:bitstreamformatregistry_description a d2rq:PropertyBridge;
 	d2rq:belongsToClassMap map:bitstreamformatregistry;
-	d2rq:property terms:description;
+	d2rq:property dc:description;
 	d2rq:column "bitstreamformatregistry.description";
 	.
 map:bitstreamformatregistry_support_level a d2rq:PropertyBridge;
@@ -201,7 +201,7 @@ map:collection__label a d2rq:PropertyBridge;
 	.
 map:collection_short_description a d2rq:PropertyBridge;
 	d2rq:belongsToClassMap map:collection;
-	d2rq:property terms:description;
+	d2rq:property dc:description;
 	d2rq:column "collection.short_description";
 	.
 map:collection_introductory_text a d2rq:PropertyBridge;
@@ -253,7 +253,7 @@ map:community__label a d2rq:PropertyBridge;
 	.
 map:community_short_description a d2rq:PropertyBridge;
 	d2rq:belongsToClassMap map:community;
-	d2rq:property terms:description;
+	d2rq:property dc:description;
 	d2rq:column "community.short_description";
 	.
 map:community_introductory_text a d2rq:PropertyBridge;
@@ -392,7 +392,7 @@ map:item_submitter_id a d2rq:PropertyBridge;
 #	.
 map:item_last_modified a d2rq:PropertyBridge;
 	d2rq:belongsToClassMap map:item;
-	d2rq:property terms:modified;
+	d2rq:property dc:modified;
 	d2rq:column "item.last_modified";
 #	d2rq:datatype xsd:dateTime; # can't convert timestamps from DSpace (fails to parse ms precision)
 	.
