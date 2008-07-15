@@ -1,61 +1,61 @@
-package org.dspace.eperson.dao.jena;
+package org.dspace.content.dao.jena;
 
+import org.dspace.eperson.dao.jena.*;
 import java.util.UUID;
 import org.dspace.authorize.AuthorizeException;
+import org.dspace.content.Bitstream;
+import org.dspace.content.dao.BitstreamDAO;
 import org.dspace.core.Context;
 import org.dspace.dao.jena.D2RQConnectorDAO;
-import org.dspace.eperson.EPerson;
-import org.dspace.eperson.dao.EPersonDAO;
 
-public class EPersonDAOD2RQ extends EPersonDAO
+public class BitstreamDAOD2RQ extends BitstreamDAO
 {
 
-    private D2RQConnectorDAO<EPersonDAO, EPerson> connector;
+    private D2RQConnectorDAO<BitstreamDAO, Bitstream> connector;
 
-    public EPersonDAOD2RQ()
-    {
-        connector = new D2RQConnectorDAO<EPersonDAO, EPerson>();
+    public BitstreamDAOD2RQ()
+    {// no-op
     }
 
-    public EPersonDAOD2RQ( Context c )
+    public BitstreamDAOD2RQ( Context c )
     {
         super( c );
-        connector = new D2RQConnectorDAO<EPersonDAO, EPerson>( c );
+        connector = new D2RQConnectorDAO<BitstreamDAO, Bitstream>( c );
     }
 
     @Override
-    public void setChild( EPersonDAO dao )
+    public void setChild( BitstreamDAO dao )
     {
         childDAO = dao;
         connector.setChild( dao );
     }
 
     @Override
-    public EPersonDAO getChild()
+    public BitstreamDAO getChild()
     {
         return connector.getChild();
     }
 
     @Override
-    public EPerson retrieve( int id )
+    public Bitstream retrieve( int id )
     {
         return connector.retrieve( id );
     }
 
     @Override
-    public EPerson retrieve( UUID uuid )
+    public Bitstream retrieve( UUID uuid )
     {
         return connector.retrieve( uuid );
     }
 
     @Override
-    public EPerson create() throws AuthorizeException
+    public Bitstream create() throws AuthorizeException
     {
         return connector.create();
     }
 
     @Override
-    public void update( EPerson t ) throws AuthorizeException
+    public void update( Bitstream t ) throws AuthorizeException
     {
         connector.update( t );
     }

@@ -20,6 +20,10 @@ public abstract class BundleDAO extends ContentDAO<BundleDAO>
     protected BundleDAO childDAO;
     protected ObjectIdentifierDAO oidDAO;
     protected ExternalIdentifierDAO identifierDAO;
+    
+    public BundleDAO() 
+    {// no-op
+    }
 
     public BundleDAO(Context context)
     {

@@ -1,61 +1,60 @@
-package org.dspace.eperson.dao.jena;
+package org.dspace.content.dao.jena;
 
 import java.util.UUID;
 import org.dspace.authorize.AuthorizeException;
+import org.dspace.content.Collection;
+import org.dspace.content.dao.CollectionDAO;
 import org.dspace.core.Context;
 import org.dspace.dao.jena.D2RQConnectorDAO;
-import org.dspace.eperson.EPerson;
-import org.dspace.eperson.dao.EPersonDAO;
 
-public class EPersonDAOD2RQ extends EPersonDAO
+public class CollectionDAOD2RQ extends CollectionDAO
 {
 
-    private D2RQConnectorDAO<EPersonDAO, EPerson> connector;
+    private D2RQConnectorDAO<CollectionDAO, Collection> connector;
 
-    public EPersonDAOD2RQ()
-    {
-        connector = new D2RQConnectorDAO<EPersonDAO, EPerson>();
+    public CollectionDAOD2RQ()
+    {// no-op
     }
 
-    public EPersonDAOD2RQ( Context c )
+    public CollectionDAOD2RQ( Context c )
     {
         super( c );
-        connector = new D2RQConnectorDAO<EPersonDAO, EPerson>( c );
+        connector = new D2RQConnectorDAO<CollectionDAO, Collection>( c );
     }
 
     @Override
-    public void setChild( EPersonDAO dao )
+    public void setChild( CollectionDAO dao )
     {
         childDAO = dao;
         connector.setChild( dao );
     }
 
     @Override
-    public EPersonDAO getChild()
+    public CollectionDAO getChild()
     {
         return connector.getChild();
     }
 
     @Override
-    public EPerson retrieve( int id )
+    public Collection retrieve( int id )
     {
         return connector.retrieve( id );
     }
 
     @Override
-    public EPerson retrieve( UUID uuid )
+    public Collection retrieve( UUID uuid )
     {
         return connector.retrieve( uuid );
     }
 
     @Override
-    public EPerson create() throws AuthorizeException
+    public Collection create() throws AuthorizeException
     {
         return connector.create();
     }
 
     @Override
-    public void update( EPerson t ) throws AuthorizeException
+    public void update( Collection t ) throws AuthorizeException
     {
         connector.update( t );
     }

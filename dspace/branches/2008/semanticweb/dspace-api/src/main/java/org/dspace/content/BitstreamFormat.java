@@ -51,13 +51,12 @@ import org.apache.log4j.Logger;
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.dao.BitstreamFormatDAO;
 import org.dspace.content.dao.BitstreamFormatDAOFactory;
+import org.dspace.core.Constants;
 import org.dspace.uri.ObjectIdentifier;
 import org.dspace.core.Context;
 
-/**
- * FIXME: Should this extend DSpaceObject?
- */
-public class BitstreamFormat
+
+public class BitstreamFormat extends DSpaceObjectCore
 {
     /** log4j logger */
     private static Logger log = Logger.getLogger(BitstreamFormat.class);
@@ -337,5 +336,17 @@ public class BitstreamFormat
         List<BitstreamFormat> formats = dao.getBitstreamFormats(false);
 
         return formats.toArray(new BitstreamFormat[0]);
+    }
+
+    @Override
+    public int getType()
+    {
+        return Constants.BITSTREAMFORMAT;
+    }
+
+    @Override
+    public String getName()
+    {
+        return getShortDescription();
     }
 }
