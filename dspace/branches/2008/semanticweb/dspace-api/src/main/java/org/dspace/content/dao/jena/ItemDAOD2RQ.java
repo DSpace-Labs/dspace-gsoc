@@ -1,61 +1,61 @@
-package org.dspace.eperson.dao.jena;
+package org.dspace.content.dao.jena;
 
+import org.dspace.eperson.dao.jena.*;
 import java.util.UUID;
 import org.dspace.authorize.AuthorizeException;
+import org.dspace.content.Item;
+import org.dspace.content.dao.ItemDAO;
 import org.dspace.core.Context;
 import org.dspace.dao.jena.D2RQConnectorDAO;
-import org.dspace.eperson.EPerson;
-import org.dspace.eperson.dao.EPersonDAO;
 
-public class EPersonDAOD2RQ extends EPersonDAO
+public class ItemDAOD2RQ extends ItemDAO
 {
 
-    private D2RQConnectorDAO<EPersonDAO, EPerson> connector;
+    private D2RQConnectorDAO<ItemDAO, Item> connector;
 
-    public EPersonDAOD2RQ()
-    {
-        connector = new D2RQConnectorDAO<EPersonDAO, EPerson>();
+    public ItemDAOD2RQ()
+    { // no-op
     }
 
-    public EPersonDAOD2RQ( Context c )
+    public ItemDAOD2RQ( Context c )
     {
         super( c );
-        connector = new D2RQConnectorDAO<EPersonDAO, EPerson>( c );
+        connector = new D2RQConnectorDAO<ItemDAO, Item>( c );
     }
 
     @Override
-    public void setChild( EPersonDAO dao )
+    public void setChild( ItemDAO dao )
     {
         childDAO = dao;
         connector.setChild( dao );
     }
 
     @Override
-    public EPersonDAO getChild()
+    public ItemDAO getChild()
     {
         return connector.getChild();
     }
 
     @Override
-    public EPerson retrieve( int id )
+    public Item retrieve( int id )
     {
         return connector.retrieve( id );
     }
 
     @Override
-    public EPerson retrieve( UUID uuid )
+    public Item retrieve( UUID uuid )
     {
         return connector.retrieve( uuid );
     }
 
     @Override
-    public EPerson create() throws AuthorizeException
+    public Item create() throws AuthorizeException
     {
         return connector.create();
     }
 
     @Override
-    public void update( EPerson t ) throws AuthorizeException
+    public void update( Item t ) throws AuthorizeException
     {
         connector.update( t );
     }

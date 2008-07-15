@@ -97,6 +97,10 @@ public abstract class CollectionDAO extends ContentDAO<CollectionDAO>
             return name;
         }
     }
+    
+    public CollectionDAO() 
+    {// no-op
+    }
 
     public CollectionDAO(Context context)
     {

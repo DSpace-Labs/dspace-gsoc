@@ -77,13 +77,15 @@ public class Constants
 
     /** Type of metadata predicate */
     public static final int METADATAPREDICATE = 9;
+    /** Type of bitstream format objects */
+    public static final int BITSTREAMFORMAT = 10;
 
     /**
      * lets you look up type names from the type IDs
      */
     public static final String[] typeText = { "BITSTREAM", "BUNDLE", "ITEM",
               "COLLECTION", "COMMUNITY", "SITE", "GROUP", "EPERSON", 
-              "METADATAITEM", "METADATAPREDICATE", };
+              "METADATAITEM", "METADATAPREDICATE", "BITSTREAMFORMAT", };
 
     /**
      * Special Bundle and Bitstream Names:

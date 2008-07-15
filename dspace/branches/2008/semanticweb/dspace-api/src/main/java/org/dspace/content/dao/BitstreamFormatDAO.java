@@ -60,6 +60,10 @@ public abstract class BitstreamFormatDAO extends ContentDAO<BitstreamFormatDAO>
     protected Context context;
 
     protected BitstreamFormatDAO childDAO;
+    
+    public BitstreamFormatDAO() 
+    {// no-op
+    }
 
     public BitstreamFormatDAO(Context context)
     {

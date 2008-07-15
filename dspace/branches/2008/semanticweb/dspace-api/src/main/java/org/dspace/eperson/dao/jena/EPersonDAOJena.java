@@ -1,6 +1,5 @@
 package org.dspace.eperson.dao.jena;
 
-import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Iterator;
 import java.util.UUID;
@@ -14,8 +13,6 @@ import org.dspace.dao.jena.DSPACE;
 import com.hp.hpl.jena.vocabulary.RDF;
 import com.hp.hpl.jena.rdf.model.Property;
 import com.hp.hpl.jena.rdf.model.Resource;
-import java.io.File;
-import java.io.FileWriter;
 import java.util.HashMap;
 import java.util.Map;
 import org.dspace.core.ConfigurationManager;
@@ -31,7 +28,6 @@ public class EPersonDAOJena extends EPersonDAO
     {
         try
         {
-            log.info( "Loading EpersonDAOJena()" );
             dao = new GlobalDAOJena();
             init();
         } catch ( SQLException ex )
@@ -42,7 +38,6 @@ public class EPersonDAOJena extends EPersonDAO
 
     public EPersonDAOJena( Context context )
     {
-        log.info( "Loading EPersonDAOJena(context)" );
         this.context = context;
         if ( !( context.getGlobalDAO() instanceof GlobalDAOJena ) )
             log.error( "Jena DAO requires an instance of GlobalDAOJena to operate" );
@@ -59,8 +54,9 @@ public class EPersonDAOJena extends EPersonDAO
         {
             String p = ConfigurationManager.getProperty( configPrefix + f );
             if ( p != null )
-                meta.put( f, dao.getTripleStore().getProperty( dao.getTripleStore().
-                                                         expandPrefix( p ) ) );
+                meta.put( f,
+                          dao.getTripleStore().getProperty( dao.getTripleStore().
+                                                            expandPrefix( p ) ) );
         }
     }
 
@@ -88,8 +84,9 @@ public class EPersonDAOJena extends EPersonDAO
         EPerson e = getChild().retrieve( field, value );
         if ( e == null )
         { // couldn't find metadata; try in triple store
-            Iterator<Resource> it = dao.getTripleStore().listResourcesWithProperty( getProperty( field ),
-                                                                              value );
+            Iterator<Resource> it = dao.getTripleStore().
+                    listResourcesWithProperty( getProperty( field ),
+                                               value );
             if ( !it.hasNext() )
                 return null;
             Resource r = it.next();
@@ -124,21 +121,12 @@ public class EPersonDAOJena extends EPersonDAO
         for ( EPersonMetadataField f : EPersonMetadataField.values() )
         {
             Property p = getProperty( f );
-            if ( p == null ) 
+            if ( p == null )
                 continue;
             if ( r.hasProperty( p ) ) r.removeAll( p );
             String v = eperson.getMetadata( f );
-            if ( v != null && v.length() > 0 ) 
+            if ( v != null && v.length() > 0 )
                 r.addLiteral( p, v );
-        }
-        
-        try
-        {
-            dao.getTripleStore().
-                    write( new FileWriter( new File( "/tmp/dspace-out.n3" ) ), "N3" );
-        } catch ( IOException ex )
-        {
-            log.error( ex );
         }
     }
 

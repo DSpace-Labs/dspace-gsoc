@@ -67,6 +67,10 @@ public abstract class BitstreamDAO extends ContentDAO<BitstreamDAO>
     protected ObjectIdentifierDAO oidDAO;
 
     protected BitstreamDAO childDAO;
+    
+    public BitstreamDAO() 
+    {// no-op
+    }
 
     public BitstreamDAO(Context context)
     {
