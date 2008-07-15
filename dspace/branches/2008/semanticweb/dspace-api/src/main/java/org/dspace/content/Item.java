@@ -122,6 +122,7 @@ public class Item extends DSpaceObjectCore
     protected List<Bundle> bundles;
 
     protected boolean metadataChanged;
+    protected List<DCValue> metadata;
 
     /**
      * True if anything else was changed since last update()
@@ -147,6 +148,7 @@ public class Item extends DSpaceObjectCore
 
         identifiers = new ArrayList<ExternalIdentifier>();
         bundles = new ArrayList<Bundle>();
+        metadata = new ArrayList<DCValue>();
         metadataChanged = false;
     }
 
@@ -178,6 +180,11 @@ public class Item extends DSpaceObjectCore
     public boolean isWithdrawn()
     {
         return withdrawn;
+    }
+
+    public void setMetadata( List<DCValue> metadata )
+    {
+        this.metadata = metadata;
     }
 
     public void setWithdrawn(boolean withdrawn)
@@ -380,7 +387,7 @@ public class Item extends DSpaceObjectCore
      *            no country code are returned.
      * @return metadata fields that match the parameters
      */
-    public DCValue[] getMetadata(String schema, String element, String qualifier,
+    public DCValue[] getMetadata( final String schema, final String element, final String qualifier,
             final String lang)
     {
         // Build up list of matching values
@@ -389,7 +396,14 @@ public class Item extends DSpaceObjectCore
         try
         {
             final DSpaceObject subj = this;
-            final Predicate pred = MetadataFactory.createPredicate(context, schema, element, qualifier);
+            final Predicate pred;
+            if ( schema == null || schema.equals( Item.ANY ) || 
+                    element == null || element.equals( Item.ANY ) ||
+                    qualifier == null || qualifier.equals( Item.ANY ) )
+                pred = null;
+            else
+                pred = MetadataFactory.createPredicate( context, schema, element, qualifier );
+            
             Iterator<MetadataItem> it = MetadataManagerFactory.get( context )
                 .getMetadata( new SelectorCore() {
                 
@@ -512,6 +526,12 @@ public class Item extends DSpaceObjectCore
         // until update() is called.
         for (String value : values)
         {
+            DCValue dcv = new DCValue();
+            dcv.schema = schema;
+            dcv.element = element;
+            dcv.qualifier = qualifier;
+            dcv.language = lang;
+
             if (value != null && !value.trim().equals(""))
             {
                 // remove control unicode char
@@ -533,6 +553,13 @@ public class Item extends DSpaceObjectCore
             {
                 continue;
             }
+            
+            if (!metadata.contains(dcv))
+            {
+                metadata.add(dcv);
+                metadataChanged = true;
+            }
+
             try
             {
                 MetadataManagerFactory.get( context ).addMetadata( this,
