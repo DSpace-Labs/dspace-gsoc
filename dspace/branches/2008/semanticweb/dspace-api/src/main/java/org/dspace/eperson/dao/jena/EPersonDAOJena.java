@@ -54,9 +54,8 @@ public class EPersonDAOJena extends EPersonDAO
         {
             String p = ConfigurationManager.getProperty( configPrefix + f );
             if ( p != null )
-                meta.put( f,
-                          dao.getTripleStore().getProperty( dao.getTripleStore().
-                                                            expandPrefix( p ) ) );
+                meta.put( f, dao.getTripleStore().getProperty( 
+                        dao.getTripleStore().expandPrefix( p ) ) );
         }
     }
 
@@ -120,10 +119,11 @@ public class EPersonDAOJena extends EPersonDAO
         Resource r = dao.getResource( eperson );
         for ( EPersonMetadataField f : EPersonMetadataField.values() )
         {
-            Property p = getProperty( f );
+            Property p = meta.get( f );
             if ( p == null )
                 continue;
-            if ( r.hasProperty( p ) ) r.removeAll( p );
+            if ( r.hasProperty( p ) ) 
+                r.removeAll( p );
             String v = eperson.getMetadata( f );
             if ( v != null && v.length() > 0 )
                 r.addLiteral( p, v );
