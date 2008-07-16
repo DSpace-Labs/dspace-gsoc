@@ -91,11 +91,12 @@ public class D2RQConnectorDAO<DAO extends CRUD<O>, O extends DSpaceObject>
         child.delete( id );
     }
     
-    public void commit( O o ) {
+    public O commit( O o ) {
         Resource r = dao.getResource( o ).removeProperties();
         log.info( "Committing resource " + r );
         r.getModel().add( 
                dao.getD2RQStore().getResource( r.getURI() ).listProperties() );
+        return o;
     }
     
 }
