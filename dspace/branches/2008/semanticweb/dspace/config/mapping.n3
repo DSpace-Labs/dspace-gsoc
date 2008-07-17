@@ -10,6 +10,7 @@
 
 @prefix :        <#> .
 @prefix ja:      <http://jena.hpl.hp.com/2005/11/Assembler#> .
+@prefix sdb:      <http://jena.hpl.hp.com/2007/sdb#> .
 @prefix d2rq:    <http://www.wiwiss.fu-berlin.de/suhl/bizer/D2RQ/0.1#> .
 @prefix res:	 <http://localhost:8180/resource/> .  # NB: Prefix required for code
 
@@ -19,13 +20,24 @@
 
 <> ja:imports d2rq: .
 
-#ja:SmartUnion		# This isn't so smart yet, but leaves the scope for it to happen later!
-#    a rdfs:Class;	#   Also, the standard UnionModel Assembler seems to break D2RQ...
-#    ja:assembler "com.hp.hpl.jena.assembler.assemblers.SmartUnionAssembler";
-#    rdfs:comment "Jena Assembler specification for a smarter UNION model";
-#    rdfs:label "Smart UNION model";
-#    rdfs:subClassOf ja:Model;
-#    .
+vocab:tripleStore
+        a sdb:Model;
+        sdb:dataset [
+            a sdb:DatasetStore, ja:RDFDataset;
+            sdb:store [
+                a sdb:Store;
+                sdb:layout "layout2/hash";
+                sdb:connection [
+                    a sdb:SDBConnection;
+                    sdb:sdbHost "localhost";
+                    sdb:sdbType "MySQL";
+                    sdb:sdbName "dspacesdb";
+                    sdb:sdbUser "dspace";
+                    sdb:sdbPassword "letmein";
+                ]
+            ];
+        ];
+        .
 
 vocab:d2rqStore
 	a d2rq:D2RQModel;
@@ -33,14 +45,14 @@ vocab:d2rqStore
 	d2rq:resourceBaseURI res:;
 	.
 
-vocab:tripleStore
+vocab:tripleStoreRDB
 	a ja:RDBModel;
 	ja:connection [
-	ja:dbURL <jdbc:mysql://localhost/dspace>;
-	ja:dbUser "dspace";
-	ja:dbPassword "letmein";
-	ja:dbType "MySQL";
-	ja:dbClass "com.mysql.jdbc.Driver"
+            ja:dbURL <jdbc:mysql://localhost/dspace>;
+            ja:dbUser "dspace";
+            ja:dbPassword "letmein";
+            ja:dbType "MySQL";
+            ja:dbClass "com.mysql.jdbc.Driver"
 	];
 	ja:modelName "DSpaceTripleStore";
 	.

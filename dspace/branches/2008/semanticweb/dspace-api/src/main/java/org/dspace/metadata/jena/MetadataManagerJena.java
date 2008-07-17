@@ -82,7 +82,7 @@ public class MetadataManagerJena implements MetadataManager
     {
         Collection<MetadataItem> c = new HashSet<MetadataItem>();
         Iterator<MetadataItem> it = tran.translate(
-                (Iterator<Statement>) dao.getD2RQStore().listStatements(
+                (Iterator<Statement>) dao.getTripleStore().listStatements(
                 SelectorCore.toJenaSelector( s, tran ) ) );
         while ( it.hasNext() )
         {

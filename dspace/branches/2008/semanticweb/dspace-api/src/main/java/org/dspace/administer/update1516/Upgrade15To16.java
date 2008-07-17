@@ -54,5 +54,8 @@ public class Upgrade15To16
 
         MigrateHandle hdl = new MigrateHandle();
         hdl.migrate();
+
+        MigrateMetadata meta = new MigrateMetadata();
+        meta.migrate();
     }
 }

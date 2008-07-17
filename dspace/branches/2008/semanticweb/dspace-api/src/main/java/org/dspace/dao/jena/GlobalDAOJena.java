@@ -1,11 +1,16 @@
 package org.dspace.dao.jena;
 
 import com.hp.hpl.jena.assembler.Assembler;
+import com.hp.hpl.jena.assembler.Mode;
 import java.sql.SQLException;
 import com.hp.hpl.jena.rdf.model.Model;
+import com.hp.hpl.jena.rdf.model.RDFNode;
 import com.hp.hpl.jena.rdf.model.Resource;
+import com.hp.hpl.jena.rdf.model.Statement;
+import com.hp.hpl.jena.sdb.assembler.SDBModelAssembler;
 import com.hp.hpl.jena.util.FileManager;
 import de.fuberlin.wiwiss.d2rq.assembler.D2RQAssembler;
+import java.util.Arrays;
 import java.util.UUID;
 import org.dspace.content.Bitstream;
 import org.dspace.content.BitstreamFormat;
@@ -34,12 +39,13 @@ public class GlobalDAOJena extends GlobalDAOPostgres
                 ConfigurationManager.getProperty( 
                     "org.dspace.dao.jena.assemblerspec" ) );
         Assembler.general.implementWith( assemblerSpec.createResource( 
-                    assemblerSpec.expandPrefix( "d2rq:D2RQModel" ) ), 
-                new D2RQAssembler() );
-        d2rqStore = assembleModel( 
-                (Resource)DSPACE.d2rqStore.inModel( assemblerSpec ) );
-        tripleStore = assembleModel( 
-                (Resource)DSPACE.tripleStore.inModel( assemblerSpec ) );
+                    assemblerSpec.expandPrefix( "d2rq:D2RQModel" ) ),
+                new D2RQAssembler() )
+                .implementWith( assemblerSpec.createResource( 
+                    assemblerSpec.expandPrefix( "sdb:Model" ) ),
+                new SDBModelAssembler() );
+        d2rqStore = assembleModel( DSPACE.d2rqStore.getURI() );
+        tripleStore = assembleModel( DSPACE.tripleStore.getURI() );
         tripleStore.setNsPrefixes( d2rqStore );
         // TODO: Is there value + a way to get the context in without manually
         //         creating the assembler?
@@ -64,7 +70,7 @@ public class GlobalDAOJena extends GlobalDAOPostgres
     
     public Model assembleModel( Resource r )
     {
-        return Assembler.general.openModel( r );
+        return Assembler.general.openModel( r, Mode.ANY );
     }
     
     public Object assemble( String uri )
