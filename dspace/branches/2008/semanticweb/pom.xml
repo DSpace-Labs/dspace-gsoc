@@ -670,7 +670,7 @@
         <dependency>
             <groupId>com.hp.hpl.jena</groupId>
             <artifactId>jena</artifactId>
-            <version>2.5.5</version>
+            <version>2.5.6</version>
         </dependency>
         <dependency>
             <groupId>de.fuberlin</groupId>
@@ -680,6 +680,11 @@
         <dependency>
             <groupId>postgresql</groupId>
             <artifactId>postgresql</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.hp.hpl.jena</groupId>
+            <artifactId>sdb</artifactId>
+            <version>1.1</version>
         </dependency>
     </dependencies>
 
