@@ -1,6 +1,7 @@
 @prefix map:     <file:///stdout#> .
 @prefix db:      <> .
 @prefix vocab:   <http://purl.org/dspace/model#> .
+@prefix filter:  <http://purl.org/dspace/model/filter#> .
 @prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
@@ -13,6 +14,72 @@
 @prefix sdb:      <http://jena.hpl.hp.com/2007/sdb#> .
 @prefix d2rq:    <http://www.wiwiss.fu-berlin.de/suhl/bizer/D2RQ/0.1#> .
 @prefix res:	 <http://localhost:8180/resource/> .  # NB: Prefix required for code
+
+ ##############################
+#  CONTENT NEGOTIATION CONFIG  #
+ ##############################
+
+#
+#  Tidy up broken URIs
+#
+[]	filter:fromURI		"^/(.*)/$" ;
+	filter:toURI		"/$1" ;
+	filter:matchContentType "*" ; 
+	filter:statusCode	301 ;
+	filter:priority		4 .
+
+[]      filter:fromURI          "^(.*)//(.*)$" ;
+        filter:toURI            "$1/$2" ;
+        filter:matchContentType "*" ; 
+        filter:statusCode       301 ;
+        filter:priority         3 .
+
+[]      filter:fromURI          "^/resource/uuid/(.*)$" ;
+        filter:toURI            "/resource/$1" ;
+        filter:matchContentType "*" ; 
+        filter:statusCode       301 ;
+        filter:priority         3 .
+
+#
+#  Content negotiation
+#
+[]      filter:fromURI          "^(/|(.*))$" ;
+        filter:toURI            "$2/rdf/xml" ;
+        filter:matchContentType "application/rdf+xml" ;
+        filter:statusCode       303 .
+
+[]      filter:fromURI          "^(/|(.*))$" ;
+        filter:toURI            "$2/rdf/n3" ;
+        filter:matchContentType "text/n3" ;
+        filter:matchContentType "application/rdf+n3" ; # For dissenters :)
+        filter:statusCode       303 .
+
+[]      filter:fromURI          "^(/|(.*))$" ;
+        filter:toURI            "$2/html" ;
+        filter:matchContentType "text/html" ;
+        filter:statusCode       303 .
+
+#
+#  Dereferencable URIs
+#    Passthrough is context sensitive; must match it out of the group
+#       before it is matched (done in code now)
+#
+
+# General case
+[]	filter:fromURI		"^/resource.*/([^/]*)/html$" ;
+	filter:toURI		"/uriresource/uuid/$1" ;
+	filter:matchContentType "*" ;
+	filter:priority		6 .
+
+[]      filter:fromURI          "^/.*/([^/]*)/rdf/xml$" ;
+        filter:toURI            "/describe?$1;RDF%2BXML" ;
+        filter:matchContentType "*" ;
+        filter:priority         6 .
+
+[]      filter:fromURI          "^/.*/([^/]*)/rdf/n3$" ;
+        filter:toURI            "/describe?$1;N3" ;
+        filter:matchContentType "*" ;
+        filter:priority         6 .
 
  ####################
 #  ASSEMBLER CONFIG  #
@@ -151,6 +218,11 @@ map:bitstreamformatregistry__label a d2rq:PropertyBridge;
 	d2rq:belongsToClassMap map:bitstreamformatregistry;
 	d2rq:property rdfs:label;
 	d2rq:column "bitstreamformatregistry.short_description";
+	.
+map:bitstreamformatregistry_uuid a d2rq:PropertyBridge;
+	d2rq:belongsToClassMap map:bitstreamformatregistry;
+	d2rq:property vocab:uuid;
+	d2rq:column "bitstreamformatregistry.uuid";
 	.
 map:bitstreamformatregistry_mime a d2rq:PropertyBridge;
 	d2rq:belongsToClassMap map:bitstreamformatregistry;

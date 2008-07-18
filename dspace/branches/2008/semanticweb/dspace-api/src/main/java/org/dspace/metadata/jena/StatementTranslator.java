@@ -162,10 +162,15 @@ public class StatementTranslator
                         ResourceFactory.createResource( m.getSubject().getURI() ), 
                         (Property)m.getPredicate(), 
                         ResourceFactory.createResource( m.getDSpaceObject().getURI() ) ) : 
-                ResourceFactory.createStatement( 
-                        ResourceFactory.createResource( m.getSubject().getURI() ), 
-                        (Property)m.getPredicate(), 
-                        (Literal)m.getLiteralValue() );
+               (m.isLiteral() ?
+                    ResourceFactory.createStatement( 
+                            ResourceFactory.createResource( m.getSubject().getURI() ), 
+                            (Property)m.getPredicate(), 
+                            (Literal)m.getLiteralValue() ) :
+                    ResourceFactory.createStatement( 
+                            ResourceFactory.createResource( m.getSubject().getURI() ), 
+                            (Property)m.getPredicate(), 
+                            (Resource)m.getURIResource() ));
     }
     
     public Resource translate( URIResource o )
