@@ -81,7 +81,7 @@ public class MetadataItemJena implements MetadataItem
 
     public LiteralValue getLiteralValue()
     {
-        return (LiteralValue)val;
+        return isLiteral() ? (LiteralValue)val : null;
     }
 
     public boolean isURI()
@@ -91,7 +91,7 @@ public class MetadataItemJena implements MetadataItem
 
     public URIResource getURIResource()
     {
-        return (URIResource)val;
+        return isLiteral() ? null : (URIResource)val;
     }
 
     public boolean isDSpaceObject()

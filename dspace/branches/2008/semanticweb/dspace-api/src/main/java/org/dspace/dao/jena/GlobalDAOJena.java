@@ -37,7 +37,7 @@ public class GlobalDAOJena extends GlobalDAOPostgres
     {
         assemblerSpec = FileManager.get().loadModel( 
                 ConfigurationManager.getProperty( 
-                    "org.dspace.dao.jena.assemblerspec" ) );
+                    "org.dspace.dao.jena.configuration" ) );
         Assembler.general.implementWith( assemblerSpec.createResource( 
                     assemblerSpec.expandPrefix( "d2rq:D2RQModel" ) ),
                 new D2RQAssembler() )
