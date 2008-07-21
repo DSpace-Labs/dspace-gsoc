@@ -54,7 +54,7 @@ public class GlobalDAOJena extends GlobalDAOPostgres
     
     public DSpaceObject assembleDSO( String uri, Context c )
     {
-        return assembleDSO( assemblerSpec.createResource( uri ), c );
+        return assembleDSO( tripleStore.createResource( uri ), c );
     }
     
     public DSpaceObject assembleDSO( Resource r, Context c )
