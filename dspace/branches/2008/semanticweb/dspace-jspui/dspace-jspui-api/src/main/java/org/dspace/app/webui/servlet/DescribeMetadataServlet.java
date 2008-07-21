@@ -1,5 +1,5 @@
 /*
- * CommunityListServlet.java
+ * DescribeMetadataServlet.java
  *
  * Version: $Revision: 1774 $
  *
@@ -65,10 +65,9 @@ import org.dspace.metadata.jena.MetadataFactory;
 import org.dspace.metadata.jena.StatementTranslator;
 
 /**
- * Servlet for listing communities (and collections within them)
+ * Servlet for serving linked data RDF metadata
  * 
- * @author Robert Tansley
- * @version $Revision: 1774 $
+ * @author Peter Coetzee
  */
 public class DescribeMetadataServlet extends DSpaceServlet
 {
@@ -113,10 +112,10 @@ public class DescribeMetadataServlet extends DSpaceServlet
         
         String ctype = "application/rdf+xml";
         if ( params[1].equals( "N3" ) )
-            ctype = "text/n3";
+            ctype = "text/rdf+n3";
         else if ( params[1].equals( "N-TRIPLES" ) )
-            ctype = "text/n-triples";
-        response.setHeader( "content-type", ctype );
+            ctype = "text/plain";
+        response.setHeader( "Content-Type", ctype );
         
         m.write( response.getWriter(), params[1] );
         response.getWriter().flush();

@@ -403,6 +403,11 @@
         <servlet-class>org.dspace.app.webui.servlet.DescribeMetadataServlet</servlet-class>
     </servlet>
     
+    <servlet>
+        <servlet-name>sparql</servlet-name>
+        <servlet-class>org.dspace.app.webui.servlet.SparqlServlet</servlet-class>
+    </servlet>
+    
     
     <!-- Servlet Mappings -->
 
@@ -664,6 +669,11 @@
     <servlet-mapping>
         <servlet-name>describe</servlet-name>
         <url-pattern>/describe</url-pattern>
+    </servlet-mapping>
+    
+    <servlet-mapping>
+        <servlet-name>sparql</servlet-name>
+        <url-pattern>/sparql</url-pattern>
     </servlet-mapping>
     
     
