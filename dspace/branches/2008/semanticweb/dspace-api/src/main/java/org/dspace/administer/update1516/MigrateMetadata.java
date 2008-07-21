@@ -82,6 +82,7 @@ public class MigrateMetadata
                 Predicate pred = MetadataFactory.createPredicate( c, p );
                 AuthorizeManager.addPolicy( c, pred, Constants.READ, c.getCurrentUser() );
             }
+            c.commit();
             
             dao.getTripleStore().commit();
             
@@ -98,6 +99,7 @@ public class MigrateMetadata
                   (Property)r.nextSolution().get( "p" ).as( Property.class ) );
                 AuthorizeManager.addPolicy( c, p, Constants.READ, c.getCurrentUser() );
             }
+            c.complete();
         } catch ( Exception e )
         {
             dao.getTripleStore().abort();
