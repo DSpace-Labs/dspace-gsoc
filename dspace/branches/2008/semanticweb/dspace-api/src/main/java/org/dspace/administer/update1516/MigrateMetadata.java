@@ -6,13 +6,16 @@ import com.hp.hpl.jena.rdf.model.Literal;
 import com.hp.hpl.jena.rdf.model.Property;
 import com.hp.hpl.jena.rdf.model.Resource;
 import com.hp.hpl.jena.rdf.model.ResourceFactory;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 import org.dspace.authorize.AuthorizeManager;
 import org.dspace.content.Item;
-import org.dspace.core.ConfigurationManager;
 import org.dspace.core.Constants;
 import org.dspace.core.Context;
 import org.dspace.dao.jena.GlobalDAOJena;
+import org.dspace.eperson.Group;
+import org.dspace.eperson.dao.GroupDAOFactory;
 import org.dspace.metadata.Predicate;
 import org.dspace.metadata.jena.MetadataFactory;
 import org.dspace.storage.rdbms.DatabaseManager;
@@ -36,6 +39,7 @@ public class MigrateMetadata
             // Setup our context
             Context c = new Context();
             c.setIgnoreAuthorization( true );
+            Group anon = GroupDAOFactory.getInstance( c ).retrieve( 0 );
             
             // Clear out the triple store
             dao.getTripleStore().removeAll();
@@ -54,6 +58,7 @@ public class MigrateMetadata
                     " AND metadatafieldregistry.metadata_field_id = metadatavalue.metadata_field_id" +
                     " AND item.item_id = metadatavalue.item_id;");
             
+            Set<Property> seen = new HashSet<Property>();
             for ( int i = 0; tri.hasNext(); i++ )
             {
                 if ( i % 10000 == 0 )
@@ -77,10 +82,12 @@ public class MigrateMetadata
                         curr.getStringColumn( "text_value" ), 
                         curr.getStringColumn( "text_lang" ) );
                 dao.getTripleStore().add( r, p, l );
-                
-                // Auth this predicate, as it's not necessarily in D2RQ
+                if ( seen.contains( p ) )
+                    continue;
+                // Auth this predicate (once), as it's not necessarily in D2RQ
                 Predicate pred = MetadataFactory.createPredicate( c, p );
-                AuthorizeManager.addPolicy( c, pred, Constants.READ, c.getCurrentUser() );
+                AuthorizeManager.addPolicy( c, pred, Constants.READ, anon );
+                seen.add( p );
             }
             c.commit();
             
@@ -95,9 +102,13 @@ public class MigrateMetadata
                     dao.getD2RQStore() ).execSelect();
             while ( r.hasNext() )
             {
-                Predicate p = MetadataFactory.createPredicate( c, 
-                  (Property)r.nextSolution().get( "p" ).as( Property.class ) );
-                AuthorizeManager.addPolicy( c, p, Constants.READ, c.getCurrentUser() );
+                Property prop = (Property)r.nextSolution().get( "p" )
+                                                    .as( Property.class );
+                if ( seen.contains( prop ) )
+                    continue;
+                Predicate p = MetadataFactory.createPredicate( c, prop );
+                AuthorizeManager.addPolicy( c, p, Constants.READ, anon );
+                seen.add( prop );
             }
             c.complete();
         } catch ( Exception e )

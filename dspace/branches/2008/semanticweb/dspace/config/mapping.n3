@@ -288,6 +288,11 @@ map:bundle__label a d2rq:PropertyBridge;
 	d2rq:property rdfs:label;
 	d2rq:pattern "@@bundle.name@@";
 	.
+map:bundle_uuid a d2rq:PropertyBridge;
+	d2rq:belongsToClassMap map:bundle;
+	d2rq:property vocab:uuid;
+	d2rq:column "bundle.uuid";
+	.
 map:bundle_primary_bitstream_id a d2rq:PropertyBridge;
 	d2rq:belongsToClassMap map:bundle;
 	d2rq:property vocab:hasBitstream;
@@ -312,6 +317,11 @@ map:collection__label a d2rq:PropertyBridge;
 	d2rq:belongsToClassMap map:collection;
 	d2rq:property rdfs:label;
 	d2rq:column "collection.name";
+	.
+map:collection_uuid a d2rq:PropertyBridge;
+	d2rq:belongsToClassMap map:collection;
+	d2rq:property vocab:uuid;
+	d2rq:column "collection.uuid";
 	.
 map:collection_short_description a d2rq:PropertyBridge;
 	d2rq:belongsToClassMap map:collection;
@@ -365,6 +375,11 @@ map:community__label a d2rq:PropertyBridge;
 	d2rq:property rdfs:label;
 	d2rq:column "community.name";
 	.
+map:community_uuid a d2rq:PropertyBridge;
+	d2rq:belongsToClassMap map:community;
+	d2rq:property vocab:uuid;
+	d2rq:column "community.uuid";
+	.
 map:community_short_description a d2rq:PropertyBridge;
 	d2rq:belongsToClassMap map:community;
 	d2rq:property dc:description;
@@ -407,6 +422,11 @@ map:eperson__label a d2rq:PropertyBridge;
 	d2rq:property rdfs:label;
 	d2rq:pattern "@@eperson.lastname@@, @@eperson.firstname@@";
 	.
+map:eperson_uuid a d2rq:PropertyBridge;
+	d2rq:belongsToClassMap map:eperson;
+	d2rq:property vocab:uuid;
+	d2rq:column "eperson.uuid";
+	.
 map:eperson_firstname a d2rq:PropertyBridge;
 	d2rq:belongsToClassMap map:eperson;
 	d2rq:property foaf:firstName;
@@ -445,6 +465,11 @@ map:epersongroup__label a d2rq:PropertyBridge;
 	d2rq:belongsToClassMap map:epersongroup;
 	d2rq:property rdfs:label;
 	d2rq:pattern "@@epersongroup.name@@";
+	.
+map:epersongroup_uuid a d2rq:PropertyBridge;
+	d2rq:belongsToClassMap map:epersongroup;
+	d2rq:property vocab:uuid;
+	d2rq:column "epersongroup.uuid";
 	.
 map:epersongroup_member a d2rq:PropertyBridge;
 	d2rq:belongsToClassMap map:epersongroup;
@@ -486,6 +511,11 @@ map:item a d2rq:ClassMap;
 #	d2rq:property rdfs:label;
 #	d2rq:pattern "Item #@@item.item_id@@";
 #	.
+map:item_uuid a d2rq:PropertyBridge;
+	d2rq:belongsToClassMap map:item;
+	d2rq:property vocab:uuid;
+	d2rq:column "item.uuid";
+	.
 map:item_submitter_id a d2rq:PropertyBridge;
 	d2rq:belongsToClassMap map:item;
 	d2rq:property vocab:submitter;
