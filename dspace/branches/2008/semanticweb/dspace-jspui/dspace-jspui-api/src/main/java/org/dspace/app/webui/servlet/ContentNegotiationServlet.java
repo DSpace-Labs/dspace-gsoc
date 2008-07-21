@@ -1,5 +1,5 @@
 /*
- * CommunityListServlet.java
+ * ContentNegotiationServlet.java
  *
  * Version: $Revision: 1774 $
  *
@@ -70,10 +70,9 @@ import org.dspace.core.Context;
 import org.dspace.core.LogManager;
 
 /**
- * Servlet for listing communities (and collections within them)
+ * Servlet for content negotiating URLs
  * 
- * @author Robert Tansley
- * @version $Revision: 1774 $
+ * @author Peter Coetzee
  */
 public class ContentNegotiationServlet extends DSpaceServlet
 {

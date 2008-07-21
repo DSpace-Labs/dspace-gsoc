@@ -50,6 +50,7 @@
 
 []      filter:fromURI          "^(/|(.*))$" ;
         filter:toURI            "$2/rdf/n3" ;
+        filter:matchContentType "text/rdf+n3" ;
         filter:matchContentType "text/n3" ;
         filter:matchContentType "application/rdf+n3" ; # For dissenters :)
         filter:statusCode       303 .
@@ -80,6 +81,35 @@
         filter:toURI            "/describe?$1;N3" ;
         filter:matchContentType "*" ;
         filter:priority         6 .
+
+#
+#  Content negotiation - SPARQL
+#
+[]      filter:fromURI          "^/sparql/|(.*)$" ;
+        filter:toURI            "/sparql/$2&format=rdf/xml" ;
+        filter:matchContentType "application/rdf+xml" .
+
+[]      filter:fromURI          "^/sparql/|(.*)$" ;
+        filter:toURI            "/sparql/$2&format=n3" ;
+        filter:matchContentType "text/rdf+n3" ;
+        filter:matchContentType "text/n3" ;
+        filter:matchContentType "application/rdf+n3" . # For dissenters :)
+
+[]      filter:fromURI          "^/sparql/|(.*)$" ;
+        filter:toURI            "/sparql/$2&format=nt" ;
+        filter:matchContentType "text/plain" .
+
+[]      filter:fromURI          "^/sparql/|(.*)$" ;
+        filter:toURI            "/sparql/$2&format=rdf/xml" ;
+        filter:matchContentType "application/rdf+xml" .
+
+[]      filter:fromURI          "^/sparql/|(.*)$" ;
+        filter:toURI            "/sparql/$2&format=xml" ;
+        filter:matchContentType "application/sparql-results+xml" .
+
+[]      filter:fromURI          "^/sparql/|(.*)$" ;
+        filter:toURI            "/sparql/$2&format=json" ;
+        filter:matchContentType "application/json" .
 
  ####################
 #  ASSEMBLER CONFIG  #
