@@ -67,7 +67,7 @@
 #
 
 # General case
-[]	filter:fromURI		"^/resource.*/([^/]*)/html$" ;
+[]	filter:fromURI		"^/resource/(.*)/html$" ;
 	filter:toURI		"/uriresource/uuid/$1" ;
 	filter:matchContentType "*" ;
 	filter:priority		6 .
@@ -543,8 +543,8 @@ map:item_last_modified a d2rq:PropertyBridge;
 map:item_owning_collection a d2rq:PropertyBridge;
 	d2rq:belongsToClassMap map:item;
 	d2rq:property vocab:isPartOfCollection;
-	d2rq:column "item.owning_collection";
-	d2rq:datatype xsd:int;
+	d2rq:refersToClassMap map:collection;
+	d2rq:join "item.owning_collection = collection.collection_id";
 	.
 map:item_bundles a d2rq:PropertyBridge;
 	d2rq:belongsToClassMap map:item;
