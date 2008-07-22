@@ -262,11 +262,14 @@ public class MetadataManagerJena implements MetadataManager
         }
         switch( action )
         {
-            case Constants.READ : return read.put( subject, res );
-            case Constants.WRITE : return write.put( subject, res );
-            case Constants.REMOVE : return remove.put( subject, res );
-            default : return res;
+            case Constants.READ : read.put( subject, res );
+            case Constants.WRITE : write.put( subject, res );
+            case Constants.REMOVE : remove.put( subject, res );
+            default : break;
         }
+        if ( res )
+            return res;
+        throw new AuthorizeException( "Authorization failed for " + subject.getName() );
     }
 
 }

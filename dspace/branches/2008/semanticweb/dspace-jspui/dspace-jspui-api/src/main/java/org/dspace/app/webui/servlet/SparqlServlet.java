@@ -48,6 +48,9 @@ import com.hp.hpl.jena.query.QueryFactory;
 import com.hp.hpl.jena.query.ResultSet;
 import com.hp.hpl.jena.query.ResultSetFormatter;
 import com.hp.hpl.jena.rdf.model.Model;
+import com.hp.hpl.jena.sparql.core.describe.DescribeHandler;
+import com.hp.hpl.jena.sparql.core.describe.DescribeHandlerFactory;
+import com.hp.hpl.jena.sparql.core.describe.DescribeHandlerRegistry;
 import com.hp.hpl.jena.sparql.syntax.Element;
 import com.hp.hpl.jena.sparql.syntax.ElementGroup;
 import com.hp.hpl.jena.sparql.syntax.ElementOptional;
@@ -88,9 +91,26 @@ import org.dspace.dao.jena.GlobalDAOJena;
  */
 public class SparqlServlet extends DSpaceServlet
 {
-
+    
     /** log4j category */
     private static Logger log = Logger.getLogger( SparqlServlet.class  );
+    public static final Symbol cache = Symbol.create( DSPACE.getURI() + "AuthCache" );
+    public static final Symbol dao = Symbol.create( DSPACE.getURI() + "DAO" );
+    public static final Symbol context = Symbol.create( DSPACE.getURI() + "Context" );
+    
+    public SparqlServlet()
+    {
+        DescribeHandlerRegistry reg = DescribeHandlerRegistry.get();
+        reg.clear();
+        reg.add( new DescribeHandlerFactory() {
+
+            public DescribeHandler create()
+            {
+                return new AuthorizeDescribeHandler();
+            }
+            
+        } );
+    }
     
     protected void doDSPost( Context context, HttpServletRequest request,
                                 HttpServletResponse response ) 
@@ -120,9 +140,9 @@ public class SparqlServlet extends DSpaceServlet
             (GlobalDAOJena)context.getGlobalDAO() : new GlobalDAOJena();
         
         QueryExecution exec = QueryExecutionFactory.create( query, dao.getTripleStore() );
-        exec.getContext().put( AuthorizeFunction.cache, new HashMap<Node,Boolean>() );
-        exec.getContext().put( AuthorizeFunction.dao, dao );
-        exec.getContext().put( AuthorizeFunction.context, context );
+        exec.getContext().put( SparqlServlet.cache, new HashMap<Node,Boolean>() );
+        exec.getContext().put( SparqlServlet.dao, dao );
+        exec.getContext().put( SparqlServlet.context, context );
         long no = System.currentTimeMillis();
         log.info( "Executing query #" + no + "\n" + query );
         
@@ -254,6 +274,8 @@ public class SparqlServlet extends DSpaceServlet
         
         // Now add property function invocation to query tree
         Element el = q.getQueryPattern();
+        if ( el == null )
+            return q;
         el.visit( new ElementVisitorBase()
           {
 

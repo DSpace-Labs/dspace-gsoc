@@ -7,7 +7,6 @@ import com.hp.hpl.jena.sparql.engine.binding.Binding;
 import com.hp.hpl.jena.sparql.pfunction.PropFuncArg;
 import com.hp.hpl.jena.sparql.pfunction.PropertyFunctionBase;
 import com.hp.hpl.jena.sparql.procedure.ProcLib;
-import com.hp.hpl.jena.sparql.util.Symbol;
 import com.hp.hpl.jena.vocabulary.RDF;
 import java.util.Map;
 import org.apache.log4j.Logger;
@@ -16,16 +15,12 @@ import org.dspace.authorize.AuthorizeManager;
 import org.dspace.content.DSpaceObject;
 import org.dspace.core.Constants;
 import org.dspace.core.Context;
-import org.dspace.dao.jena.DSPACE;
 import org.dspace.dao.jena.GlobalDAOJena;
 import org.dspace.metadata.jena.MetadataFactory;
 
 public class AuthorizeFunction extends PropertyFunctionBase
 {
     private Logger log = Logger.getLogger( AuthorizeFunction.class );
-    public static final Symbol cache = Symbol.create( DSPACE.getURI() + "AuthCache" );
-    public static final Symbol dao = Symbol.create( DSPACE.getURI() + "DAO" );
-    public static final Symbol context = Symbol.create( DSPACE.getURI() + "Context" );
     
     @Override
     public QueryIterator exec( Binding binding, PropFuncArg argSubject,
@@ -35,9 +30,9 @@ public class AuthorizeFunction extends PropertyFunctionBase
         if ( argSubject == null )
             return ProcLib.result( binding, execCxt );
         
-        Map<Node,Boolean> c = (Map<Node,Boolean>)execCxt.getContext().get( cache );
-        GlobalDAOJena d = (GlobalDAOJena)execCxt.getContext().get( dao );
-        Context ctx = (Context)execCxt.getContext().get( context );
+        Map<Node,Boolean> c = (Map<Node,Boolean>)execCxt.getContext().get( SparqlServlet.cache );
+        GlobalDAOJena d = (GlobalDAOJena)execCxt.getContext().get( SparqlServlet.dao );
+        Context ctx = (Context)execCxt.getContext().get( SparqlServlet.context );
         
         Node subj = argSubject.evalIfExists( binding ).getArg();
         if ( !c.containsKey( subj ) ) {
