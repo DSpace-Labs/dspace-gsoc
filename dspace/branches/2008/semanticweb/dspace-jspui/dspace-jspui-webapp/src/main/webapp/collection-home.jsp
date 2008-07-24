@@ -144,6 +144,7 @@
 
 <dspace:external-identifiers ids="<%= eids %>" type="<%= collection.getType() %>"/>
 
+<dspace:metadata resource="<%= collection %>" />
   <table border="0" cellpadding="5" width="100%">
     <tr>
       <td width="100%">

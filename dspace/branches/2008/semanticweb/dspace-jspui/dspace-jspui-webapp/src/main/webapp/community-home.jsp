@@ -119,6 +119,7 @@
 <dspace:layout locbar="commLink" title="<%= name %>" feedData="<%= feedData %>">
 
 <dspace:external-identifiers ids="<%= eids %>" type="<%= community.getType() %>"/>
+<dspace:metadata resource="<%= community %>" />
 
   <table border="0" cellpadding="5" width="100%">
     <tr>

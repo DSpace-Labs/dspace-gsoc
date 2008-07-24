@@ -493,6 +493,28 @@
       <rtexprvalue>true</rtexprvalue>
     </attribute>    	  
   </tag>  
+  
+  
+  <tag>
+    <name>metadata</name>
+    <tagclass>org.dspace.app.webui.jsptag.MetadataTag</tagclass>
+    <bodycontent>empty</bodycontent>
+    <info>
+    	Prints out a (by default display:none) HTML hierarchy of RDFa
+        metadata for the given URI.
+    </info>
+    
+   <attribute>
+      <name>resource</name> <!-- URIResource or String URI or collection of these -->
+      <required>true</required>
+      <rtexprvalue>true</rtexprvalue>
+    </attribute>    
 
-
+   <attribute>
+      <name>display</name> <!-- Boolean, default "false" -->
+      <required>no</required>
+      <rtexprvalue>true</rtexprvalue>
+    </attribute> 
+  </tag>  
+  
 </taglib>

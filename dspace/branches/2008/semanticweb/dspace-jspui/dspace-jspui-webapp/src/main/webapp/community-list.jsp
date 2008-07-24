@@ -190,6 +190,7 @@
 <%
     }
 %>
+<dspace:metadata resource="<%= communities %>" />
 <% if (communities.length != 0)
 {
 %>
