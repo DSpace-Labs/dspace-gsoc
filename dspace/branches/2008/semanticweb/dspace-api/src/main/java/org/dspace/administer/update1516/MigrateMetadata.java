@@ -11,6 +11,7 @@ import java.util.Set;
 import java.util.UUID;
 import org.dspace.authorize.AuthorizeManager;
 import org.dspace.content.Item;
+import org.dspace.core.ConfigurationManager;
 import org.dspace.core.Constants;
 import org.dspace.core.Context;
 import org.dspace.dao.jena.GlobalDAOJena;
@@ -62,10 +63,10 @@ public class MigrateMetadata
             for ( int i = 0; tri.hasNext(); i++ )
             {
                 if ( i % 10000 == 0 )
-                { // commit periodically
-                    if ( i > 0 )
+                { // commit periodically - seems to break SDB (locking)
+                    /*if ( i > 0 )
                         dao.getTripleStore().commit();
-                    dao.getTripleStore().begin();
+                    dao.getTripleStore().begin();*/
                     System.out.println( "Comitting transaction, starting next 10,000 triples... (i = " + i + ")" );
                 }
                 TableRow curr = tri.next();

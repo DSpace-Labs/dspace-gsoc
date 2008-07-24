@@ -73,153 +73,154 @@
 <%@ page import="java.util.List" %>
 
 <%
-    // Attributes
-    Boolean displayAllBoolean = (Boolean) request.getAttribute("display.all");
-    boolean displayAll = (displayAllBoolean != null && displayAllBoolean.booleanValue());
-    Boolean suggest = (Boolean)request.getAttribute("suggest.enable");
-    boolean suggestLink = (suggest == null ? false : suggest.booleanValue());
-    Item item = (Item) request.getAttribute("item");
-    Collection[] collections = (Collection[]) request.getAttribute("collections");
-    Boolean admin_b = (Boolean)request.getAttribute("admin_button");
-    boolean admin_button = (admin_b == null ? false : admin_b.booleanValue());
+// Attributes
+Boolean displayAllBoolean = (Boolean) request.getAttribute("display.all");
+boolean displayAll = (displayAllBoolean != null && displayAllBoolean.booleanValue());
+Boolean suggest = (Boolean)request.getAttribute("suggest.enable");
+boolean suggestLink = (suggest == null ? false : suggest.booleanValue());
+Item item = (Item) request.getAttribute("item");
+Collection[] collections = (Collection[]) request.getAttribute("collections");
+Boolean admin_b = (Boolean)request.getAttribute("admin_button");
+boolean admin_button = (admin_b == null ? false : admin_b.booleanValue());
 
-    // get the workspace id if one has been passed
-    Integer workspace_id = (Integer) request.getAttribute("workspace_id");
+// get the workspace id if one has been passed
+Integer workspace_id = (Integer) request.getAttribute("workspace_id");
 
-    // get the persistent identifier if the item has one yet
-    // ExternalIdentifier identifier = item.getExternalIdentifier();
-    List<ExternalIdentifier> eids = item.getExternalIdentifiers();
-    ObjectIdentifier oid = item.getIdentifier();
-    String uri = "";
-    String citationLink = "";
-    String link = IdentifierService.getURL(item).toString();
+// get the persistent identifier if the item has one yet
+// ExternalIdentifier identifier = item.getExternalIdentifier();
+List<ExternalIdentifier> eids = item.getExternalIdentifiers();
+ObjectIdentifier oid = item.getIdentifier();
+String uri = "";
+String citationLink = "";
+String link = IdentifierService.getURL(item).toString();
 
-    // CC URL & RDF
-    String cc_url = CreativeCommons.getLicenseURL(item);
-    String cc_rdf = CreativeCommons.getLicenseRDF(item);
+// CC URL & RDF
+String cc_url = CreativeCommons.getLicenseURL(item);
+String cc_rdf = CreativeCommons.getLicenseRDF(item);
 
-    // Full title needs to be put into a string to use as tag argument
-    String cf = IdentifierService.getCanonicalForm(item);
-    String title = "FIXME";
-    DCValue[] titleValue = item.getMetadata("dc", "title", null, Item.ANY);
-    if (titleValue.length != 0)
-    {
-        title = titleValue[0].value + " (" + cf + ")";
-    }
-    else
-    {
-        title = "Item " + cf;
-    }
+// Full title needs to be put into a string to use as tag argument
+String cf = IdentifierService.getCanonicalForm(item);
+String title = "FIXME";
+DCValue[] titleValue = item.getMetadata("dc", "title", null, Item.ANY);
+if (titleValue.length != 0)
+{
+    title = titleValue[0].value + " (" + cf + ")";
+}
+else
+{
+    title = "Item " + cf;
+}
 %>
 
 <dspace:layout title="<%= title %>">
-
+    
     <dspace:external-identifiers ids="<%= eids %>" type="<%= item.getType() %>"/>
-
-<%
+    <dspace:metadata resource="<%= item %>" />
+    
+    <%
     String displayStyle = (displayAll ? "full" : "");
-%>
+    %>
     <dspace:item-preview item="<%= item %>" />
     <dspace:item item="<%= item %>" collections="<%= collections %>" style="<%= displayStyle %>" />
-
-<%
+    
+    <%
     if (displayAll)
     {
-%>
-
+    %>
+    
     <div align="center">
-<%
+        <%
         if (workspace_id != null)
         {
-%>
-    <form method="post" action="<%= request.getContextPath() %>/view-workspaceitem">
-        <input type="hidden" name="workspace_id" value="<%= workspace_id.intValue() %>" />
-        <input type="submit" name="submit_simple" value="<fmt:message key="jsp.display-item.text1"/>" />
-    </form>
-<%
+        %>
+        <form method="post" action="<%= request.getContextPath() %>/view-workspaceitem">
+            <input type="hidden" name="workspace_id" value="<%= workspace_id.intValue() %>" />
+            <input type="submit" name="submit_simple" value="<fmt:message key="jsp.display-item.text1"/>" />
+        </form>
+        <%
         }
         else
         {
-%>
-    <form method="get" action="<%= link %>">
-        <input type="hidden" name="mode" value="simple"/>
-        <input type="submit" name="submit_simple" value="<fmt:message key="jsp.display-item.text1"/>" />
-    </form>
-<%
+        %>
+        <form method="get" action="<%= link %>">
+            <input type="hidden" name="mode" value="simple"/>
+            <input type="submit" name="submit_simple" value="<fmt:message key="jsp.display-item.text1"/>" />
+        </form>
+        <%
         }
-%>
+        %>
     </div>
-<%
+    <%
     }
     else
     {
-%>
+    %>
     <div align="center">
-<%
+        <%
         if (workspace_id != null)
         {
-%>
-    <form method="post" action="<%= request.getContextPath() %>/view-workspaceitem">
-        <input type="hidden" name="workspace_id" value="<%= workspace_id.intValue() %>" />
-        <input type="submit" name="submit_full" value="<fmt:message key="jsp.display-item.text2"/>" />
-    </form>
-<%
+        %>
+        <form method="post" action="<%= request.getContextPath() %>/view-workspaceitem">
+            <input type="hidden" name="workspace_id" value="<%= workspace_id.intValue() %>" />
+            <input type="submit" name="submit_full" value="<fmt:message key="jsp.display-item.text2"/>" />
+        </form>
+        <%
         }
         else
         {
-%>
-    <form method="get" action="<%= link %>">
-        <input type="hidden" name="mode" value="full"/>
-        <input type="submit" name="submit_simple" value="<fmt:message key="jsp.display-item.text2"/>" />
-    </form>
-<%
+        %>
+        <form method="get" action="<%= link %>">
+            <input type="hidden" name="mode" value="full"/>
+            <input type="submit" name="submit_simple" value="<fmt:message key="jsp.display-item.text2"/>" />
+        </form>
+        <%
         }
         if (suggestLink)
         {
-%>
-    <%-- FIXME: This really ought to be escaped --%>
-    <a href="<%= request.getContextPath() %>/suggest?uri=<%= uri %>" target="new_window">
-       <fmt:message key="jsp.display-item.suggest"/></a>
-<%
+        %>
+        <%-- FIXME: This really ought to be escaped --%>
+        <a href="<%= request.getContextPath() %>/suggest?uri=<%= uri %>" target="new_window">
+        <fmt:message key="jsp.display-item.suggest"/></a>
+        <%
         }
-%>
+        %>
     </div>
-<%
+    <%
     }
-%>
-
-
-<%
+    %>
+    
+    
+    <%
     if (workspace_id != null)
     {
-%>
-<div align="center">
-   <form method="post" action="<%= request.getContextPath() %>/workspace">
-        <input type="hidden" name="workspace_id" value="<%= workspace_id.intValue() %>"/>
-        <input type="submit" name="submit_open" value="<fmt:message key="jsp.display-item.back_to_workspace"/>"/>
-    </form>
-</div>
-<%
+    %>
+    <div align="center">
+        <form method="post" action="<%= request.getContextPath() %>/workspace">
+            <input type="hidden" name="workspace_id" value="<%= workspace_id.intValue() %>"/>
+            <input type="submit" name="submit_open" value="<fmt:message key="jsp.display-item.back_to_workspace"/>"/>
+        </form>
+    </div>
+    <%
     }
-%>
+    %>
     <%-- SFX Link --%>
-<%
+    <%
     if (ConfigurationManager.getProperty("sfx.server.url") != null)
     {
-%>
+    %>
     <p align="center">
         <a href="<dspace:sfxlink item="<%= item %>"/>"><img src="<%= request.getContextPath() %>/image/sfx-link.gif" border="0" alt="SFX Query" /></a>
     </p>
-<%
+    <%
     }
-%>
+    %>
     <%-- Create Commons Link --%>
-<%
+    <%
     if (cc_url != null)
     {
-%>
+    %>
     <p class="submitFormHelp"><fmt:message key="jsp.display-item.text3"/> <a href="<%= cc_url %>"><fmt:message key="jsp.display-item.license"/></a><br/>
-    <a href="<%= cc_url %>"><img src="<%= request.getContextPath() %>/image/cc-somerights.gif" border="0" alt="Creative Commons" /></a>
+        <a href="<%= cc_url %>"><img src="<%= request.getContextPath() %>/image/cc-somerights.gif" border="0" alt="Creative Commons" /></a>
     </p>
     <!--
     <%= cc_rdf %>
@@ -228,46 +229,46 @@
     }
 %>
     <p class="submitFormHelp"><fmt:message key="jsp.display-item.copyright"/></p>
-
+    
     <%-- the UUID of the item --%>
     <p class="page_identifier"><%= oid.getCanonicalForm() %></p>
-
-
+    
+    
     <%
-        if (admin_button)  // admin edit button
-        { %>
+    if (admin_button)  // admin edit button
+    { %>
     <dspace:sidebar>
-<table class="miscTable" align="center">
-      <tr>
-	    <td class="evenRowEvenCol" colspan="2">
-	     <table>
+        <table class="miscTable" align="center">
             <tr>
-              <th id="t1" class="standard">
-                 <strong><fmt:message key="jsp.admintools"/></strong>
-              </th>
+                <td class="evenRowEvenCol" colspan="2">
+                    <table>
+                        <tr>
+                            <th id="t1" class="standard">
+                                <strong><fmt:message key="jsp.admintools"/></strong>
+                            </th>
+                        </tr>
+                        <tr>
+                            <td headers="t1" class="standard" align="center">
+                                <form method="get" action="<%= request.getContextPath() %>/tools/edit-item">
+                                    <input type="hidden" name="item_id" value="<%= item.getID() %>" />
+                                    <input type="submit" name="submit" value="<fmt:message key="jsp.general.edit.button"/>" />
+                                </form>
+                            </td>
+                            <td class="evenRowEvenCol" align="center">
+                                <form method="post" action="<%= request.getContextPath() %>/mydspace">
+                                    <input type="hidden" name="item_id" value="<%= item.getID() %>" />
+                                    <input type="hidden" name="step" value="<%= MyDSpaceServlet.REQUEST_EXPORT_ARCHIVE %>" />
+                                    <%--<input type="submit" name="submit" value="Edit...">--%>
+                                    <input type="submit" name="submit" value="<fmt:message key="jsp.mydspace.request.export.item"/>" />
+                                </form>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
             </tr>
-        <tr>
-              <td headers="t1" class="standard" align="center">
-                <form method="get" action="<%= request.getContextPath() %>/tools/edit-item">
-                    <input type="hidden" name="item_id" value="<%= item.getID() %>" />
-                    <input type="submit" name="submit" value="<fmt:message key="jsp.general.edit.button"/>" />
-                </form>
-            </td>
-            <td class="evenRowEvenCol" align="center">
-                <form method="post" action="<%= request.getContextPath() %>/mydspace">
-                    <input type="hidden" name="item_id" value="<%= item.getID() %>" />
-                    <input type="hidden" name="step" value="<%= MyDSpaceServlet.REQUEST_EXPORT_ARCHIVE %>" />
-                    <%--<input type="submit" name="submit" value="Edit...">--%>
-                    <input type="submit" name="submit" value="<fmt:message key="jsp.mydspace.request.export.item"/>" />
-                </form>
-            </td>
- <%      } %>
-        </tr>
         </table>
-        </td></tr></table>
-
     </dspace:sidebar>
-
-<%      } %>
-
-</dspace:layout>
+    
+    <%      } %>
+    </dspace:layout>
+    
