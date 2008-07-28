@@ -80,13 +80,6 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.StringTokenizer;
-import org.dspace.metadata.LiteralValue;
-import org.dspace.metadata.MetadataItem;
-import org.dspace.metadata.MetadataManagerFactory;
-import org.dspace.metadata.Predicate;
-import org.dspace.metadata.Value;
-import org.dspace.metadata.jena.MetadataFactory;
-import org.dspace.metadata.jena.SelectorCore;
 
 /**
  * Class representing an item in DSpace. Note that everything is held in memory
@@ -120,9 +113,9 @@ public class Item extends DSpaceObjectCore
     protected EPerson submitter;
 
     protected List<Bundle> bundles;
+    protected List<DCValue> metadata;
 
     protected boolean metadataChanged;
-    protected List<DCValue> metadata;
 
     /**
      * True if anything else was changed since last update()
@@ -182,11 +175,6 @@ public class Item extends DSpaceObjectCore
         return withdrawn;
     }
 
-    public void setMetadata( List<DCValue> metadata )
-    {
-        this.metadata = metadata;
-    }
-
     public void setWithdrawn(boolean withdrawn)
     {
         this.withdrawn = withdrawn;
@@ -237,6 +225,11 @@ public class Item extends DSpaceObjectCore
         this.owningCollectionId = owningCollectionId;
     }
 
+    public List<DCValue> getMetadata()
+    {
+        return metadata;
+    }
+
     ////////////////////////////////////////////////////////////////////////
     // Identifier Methods
     ////////////////////////////////////////////////////////////////////////
@@ -246,9 +239,6 @@ public class Item extends DSpaceObjectCore
         // enxsure the identifier is localised to the item
         oid.setResourceTypeID(this.getType());
         oid.setResourceID(this.getID());
-
-        // now let the superclass do its thing
-        super.setIdentifier(oid);
 
         // store the canonical form of the identifier
         DCValue dcv = ConfigurationManager.getMetadataProperty("identifier.metadata.canonical-field.internal");
@@ -276,6 +266,9 @@ public class Item extends DSpaceObjectCore
                 this.addUniqueMetadata(dc.schema, dc.element, dc.qualifier, null, IdentifierService.getURL(oid).toString());
             }
         }
+
+        // now let the superclass do its thing
+        super.setIdentifier(oid);
     }
 
     public void addExternalIdentifier(ExternalIdentifier identifier)
@@ -341,6 +334,11 @@ public class Item extends DSpaceObjectCore
     // End of Identifier Methods
     ///////////////////////////////////////////////////////////////////////////
 
+    public void setMetadata(List<DCValue> metadata)
+    {
+        this.metadata = metadata;
+    }
+
     /**
      * Get metadata for the item in a chosen schema.
      * See <code>MetadataSchema</code> for more information about schemas.
@@ -387,75 +385,27 @@ public class Item extends DSpaceObjectCore
      *            no country code are returned.
      * @return metadata fields that match the parameters
      */
-    public DCValue[] getMetadata( final String schema, final String element, final String qualifier,
-            final String lang)
+    public DCValue[] getMetadata(String schema, String element, String qualifier,
+            String lang)
     {
         // Build up list of matching values
         List<DCValue> values = new ArrayList<DCValue>();
 
-        try
+        for (DCValue dcv : metadata)
         {
-            final DSpaceObject subj = this;
-            final Predicate pred;
-            if ( schema == null || schema.equals( Item.ANY ) || 
-                    element == null || element.equals( Item.ANY ) ||
-                    qualifier == null || qualifier.equals( Item.ANY ) )
-                pred = null;
-            else
-                pred = MetadataFactory.createPredicate( context, schema, element, qualifier );
-            
-            Iterator<MetadataItem> it = MetadataManagerFactory.get( context )
-                .getMetadata( new SelectorCore() {
-                
-                @Override
-                public boolean matches( MetadataItem m )
-                {
-                    if ( !m.isLiteral() )
-                        return false;
-                    if ( lang == null )
-                        if ( m.getLiteralValue().getLanguage() != null )
-                            return false;
-                    else if ( !lang.equals( Item.ANY ) )
-                        return m.getLiteralValue().getLanguage().equals( lang );
-                    return true;
-                }
-                
-                @Override
-                public boolean isValueMatcher()
-                {
-                    return false;
-                }
-                
-                @Override
-                public DSpaceObject getSubject()
-                {
-                    return subj;
-                }
-                
-                @Override
-                public Predicate getPredicate()
-                {
-                    return pred;
-                }
-                
-            } ).getMetadata();
-
-            while( it.hasNext() )
+            if (match(schema, element, qualifier, lang, dcv))
             {
-                MetadataItem curr = it.next();
                 // We will return a copy of the object in case it is altered
-                // FIXME: Want to dispose of DCValue completely!
                 DCValue copy = new DCValue();
-                String[] local = curr.getPredicate().getLocalName().split( "\\." );
-                copy.element = local[0];
-                copy.qualifier = local.length > 1 ? local[1] : "";
-                copy.value = curr.getLiteralValue().getLexicalForm();
-                copy.language = curr.getLiteralValue().getLanguage();
-                copy.schema = curr.getPredicate().getNameSpace();
+                copy.element = dcv.element;
+                copy.qualifier = dcv.qualifier;
+                copy.value = dcv.value;
+                copy.language = dcv.language;
+                copy.schema = dcv.schema;
 
                 values.add(copy);
             }
-        } catch ( AuthorizeException ex ) { }
+        }
 
         return values.toArray(new DCValue[0]);
     }
@@ -547,11 +497,12 @@ public class Item extends DSpaceObjectCore
                         dcvalue[charPos] = ' ';
                     }
                 }
-                value = String.valueOf(dcvalue);
+                dcv.value = String.valueOf(dcvalue);
             }
             else
             {
                 continue;
+//                dcv.value = null;
             }
             
             if (!metadata.contains(dcv))
@@ -559,14 +510,6 @@ public class Item extends DSpaceObjectCore
                 metadata.add(dcv);
                 metadataChanged = true;
             }
-
-            try
-            {
-                MetadataManagerFactory.get( context ).addMetadata( this,
-                    MetadataFactory.createPredicate( context, schema, element, 
-                        qualifier ), 
-                    MetadataFactory.createTypedLiteral( value, lang, null ) );
-            } catch ( AuthorizeException ex ) { }
 
             addDetails(schema+"."+element+((qualifier==null)? "": "."+qualifier));
         }
@@ -667,10 +610,20 @@ public class Item extends DSpaceObjectCore
     public void clearMetadata(String schema, String element, String qualifier,
             String lang)
     {
-        try
+        if (metadata.size() == 0)
         {
-            MetadataManagerFactory.get( context ).removeAllMetadata( this );
-        } catch ( AuthorizeException ex ) { }
+            return;
+        }
+
+        Iterator<DCValue> i = metadata.iterator();
+        while (i.hasNext())
+        {
+            if (match(schema, element, qualifier, lang, i.next()))
+            {
+                i.remove();
+                metadataChanged = true;
+            }
+        }
     }
 
     /**
@@ -1296,11 +1249,10 @@ public class Item extends DSpaceObjectCore
      * @return <code>true</code> if there is a match
      */
     protected boolean match(String schema, String element, String qualifier,
-            String language, Predicate p, Value v)
+            String language, DCValue dcv)
     {
-        String[] local = p.getLocalName().split( "\\." );
         // We will attempt to disprove a match - if we can't we have a match
-        if (!element.equals(Item.ANY) && !element.equals(local[0]))
+        if (!element.equals(Item.ANY) && !element.equals(dcv.element))
         {
             // Elements do not match, no wildcard
             return false;
@@ -1309,7 +1261,7 @@ public class Item extends DSpaceObjectCore
         if (qualifier == null)
         {
             // Value must be unqualified
-            if (local.length > 1 && local[1] != null)
+            if (dcv.qualifier != null)
             {
                 // Value is qualified, so no match
                 return false;
@@ -1318,7 +1270,7 @@ public class Item extends DSpaceObjectCore
         else if (!qualifier.equals(Item.ANY))
         {
             // Not a wildcard, so qualifier must match exactly
-            if (local.length > 1 && !qualifier.equals(local[1]))
+            if (!qualifier.equals(dcv.qualifier))
             {
                 return false;
             }
@@ -1327,7 +1279,7 @@ public class Item extends DSpaceObjectCore
         if (language == null)
         {
             // Value must be null language to match
-            if ( ((LiteralValue)v).getLanguage() != null )
+            if (dcv.language != null)
             {
                 // Value is qualified, so no match
                 return false;
@@ -1336,14 +1288,14 @@ public class Item extends DSpaceObjectCore
         else if (!language.equals(Item.ANY))
         {
             // Not a wildcard, so language must match exactly
-            if ( !((LiteralValue)v).getLanguage().equals( language ) )
+            if (!language.equals(dcv.language))
             {
                 return false;
             }
         }
         else if (!schema.equals(Item.ANY))
         {
-            if (p.getNameSpace() != null && !p.getNameSpace().equals(schema))
+            if (dcv.schema != null && !dcv.schema.equals(schema))
             {
                 // The namespace doesn't match
                 return false;
@@ -1351,7 +1303,7 @@ public class Item extends DSpaceObjectCore
         }
 
         // If we get this far, we have a match
-        return v.isLiteralValue();
+        return true;
     }
 
     ////////////////////////////////////////////////////////////////////
