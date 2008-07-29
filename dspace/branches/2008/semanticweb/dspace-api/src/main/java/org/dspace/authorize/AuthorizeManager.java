@@ -40,8 +40,11 @@
 package org.dspace.authorize;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
+import java.util.Map;
+import java.util.UUID;
 import org.apache.log4j.Logger;
 
 import org.dspace.authorize.dao.ResourcePolicyDAO;
@@ -199,6 +202,59 @@ public class AuthorizeManager
                     + actionText + " on " + Constants.typeText[otype] + ":"
                     + oid + ":" + uuid + " by user " + userid + " in context " + c, o, action);
         }
+    }
+
+    /**
+     * Return a mapping from object UUID to a Boolean indicating auth for the
+     * current context
+     * 
+     * @param c
+     *            DSpace context, containing current user
+     * @param dsoType
+     *            DSpaceObject type, from
+     *            <code>org.dspace.core.Constants</code>
+     * @param action
+     *            action being attempted, from
+     *            <code>org.dspace.core.Constants</code>
+     * 
+     * @return <code>Map<UUID,Boolean></code> of relevant authorisation
+     */
+    public static Map<UUID,Boolean> getPermissions(Context c, int dsoType, 
+            int action)
+    {
+        boolean ignore = c.ignoreAuthorization();
+        int userid = 0;
+        // is eperson set? if not, userid = 0 (anonymous)
+        if ( c.getCurrentUser() != null )
+        {
+            userid = c.getCurrentUser().getID();
+            ignore = ignore || isAdmin( c );
+        }
+        
+        Map<UUID,Boolean> out = new HashMap<UUID,Boolean>();
+        ResourcePolicyDAO rpDAO = ResourcePolicyDAOFactory.getInstance( c );
+        GroupDAO groupDAO = GroupDAOFactory.getInstance(c);
+        
+        for ( ResourcePolicy rp : rpDAO.getPolicies( dsoType, action ) )
+        {
+            UUID uuid = rp.getResourceUUID();
+            // No UUID, or already auth'd OK, and we ignore this policy
+            if ( uuid == null || (out.containsKey( uuid ) && out.get( uuid )) )
+                continue;
+            if ( ignore )
+                out.put( uuid, true );
+            
+            // Put this auth in place
+            if (rp.isDateValid())
+            {
+                out.put( uuid, (rp.getEPersonID() != -1 && 
+                            rp.getEPersonID() == userid) || 
+                    (rp.getGroupID() != -1 && 
+                            groupDAO.currentUserInGroup( rp.getGroupID() )) );
+            }
+        }
+        
+        return out;
     }
 
     /**

@@ -496,13 +496,14 @@ public class BrowseInfo
     public Item[] getBrowseItemResults(Context context)
     	throws BrowseException
     {
-        Item[] bis = getBrowseItemResults();
+        return getBrowseItemResults();
+        /*Item[] bis = getBrowseItemResults();
         Item[] items = new Item[bis.length];
         for (int i = 0; i < bis.length; i++)
         {
             items[i] = Item.find(context, bis[i].getID());
         }
-        return items;
+        return items;*/
     }
 
     /**

@@ -16,8 +16,11 @@ public class StackableDAOFactory
     
     public static StackableDAO getInstance(StackableDAO dao, Context context)
     {
+        Object o = context.fromCache( dao.getClass(), -1 );
+        if ( o != null && o instanceof StackableDAO )
+            return (StackableDAO)o;
+        
         StackableDAO instantiated = null;
-
         try
         {
             instantiated = dao.getClass().getConstructor(Context.class).newInstance(context);
@@ -43,7 +46,7 @@ public class StackableDAOFactory
             e.printStackTrace();
             log.error( e );
         }
-
+        context.cache( instantiated, -1 );
         return instantiated;
     }
 

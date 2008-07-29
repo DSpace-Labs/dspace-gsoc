@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.UUID;
 import org.apache.log4j.Logger;
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.authorize.AuthorizeManager;
@@ -32,6 +33,7 @@ public class MetadataManagerJena implements MetadataManager
     private StatementTranslator tran;
     private Context context;
     private Map<DSpaceObject,Boolean> read, write, remove;
+    private Map<UUID,Boolean> metaRead, metaWrite, metaRemove;
 
     public MetadataManagerJena( Context c )
     {
@@ -80,6 +82,10 @@ public class MetadataManagerJena implements MetadataManager
 
     public MetadataCollection getMetadata( Selector s, int depth )
     {
+        if ( metaRead == null )
+            metaRead = AuthorizeManager.getPermissions( context, 
+                    Constants.METADATAPREDICATE, Constants.READ );
+        
         Collection<MetadataItem> c = new HashSet<MetadataItem>();
         Iterator<MetadataItem> it = tran.translate(
                 (Iterator<Statement>) dao.getTripleStore().listStatements(
@@ -119,6 +125,10 @@ public class MetadataManagerJena implements MetadataManager
 
     public void addMetadata( MetadataItem... is )
     {
+        if ( metaWrite == null )
+            metaWrite = AuthorizeManager.getPermissions( context, 
+                    Constants.METADATAPREDICATE, Constants.WRITE );
+        
         try
         {
             beginTransaction();
@@ -158,6 +168,10 @@ public class MetadataManagerJena implements MetadataManager
 
     public void removeMetadata( Selector s ) throws AuthorizeException
     {
+        if ( metaRemove == null )
+            metaRemove = AuthorizeManager.getPermissions( context, 
+                    Constants.METADATAPREDICATE, Constants.REMOVE );
+        
         if ( s.isValueMatcher() && s.getSubject() != null && s.getPredicate() != null ) 
         {
             auth( s.getSubject(), Constants.REMOVE );
@@ -218,40 +232,63 @@ public class MetadataManagerJena implements MetadataManager
     {
         if ( subject == null )
             throw new AuthorizeException( "Cannot auth null" );
+        
         switch( action )
         {
             case Constants.READ : 
-                    if ( read.containsKey( subject )  )
+                    if ( metaRead != null && metaRead.containsKey( 
+                            subject.getIdentifier().getUUID() )  )
+                    {
+                        if ( metaRead.get( subject.getIdentifier().getUUID() ) )
+                            return true;
+                        else
+                            throw new AuthorizeException( 
+                                "Type auth failed for " + subject.getName() );
+                    } else if ( read.containsKey( subject )  )
                     {
                         if ( read.get( subject ) )
                             return true;
                         else
                             throw new AuthorizeException( 
-                                    "Cached auth failed for " 
-                                    + subject.getName() );
+                                "Cached auth failed for " + subject.getName() );
                     }
             case Constants.WRITE : 
-                    if ( write.containsKey( subject ) )
+                    if ( metaWrite != null && metaWrite.containsKey( 
+                            subject.getIdentifier().getUUID() ) )
+                    {
+                        if ( metaWrite.get( subject.getIdentifier().getUUID() ) )
+                            return true;
+                        else
+                            throw new AuthorizeException( 
+                                "Type auth failed for " + subject.getName() );
+                    } else if ( write.containsKey( subject ) )
                     {
                         if ( write.get( subject ) )
                             return true;
                         else
                             throw new AuthorizeException( 
-                                    "Cached auth failed for " 
-                                    + subject.getName() );
+                                "Cached auth failed for " + subject.getName() );
                     }
             case Constants.REMOVE : 
-                    if ( remove.containsKey( subject ) )
+                    if ( metaRemove != null && metaRemove.containsKey( 
+                            subject.getIdentifier().getUUID() ) )
+                    {
+                        if ( metaRemove.get( subject.getIdentifier().getUUID() ) )
+                            return true;
+                        else
+                            throw new AuthorizeException( 
+                                "Type auth failed for " + subject.getName() );
+                    } else if ( remove.containsKey( subject ) )
                     {
                         if ( remove.get( subject ) )
                             return true;
                         else
                             throw new AuthorizeException( 
-                                    "Cached auth failed for " 
-                                    + subject.getName() );
+                                "Cached auth failed for " + subject.getName() );
                     }
             default : break;
         }
+        
         boolean res = true;
         try 
         {
