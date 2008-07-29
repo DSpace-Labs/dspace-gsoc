@@ -89,4 +89,6 @@ public abstract class ResourcePolicyDAO implements CRUD<ResourcePolicy>
             Group group);
     public abstract List<ResourcePolicy> getPolicies(DSpaceObject dso,
             int actionID);
+    public abstract List<ResourcePolicy> getPolicies(int dsoType,
+            int actionID);
 }

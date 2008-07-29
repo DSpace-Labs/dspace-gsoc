@@ -255,6 +255,28 @@ public class ResourcePolicyDAOPostgres extends ResourcePolicyDAO
         }
     }
 
+    @Override
+    public List<ResourcePolicy> getPolicies( int dsoType, int actionID )
+    {
+        try
+        {
+            TableRowIterator tri = DatabaseManager.queryTable(context,
+                    "resourcepolicy",
+                    "SELECT * FROM resourcepolicy " +
+                    "WHERE resource_type_id = ? AND action_id = ? ",
+                    dsoType, actionID);
+
+            List<ResourcePolicy> policies = new ArrayList<ResourcePolicy>();
+            for (TableRow row : tri.toList())
+                policies.add( retrieve( row ) );
+            return policies;
+        }
+        catch (SQLException sqle)
+        {
+            throw new RuntimeException(":(");
+        }
+    }
+
     ////////////////////////////////////////////////////////////////////
     // Utility methods
     ////////////////////////////////////////////////////////////////////
