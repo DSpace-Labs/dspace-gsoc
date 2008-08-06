@@ -408,6 +408,11 @@
         <servlet-class>org.dspace.app.webui.servlet.SparqlServlet</servlet-class>
     </servlet>
     
+    <servlet>
+        <servlet-name>metadatasearch</servlet-name>
+        <servlet-class>org.dspace.app.webui.servlet.MetadataSearchServlet</servlet-class>
+    </servlet>
+    
     
     <!-- Servlet Mappings -->
 
@@ -674,6 +679,11 @@
     <servlet-mapping>
         <servlet-name>sparql</servlet-name>
         <url-pattern>/sparql</url-pattern>
+    </servlet-mapping>
+    
+    <servlet-mapping>
+        <servlet-name>metadatasearch</servlet-name>
+        <url-pattern>/metadatasearch</url-pattern>
     </servlet-mapping>
     
     
