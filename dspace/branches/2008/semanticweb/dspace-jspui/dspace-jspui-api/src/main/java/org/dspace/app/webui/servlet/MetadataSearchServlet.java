@@ -58,6 +58,10 @@ public class MetadataSearchServlet extends DSpaceServlet
         String obj = val == null ? "?o" : (val.isLiteralValue() ? 
             "\"\"\"" + ((LiteralValue)val).getLexicalForm() + "\"\"\"" : 
             "<" + ((URIResource)val).getURI() + ">");
+        int off = 0, lim = 50;
+        String offset = request.getParameter( "offset" );
+        if ( offset != null )
+            off = Integer.parseInt( offset );
         String sparql = 
                 "prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#>\n" +
                 "prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#>\n" +
@@ -74,7 +78,7 @@ public class MetadataSearchServlet extends DSpaceServlet
                     "  }\n" +
                     "  OPTIONAL { " + obj + " rdfs:label ?olabel . }\n" 
                 : "") +
-                "}";
+                "} ORDER BY ?s " + (val == null ? "?o " : "") + "OFFSET " + (off * lim) + " LIMIT " + lim;
         log.info( "Querying for '" + p + "', '" + val + "':\n" + sparql );
         // Use the below instead, to auth queries first - not required if we're just doing forward queries?
         //ResultSet r = SparqlServlet.toExec( sparql, ((GlobalDAOJena)context.getGlobalDAO()), context ).execSelect();
@@ -119,6 +123,9 @@ public class MetadataSearchServlet extends DSpaceServlet
         request.setAttribute( "meta.results", solutions );
         request.setAttribute( "meta.pred", p );
         request.setAttribute( "meta.value", val );
+        String base = request.getRequestURI() + "?" + request.getQueryString().replaceAll( "offset=[^&]*", "" ) + "&offset=";
+        request.setAttribute( "meta.next", solutions.getResultCount() >= lim ? base + (off + 1) : null );
+        request.setAttribute( "meta.prev", off > 0 ? base + (off - 1) : null );
         JSPManager.showJSP( request, response, "/metadata.jsp" );
     }
     
