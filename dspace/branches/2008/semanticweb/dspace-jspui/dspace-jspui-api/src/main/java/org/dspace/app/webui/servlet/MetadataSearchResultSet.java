@@ -12,6 +12,7 @@ public class MetadataSearchResultSet
 {
     
     private Map<String,SortedSet<MetadataSearchResult>> results = new HashMap<String,SortedSet<MetadataSearchResult>>();
+    private int count = 0;
     
     public void add( URIResource s, Predicate p, Value o, 
             String pLabel, String sLabel, String oLabel, String sType, 
@@ -21,12 +22,18 @@ public class MetadataSearchResultSet
                     oLabel, sType, oType, sTypeLabel, oTypeLabel ) );
     }
     
+    public int getResultCount()
+    {
+        return count;
+    }
+    
     public void add( MetadataSearchResult r )
     {
         String key = r.getSTypeLabel().length() > 0 ? r.getSTypeLabel() : "Miscellaneous";
         if (  !results.containsKey( key ) )
             results.put( key, new TreeSet<MetadataSearchResult>() );
         results.get( key ).add( r );
+        count++;
     }
     
     public SortedSet<String> getTypes()

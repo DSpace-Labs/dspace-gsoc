@@ -27,6 +27,16 @@
 	<h2>
 		Browse <%= pred %> <%= val %>
 	</h2>
+         <p>
+         <% if (  request.getAttribute( "meta.prev" ) != null )
+         { %>
+            <a href="<%= request.getAttribute( "meta.prev" ) %>">Previous</a>
+         <% }
+        if (  request.getAttribute( "meta.next" ) != null )
+         { %>
+            <a href="<%= request.getAttribute( "meta.next" ) %>">Next</a>
+         <% } %>
+        </p>
         <% Iterator<String> keys = results.getTypes().iterator();
         while ( keys.hasNext() ) 
         { 

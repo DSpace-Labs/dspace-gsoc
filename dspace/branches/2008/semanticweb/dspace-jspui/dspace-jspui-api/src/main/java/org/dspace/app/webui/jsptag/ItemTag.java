@@ -393,7 +393,12 @@ public class ItemTag extends TagSupport
                             "metadata." + field);
                 }
                 
-                out.print(label);
+                // Manual fix replacement
+                String metaschema = schema.equals( "dc" ) ? "terms" : schema;
+                out.print("<a href=\"" + request.getContextPath() + 
+                        "/metadatasearch?ns=" + metaschema + ":&pred=" + element +
+                        (qualifier == null || qualifier.equals( "*" ) ? "" :
+                            "." + qualifier) + "\">" + label + "</a>" );
                 out.print(":&nbsp;</td><td class=\"metadataFieldValue\">");
 
                 for (int j = 0; j < values.length; j++)
