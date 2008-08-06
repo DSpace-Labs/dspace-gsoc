@@ -1,5 +1,6 @@
 package org.dspace.app.webui.servlet;
 
+import com.hp.hpl.jena.query.QueryExecutionFactory;
 import com.hp.hpl.jena.query.QuerySolution;
 import com.hp.hpl.jena.query.ResultSet;
 import com.hp.hpl.jena.rdf.model.Literal;
@@ -50,7 +51,7 @@ public class MetadataSearchServlet extends DSpaceServlet
     }
     
     private void getBySparql( Context context, HttpServletRequest request, 
-            HttpServletResponse response, final Predicate p, final Value val ) 
+            HttpServletResponse response, Predicate p, Value val ) 
             throws AuthorizeException, ServletException, IOException
     {
         String prop = p == null ? "?p" : "<" + p.getURI() + ">";
@@ -61,7 +62,7 @@ public class MetadataSearchServlet extends DSpaceServlet
                 "prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#>\n" +
                 "prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#>\n" +
                 "SELECT * WHERE {\n" +
-                "  ?s " + prop + " " + obj + ".\n" +
+                "  ?s " + prop + " " + obj + " .\n" +
                 "  OPTIONAL { ?s rdfs:label ?slabel . }\n" +
                 "  OPTIONAL { ?s rdf:type ?stype .\n" +
                 "    OPTIONAL { ?stype rdfs:label ?stypelabel }\n" +
@@ -75,7 +76,9 @@ public class MetadataSearchServlet extends DSpaceServlet
                 : "") +
                 "}";
         log.info( "Querying for '" + p + "', '" + val + "':\n" + sparql );
-        ResultSet r = SparqlServlet.toExec( sparql, ((GlobalDAOJena)context.getGlobalDAO()), context ).execSelect();
+        // Use the below instead, to auth queries first - not required if we're just doing forward queries?
+        //ResultSet r = SparqlServlet.toExec( sparql, ((GlobalDAOJena)context.getGlobalDAO()), context ).execSelect();
+        ResultSet r = QueryExecutionFactory.create( sparql, ((GlobalDAOJena)context.getGlobalDAO()).getTripleStore() ).execSelect();
         
         MetadataSearchResultSet solutions = new MetadataSearchResultSet();
         while ( r.hasNext() )

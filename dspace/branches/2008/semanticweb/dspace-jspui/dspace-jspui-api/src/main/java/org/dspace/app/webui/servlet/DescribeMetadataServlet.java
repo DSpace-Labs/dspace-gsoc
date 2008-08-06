@@ -97,7 +97,11 @@ public class DescribeMetadataServlet extends DSpaceServlet
                     "{  ?s dspace:uuid \"" + params[0] + "\".\n" +
                     "}", dao.getTripleStore() ).execSelect();
         if ( !r.hasNext() )
-            throw new ServletException( "No resource found for UUID " + params[0] );
+        {
+            log.warn( "404 for uuid:" + params[0] );
+            response.sendError( response.SC_NOT_FOUND );
+            return;
+        }
         
         Resource res = r.nextSolution().getResource( "s" );
         log.info( "Describing <" + res + ">" );
@@ -106,6 +110,7 @@ public class DescribeMetadataServlet extends DSpaceServlet
                 .getMetadata( MetadataFactory.createURIResource( res ) );
         StatementTranslator tran = new StatementTranslator( context );
         Model m = ModelFactory.createDefaultModel();
+        m.setNsPrefixes( dao.getTripleStore() );
         Iterator<Statement> it = tran.translateItems( coll.getMetadata() );
         while ( it.hasNext() )
             m.add( it.next() );
