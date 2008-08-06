@@ -139,10 +139,7 @@ public class SparqlServlet extends DSpaceServlet
         GlobalDAOJena dao = context.getGlobalDAO() instanceof GlobalDAOJena ? 
             (GlobalDAOJena)context.getGlobalDAO() : new GlobalDAOJena();
         
-        QueryExecution exec = QueryExecutionFactory.create( query, dao.getTripleStore() );
-        exec.getContext().put( SparqlServlet.cache, new HashMap<Node,Boolean>() );
-        exec.getContext().put( SparqlServlet.dao, dao );
-        exec.getContext().put( SparqlServlet.context, context );
+        QueryExecution exec = toExec( query, dao, context );
         long no = System.currentTimeMillis();
         log.info( "Executing query #" + no + "\n" + query );
         
@@ -235,12 +232,27 @@ public class SparqlServlet extends DSpaceServlet
         log.info( "Finished executing query #" + no );
     }
     
-    private Query prepare( String q )
+    
+    public static QueryExecution toExec( String query, GlobalDAOJena dao, Context context )
+    {
+        return toExec( prepare( query ), dao, context );
+    }
+    
+    public static QueryExecution toExec( Query query, GlobalDAOJena dao, Context context )
+    {
+        QueryExecution exec = QueryExecutionFactory.create( query, dao.getTripleStore() );
+        exec.getContext().put( SparqlServlet.cache, new HashMap<Node,Boolean>() );
+        exec.getContext().put( SparqlServlet.dao, dao );
+        exec.getContext().put( SparqlServlet.context, context );
+        return exec;
+    }
+    
+    public static Query prepare( String q )
     {
         return prepare( QueryFactory.create( q ) );
     }
     
-    private Query prepare( Query q )
+    public static Query prepare( Query q )
     {
         // Find the output variables
         final Set<String> vars = new HashSet<String>();

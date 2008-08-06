@@ -68,10 +68,14 @@
 #
 
 # General case
-[]	filter:fromURI		"^/resource/(.*)/html$" ;
+[]	filter:fromURI		"^/resource/.*/([^/]*)/html$" ;
 	filter:toURI		"/uriresource/uuid/$1" ;
 	filter:matchContentType "*" ;
 	filter:priority		6 .
+[]	filter:fromURI		"^/resource/(.*)/html$" ;
+	filter:toURI		"/uriresource/uuid/$1" ;
+	filter:matchContentType "*" ;
+	filter:priority		7 .
 
 []      filter:fromURI          "^/.*/([^/]*)/rdf/xml$" ;
         filter:toURI            "/describe?$1;RDF%2BXML" ;

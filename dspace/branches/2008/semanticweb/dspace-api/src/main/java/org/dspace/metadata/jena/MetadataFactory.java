@@ -86,7 +86,7 @@ public class MetadataFactory
     public static Predicate createPredicate( Context c, String namespace, 
             String localName )
     {
-        return new PredicateJena( c, namespace, localName );
+        return new PredicateJena( c, expand( namespace, c ), localName );
     }
 
     public static Predicate createPredicate( Context c, String schema, 
