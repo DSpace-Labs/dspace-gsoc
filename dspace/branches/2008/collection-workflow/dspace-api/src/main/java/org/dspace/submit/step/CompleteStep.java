@@ -45,6 +45,7 @@ import java.sql.SQLException;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.mail.MessagingException;
 
 import org.apache.log4j.Logger;
 
@@ -54,7 +55,8 @@ import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.WorkspaceItem;
 import org.dspace.core.Context;
 import org.dspace.core.LogManager;
-import org.dspace.workflow.WorkflowManager;
+import org.dspace.workflow_new.WorkflowManager;
+import org.dspace.workflow_new.WorkflowConfigurationException;
 
 /**
  * This is the class which defines what happens once a submission completes!
@@ -104,8 +106,7 @@ public class CompleteStep extends AbstractProcessingStep
     public int doProcessing(Context context, HttpServletRequest request,
             HttpServletResponse response, SubmissionInfo subInfo)
             throws ServletException, IOException, SQLException,
-            AuthorizeException
-    {
+            AuthorizeException, WorkflowConfigurationException, MessagingException {
         // The Submission is COMPLETE!!
         log.info(LogManager.getHeader(context, "submission_complete",
                 "Completed submission with id="

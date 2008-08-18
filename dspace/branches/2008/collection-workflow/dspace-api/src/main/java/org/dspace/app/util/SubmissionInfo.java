@@ -54,7 +54,7 @@ import org.dspace.content.Bundle;
 import org.dspace.content.InProgressSubmission;
 
 import org.dspace.submit.AbstractProcessingStep;
-import org.dspace.workflow.WorkflowItem;
+import org.dspace.workflow_new.WorkflowItem;
 
 /**
  * Information about an item being editing with the submission UI

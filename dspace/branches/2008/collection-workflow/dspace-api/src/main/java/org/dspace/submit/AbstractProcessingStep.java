@@ -50,10 +50,12 @@ import java.util.Map;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.mail.MessagingException;
 
 import org.dspace.app.util.SubmissionInfo;
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.core.Context;
+import org.dspace.workflow_new.WorkflowConfigurationException;
 
 /**
  * Abstract processing class for DSpace Submission Steps. This defines the base
@@ -155,7 +157,7 @@ public abstract class AbstractProcessingStep
     public abstract int doProcessing(Context context,
             HttpServletRequest request, HttpServletResponse response,
             SubmissionInfo subInfo) throws ServletException, IOException,
-            SQLException, AuthorizeException;
+            SQLException, AuthorizeException, WorkflowConfigurationException, MessagingException;
 
     /**
      * Return a list of all UI fields which had errors that occurred during the
