@@ -1,3 +1,4 @@
+
 /*
  * submission.js
  *
@@ -47,8 +48,8 @@ importClass(Packages.org.apache.cocoon.servlet.multipart.Part);
 
 importClass(Packages.org.dspace.handle.HandleManager);
 importClass(Packages.org.dspace.core.Constants);
-importClass(Packages.org.dspace.workflow.WorkflowItem);
-importClass(Packages.org.dspace.workflow.WorkflowManager);
+importClass(Packages.org.dspace.workflow_new.WorkflowItem);
+importClass(Packages.org.dspace.workflow_new.WorkflowManager);
 importClass(Packages.org.dspace.content.WorkspaceItem);
 importClass(Packages.org.dspace.authorize.AuthorizeManager);
 importClass(Packages.org.dspace.license.CreativeCommons);
@@ -191,7 +192,7 @@ function doSubmission()
            if (handle != null)
            {
                var dso = HandleManager.resolveToObject(getDSContext(), handle);
-               
+                                                                                                 //To change body of implemented methods use File | Settings | File Templates.
                // Check that the dso is a collection
                if (dso != null && dso.getType() == Constants.COLLECTION)
                {
@@ -480,7 +481,7 @@ function processPage(workspaceID, stepConfig, page)
 	// often this processing takes place as part of a new request 
 	// and the DSpace Context is changed on each request) 
 	var submissionInfo = getSubmissionInfo(workspaceID);
-
+    var handle = submissionInfo.getCollectionHandle();
 	var response_flag = null;
 
 	//---------------------------------------------
@@ -517,7 +518,13 @@ function processPage(workspaceID, stepConfig, page)
 	stepClass.setCurrentPage(getHttpRequest(), page);	
 		
 	//call the step's doProcessing() method
-	response_flag = stepClass.doProcessing(getDSContext(), getHttpRequest(), getHttpResponse(), submissionInfo);
+    try{
+        response_flag = stepClass.doProcessing(getDSContext(), getHttpRequest(), getHttpResponse(), submissionInfo);
+    }catch(exception){
+        sendPage("handle/"+handle+"/workflow_new/workflowexception",{"error":exception.toString()});
+        cocoon.exit();
+
+    }
 	
 	//if this is a non-interactive step, 
 	//we cannot do much with errors/responses other than logging them!
@@ -717,81 +724,56 @@ function showCompleteConfirmation(handle)
 function doWorkflow() 
 {
     var workflowID = cocoon.request.get("workflowID");
-    
+    var stepID = cocoon.request.get("stepID");
+    var actionID = cocoon.request.get("actionID");
+    // Get the collection handle for this item.
+    var handle = WorkflowItem.find(getDSContext(), workflowID).getCollection().getHandle();
+
     if (workflowID == null)
     {
         throw "Unable to find workflow, no workflow id supplied.";
+    }else if(stepID == null){
+        throw "Unable to find step, no step id supplied.";
     }
-    
-    // Get the collection handle for this item.
-    var handle = WorkflowItem.find(getDSContext(), workflowID).getCollection().getHandle();
-    
-    // Specify that we are working with workflows.
-    //(specify "W" for workflow item, for FlowUtils.findSubmission())
-    workflowID = "W"+workflowID;
-    
-    do
-    {
-        sendPageAndWait("handle/"+handle+"/workflow/performTaskStep",{"id":workflowID,"step":"0"});
-        
-        if (cocoon.request.get("submit_leave"))
-        {
-            // Just exit workflow with out doing anything
-            var contextPath = cocoon.request.getContextPath();
-            cocoon.redirectTo(contextPath+"/submissions",true);
-            getDSContext().complete();
-            cocoon.exit();
+
+    do{
+
+        if(actionID == null){
+            sendPageAndWait("handle/"+handle+"/workflow_new/getTask",{"workflow_item_id":workflowID,"step_id":stepID,"showfull":false})
+        }else{
+            sendPageAndWait("handle/"+handle+"/workflow_new/getTask",{"workflow_item_id":workflowID,"step_id":stepID,"action_id":actionID,"showfull":false})
         }
-        else if (cocoon.request.get("submit_approve"))
+
+        if (cocoon.request.get("submit_edit"))
         {
-            // Approve this task and exit the workflow
-            var archived = FlowUtils.processApproveTask(getDSContext(),workflowID);
-            
-            var contextPath = cocoon.request.getContextPath();
-            cocoon.redirectTo(contextPath+"/submissions",true);
-            getDSContext().complete();
-            cocoon.exit();
+        	//User is editing this submission:
+            //	Send user through the Submission Control
+            //	(NOTE: The SubmissionInfo object decides which
+            //       steps are able to be edited in a Workflow)
+            // Specify that we are working with workflows.
+            //(specify "W" for workflow item, for FlowUtils.findSubmission())
+            submissionControl(handle, "W"+workflowID, null);
+        }else if(cocoon.request.get("submit_full_item_info")){
+            sendPageAndWait("handle/"+handle+"/workflow_new/getTask",{"workflow_item_id":workflowID,"step_id":stepID,"action_id":actionID,"showfull":true});
+        }else if(cocoon.request.get("submit_simple_item_info")){
+            sendPageAndWait("handle/"+handle+"/workflow_new/getTask",{"workflow_item_id":workflowID,"step_id":stepID,"action_id":actionID,"showfull":false});
         }
-        else if (cocoon.request.get("submit_return"))
-        {
-            // Return this task to the pool and exit the workflow
-            FlowUtils.processUnclaimTask(getDSContext(),workflowID);
-            
-            var contextPath = cocoon.request.getContextPath();
-            cocoon.redirectTo(contextPath+"/submissions",true);
-            getDSContext().complete();
-            cocoon.exit();
-        }
-        else if (cocoon.request.get("submit_take_task"))
-        {
-            // Take the task and stay on this workflow
-            FlowUtils.processClaimTask(getDSContext(),workflowID);
-            
-        }
-        else if (cocoon.request.get("submit_reject"))
-        {
-            var rejected = workflowStepReject(handle,workflowID);
-            
-            if (rejected == true)
-            {
-                // the user really rejected the item
+        else{
+            try{
+                actionID = WorkflowManager.doState(getDSContext(), getHttpRequest());
+            }catch(exception){
+                sendPage("handle/"+handle+"/workflow_new/workflowexception",{"error":exception.toString()});
+                cocoon.exit();
+            }
+            if(actionID == null){
                 var contextPath = cocoon.request.getContextPath();
                 cocoon.redirectTo(contextPath+"/submissions",true);
                 getDSContext().complete();
                 cocoon.exit();
             }
         }
-        else if (cocoon.request.get("submit_edit"))
-        {
-        	//User is editing this submission:
-            //	Send user through the Submission Control
-            //	(NOTE: The SubmissionInfo object decides which
-            //       steps are able to be edited in a Workflow)
-            submissionControl(handle, workflowID, null);
-        }
-        
-    } while (1==1)
-    
+
+    }while(true);
 
 }
 

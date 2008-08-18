@@ -50,6 +50,9 @@ importClass(Packages.org.dspace.content.Community);
 importClass(Packages.org.dspace.eperson.EPerson);
 importClass(Packages.org.dspace.eperson.Group);
 
+importClass(Packages.org.dspace.workflow_new.WorkflowFactory);
+importClass(Packages.java.util.Set);
+
 importClass(Packages.org.dspace.app.xmlui.utils.ContextUtil);
 importClass(Packages.org.dspace.app.xmlui.aspect.administrative.FlowEPersonUtils);
 importClass(Packages.org.dspace.app.xmlui.aspect.administrative.FlowGroupUtils);
@@ -681,6 +684,7 @@ function doAddEPerson()
  */
 function doEditEPerson(epersonID)
 {
+	// FIXME:
 	// We can't assert any privleges at this point, the user could be a collection 
 	// admin or a supper admin. Instead we protect each operation.
     var result;
@@ -729,22 +733,6 @@ function doEditEPerson(epersonID)
             
             if (result != null)
                 result.setContinue(false);
-        }
-        else if (cocoon.request.get("submit_login_as"))
-        {
-        	// Login as this user.
-        	assertAdministrator();
-        	result = FlowEPersonUtils.processLoginAs(getDSContext(),getObjectModel(),epersonID);
-        	
-        	if (result != null && result.getOutcome().equals("success"))
-        	{
-        		// the user is loged in as another user, we can't let them continue on
-        		// using this flow because they might not have permissions. So forward
-        		// them to the homepage.
-        		cocoon.redirectTo(cocoon.request.getContextPath(),true);
-				getDSContext().complete();
-				cocoon.exit(); 
-        	}
         }
         
     } while (result == null || !result.getContinue())  
@@ -2253,8 +2241,7 @@ function doAssignCollectionRoles(collectionID)
 			assertAdministrator();
 			result = doDeleteCollectionRole(collectionID, "WF_STEP3");
 		}
-		
-		// SUBMIT
+        // SUBMIT
 		else if (cocoon.request.get("submit_edit_submit") || cocoon.request.get("submit_create_submit")) 
 		{
 			assertEditCollection(collectionID);
@@ -2285,7 +2272,26 @@ function doAssignCollectionRoles(collectionID)
 		{
 			assertAdministrator();
 			result = doDeleteCollectionRole(collectionID, "DEFAULT_READ");
-		}
+         //TODO: NIEUW
+		}else{
+            var roles = WorkflowFactory.getRoles().keySet().toArray();
+            for(var i = 0; i < roles.length; i++){
+                if(cocoon.request.get("submit_delete_wf_role_"+roles[i])){
+                    assertAdministrator();
+                    result = doDeleteCollectionRole(collectionID, roles[i]);
+                }
+                if(cocoon.request.get("submit_edit_wf_role_"+roles[i])){
+                    assertEditCollection(collectionID);
+                    var groupID = FlowContainerUtils.getCollectionRole(getDSContext(),collectionID, roles[i]);
+                    result = doEditGroup(groupID);
+                }
+                if(cocoon.request.get("submit_create_wf_role_"+roles[i])){
+                    assertEditCollection(collectionID);
+                    var groupID = FlowContainerUtils.getCollectionRole(getDSContext(),collectionID, roles[i]);
+                    result = doEditGroup(groupID);
+                }
+            }
+        }
 			
 	}while(true);
 }

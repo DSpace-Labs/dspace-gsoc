@@ -64,6 +64,8 @@
       
       <map:transformer name="RejectTaskStep" src="org.dspace.app.xmlui.aspect.submission.workflow.RejectTaskStep"/>
       <map:transformer name="PerformTaskStep" src="org.dspace.app.xmlui.aspect.submission.workflow.PerformTaskStep"/>
+      <map:transformer name="WorkflowTransformer" src="org.dspace.app.xmlui.aspect.submission.workflow_new.WorkflowTransformer"/>
+      <map:transformer name="WorkflowExceptionTransformer" src="org.dspace.app.xmlui.aspect.submission.workflow_new.WorkflowExceptionTransformer"/>
     </map:transformers>
     
     <map:selectors>
@@ -90,22 +92,22 @@
   
   <map:pipelines>
     <map:pipeline>
-    
+
       <!-- Make sure the user is atleast logged in -->
       <map:select type="AuthenticatedSelector">
         <map:when test="eperson">
-          
+
           <!--
-              There are two major flows that are present in the submissions & workflow 
-              aspects, one for new submissions to the repository, and another for reviewing 
+              There are two major flows that are present in the submissions & workflow
+              aspects, one for new submissions to the repository, and another for reviewing
               those submissions in a 3 stage workflow processes. Below are the starting
               points and re-entry points for those workflows.
-              
+
               /submit               -> New submissions that have not selected a collection yet.
               /handle/*/*/submit    -> Submitting a new item to the repository..
               /handle/*/*/workflow  -> Preforming workflow tasks to review submissions
               -->
-          
+
           <!-- Start a new submission, unscoped -->
           <map:match pattern="submit">
               <map:match type="request" pattern="submission-continue">
@@ -124,7 +126,7 @@
             </map:call>
           </map:match>
           
-          <!-- Workflow task "flow" -->
+          <!--TODO Workflow task "flow" -->
           <map:match pattern="handle/*/*/workflow">
             <map:match type="request" pattern="submission-continue">
               <map:call continuation="{1}"/>
@@ -153,7 +155,22 @@
              </map:match>			
           </map:match>
           
-                    
+
+           <!--TODO: nieuw-->
+            <map:match pattern="handle/*/*/workflow_new/getTask">
+              <map:transform type="WorkflowTransformer">
+                <map:parameter name="workflow_item_id" value="{flow-attribute:workflow_item_id}"/>
+                <map:parameter name="step_id" value="{flow-attribute:step_id}"/>
+                <map:parameter name="action_id" value="{flow-attribute:action_id}"/>
+                <map:parameter name="showfull" value="{flow-attribute:showfull}"/>
+              </map:transform>
+            </map:match>
+
+            <map:match pattern="handle/*/*/workflow_new/workflowexception">
+              <map:transform type="WorkflowExceptionTransformer">
+                <map:parameter name="error" value="{flow-attribute:error}"/>
+              </map:transform>
+            </map:match>
           <!--
               The submissions page provides a list of all submission 
               related tasks/items/thingys. It is used by both those
@@ -193,7 +210,10 @@
             
             <!--  Workflow related steps -->
             
-            <!-- 
+            <!-- TODO Dit roept transformer op die body tekent. Parameters
+            worden in flowscript toegevoegd en hier er nog is uit gehaald zodat da
+            transformerding die  ook kent
+            
                 This step will display the item and present the user 
                 with a set of options such as approve or reject the item, 
                 in some cases the user may also edit the item's metadata.
@@ -204,6 +224,7 @@
                 <map:parameter name="step" value="{flow-attribute:step}"/>
               </map:transform>
             </map:match>
+
             
             <!--  
                 This step will ask the user for a reason why they are 
@@ -292,8 +313,8 @@
             </map:match> 
             
           </map:match> <!-- flow match-->
-          
-          <map:serialize type="xml"/>			
+
+          <map:serialize type="xml"/>
           
         </map:when>
         <map:otherwise>
