@@ -47,6 +47,7 @@ import java.util.Iterator;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.mail.MessagingException;
 
 import org.apache.log4j.Logger;
 
@@ -58,6 +59,7 @@ import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.WorkspaceItem;
 import org.dspace.core.Context;
 import org.dspace.submit.AbstractProcessingStep;
+import org.dspace.workflow_new.WorkflowConfigurationException;
 
 /**
  * Manages and processes all JSP-UI classes for DSpace Submission steps.
@@ -195,8 +197,7 @@ public class JSPStepManager
     public final boolean processStep(Context context,
             HttpServletRequest request, HttpServletResponse response,
             SubmissionInfo subInfo) throws ServletException, IOException,
-            SQLException, AuthorizeException
-    {
+            SQLException, AuthorizeException, WorkflowConfigurationException, MessagingException {
         /*
          * This method SHOULD NOT BE OVERRIDDEN, unless it's absolutely
          * necessary. If you override this method, make sure you call the
@@ -302,8 +303,7 @@ public class JSPStepManager
     private boolean doStepStart(Context context, HttpServletRequest request,
             HttpServletResponse response, SubmissionInfo subInfo)
             throws ServletException, IOException, SQLException,
-            AuthorizeException
-    {
+            AuthorizeException, WorkflowConfigurationException, MessagingException {
         log.debug("Doing pre-processing for step " + this.getClass().getName());
 
         // first, do any pre-processing and get the JSP to display
@@ -415,8 +415,7 @@ public class JSPStepManager
     private boolean doStepEnd(Context context, HttpServletRequest request,
             HttpServletResponse response, SubmissionInfo subInfo)
             throws ServletException, IOException, SQLException,
-            AuthorizeException
-    {
+            AuthorizeException, WorkflowConfigurationException, MessagingException {
         // we've returned from the JSP page
         // and need to do the processing for this step
         log.debug("Calling processing for step " + this.getClass().getName());
