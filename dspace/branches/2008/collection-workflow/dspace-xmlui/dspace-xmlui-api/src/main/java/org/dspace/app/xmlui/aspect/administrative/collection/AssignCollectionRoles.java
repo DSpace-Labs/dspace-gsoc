@@ -40,6 +40,7 @@
 package org.dspace.app.xmlui.aspect.administrative.collection;
 
 import java.sql.SQLException;
+import java.util.HashMap;
 
 import org.dspace.app.xmlui.aspect.administrative.FlowContainerUtils;
 import org.dspace.app.xmlui.cocoon.AbstractDSpaceTransformer;
@@ -58,6 +59,10 @@ import org.dspace.authorize.AuthorizeException;
 import org.dspace.authorize.AuthorizeManager;
 import org.dspace.content.Collection;
 import org.dspace.eperson.Group;
+import org.dspace.workflow_new.WorkflowAssignment;
+import org.dspace.workflow_new.WorkflowManager;
+import org.dspace.workflow_new.WorkflowFactory;
+import org.dspace.workflow_new.WorkflowConfigurationException;
 
 /**
  * Presents the user (most likely a global administrator) with the form to edit
@@ -132,8 +137,15 @@ public class AssignCollectionRoles extends AbstractDSpaceTransformer
 		Group wfStep2 = thisCollection.getWorkflowGroup(2);
 		Group wfStep3 = thisCollection.getWorkflowGroup(3);
 		Group submitters = thisCollection.getSubmitters();
+        //TODO: NIEUW
+        HashMap<String, String> roles = null;
+        try {
+            roles = WorkflowFactory.getRoles();
+        } catch (WorkflowConfigurationException e) {
+            
+        }
 
-		Group defaultRead = null;
+        Group defaultRead = null;
 		int defaultReadID = FlowContainerUtils.getCollectionDefaultRead(context, collectionID);
 		if (defaultReadID >= 0)
 			defaultRead = Group.find(context, defaultReadID);
@@ -282,8 +294,28 @@ public class AssignCollectionRoles extends AbstractDSpaceTransformer
 	    	tableRow.addCell().addXref(baseURL + "&submit_edit_default_read", defaultRead.getName());
 		    addAdministratorOnlyButton(tableRow.addCell(),"submit_delete_default_read",T_delete);
 	    }
-	 
-	    // help and directions row
+
+        //TODO: NIEUW VOOR ROLES groepnaam tonen ipv rolnaam
+        for(String roleId: roles.keySet()){
+            tableRow = rolesTable.addRow(Row.ROLE_DATA);
+            tableRow.addCell(Cell.ROLE_HEADER).addContent(roles.get(roleId));
+            Group roleGroup = WorkflowManager.getRoleGroup(context, thisCollection.getID(), roleId);
+            if(roleGroup!=null){
+                tableRow.addCell().addXref(baseURL + "&submit_edit_wf_role_"+roleId, roleGroup.getName());
+                addAdministratorOnlyButton(tableRow.addCell(),"submit_delete_wf_role_"+roleId,T_delete);
+            }
+            else
+            {
+                tableRow.addCell().addContent(T_no_role);
+                addAdministratorOnlyButton(tableRow.addCell(),"submit_create_wf_role_"+roleId,T_create);
+            }
+            // help and directions row
+            tableRow = rolesTable.addRow(Row.ROLE_DATA);
+            tableRow.addCell();
+            tableRow.addCell(1,2).addHighlight("fade offset").addContent("uitleg");
+        }
+
+        // help and directions row
 	    tableRow = rolesTable.addRow(Row.ROLE_DATA);
 	    tableRow.addCell();
 	    tableRow.addCell(1,2).addHighlight("fade offset").addContent(T_help_default_read);
