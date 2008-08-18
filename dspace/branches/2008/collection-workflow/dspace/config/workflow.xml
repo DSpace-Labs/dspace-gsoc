@@ -1,0 +1,54 @@
+<wf-config>
+    <roles>
+        <role id="submitter" name="Author" />
+        <role id="convener" name="Convener" />
+        <role id="editorInChief" name="Editor-in-chief" />
+    </roles>
+
+    <workflow-map>
+        <name-map collection_handle="default" workflow_id="default"/>
+        <name-map collection_handle="123456789/2" workflow_id="default"/>
+    </workflow-map>
+
+    <workflow start="StartWorkflow" id="default">
+        <step id="StartWorkflow" firstAction="claim" emailTemplate="submit_task" role_id="submitter" name="Accept step">
+            <action id="claim" type="org.dspace.workflow_new.Actions.ClaimAction" emailTemplate="submit_reject" name="Claim action"> <!-- Must be first action of step-->
+                <next id="accept" type="action"/>
+                <!--
+                <requiredCompletedSteps>
+                    <requiredCompletedStep id=""/> 
+                </requiredCompletedSteps>
+                -->
+                <description title="Test titel">
+                    <content>
+                        Nog meer tekst
+                    </content>
+                </description>
+            </action>
+            <action id="accept" type="org.dspace.workflow_new.Actions.AcceptAction" name="Accept action">
+                <next-accept id="AcceptAndEditItem" type="step" />
+                <next-decline id="StartWorkflow" type="step"/>
+            </action>
+        </step>
+        <step id="AcceptAndEditItem" firstAction="claim" emailTemplate="submit_task" role_id="submitter" name="Accept and Edit step">
+            <action id="claim" type="org.dspace.workflow_new.Actions.ClaimAction" name="Claim action" nbClaims="2"> <!-- Must be first action of step-->
+                <next id="acceptAndEdit" type="action"/>
+                <!--
+                <requiredCompletedSteps>
+                    <requiredCompletedStep id=""/>
+                </requiredCompletedSteps>
+                -->
+                <description title="Test titel">
+                    <content>Hier volgt een beschrijving van de eigenschappen van de claim die gemaakt zal worden.
+Verder kunnen hier ook andere opmaak elementen in gestoken worden.
+                    </content>
+                </description>
+            </action>
+            <action id="acceptAndEdit" type="org.dspace.workflow_new.Actions.AcceptAndEditAction" name="Accept and edit action">
+                <next-accept id="EndWorkflow" type="step" />
+                <next-decline id="StartWorkflow" type="step"/>
+            </action>
+        </step>
+        <step id="EndWorkflow" />
+    </workflow>
+</wf-config>
