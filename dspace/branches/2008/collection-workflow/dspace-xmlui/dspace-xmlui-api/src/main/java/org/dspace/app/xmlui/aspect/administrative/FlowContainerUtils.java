@@ -57,6 +57,7 @@ import org.dspace.content.Item;
 import org.dspace.core.Constants;
 import org.dspace.core.Context;
 import org.dspace.eperson.Group;
+import org.dspace.workflow_new.WorkflowManager;
 import org.jdom.JDOMException;
 import org.jdom.input.SAXBuilder;
 
@@ -193,7 +194,7 @@ public class FlowContainerUtils
 
 	
 	
-	
+	//TODO: dit en volgende methode zijn aangepast
 	/**
 	 * Look up the id of a group authorized for one of the given roles. If no group is currently 
 	 * authorized to preform this role then a new group will be created and assigned the role.
@@ -205,8 +206,9 @@ public class FlowContainerUtils
 	 */
 	public static int getCollectionRole(Context context, int collectionID, String roleName) throws SQLException, AuthorizeException, IOException
 	{
+
 		Collection collection = Collection.find(context, collectionID);
-		
+
 		// Determine the group based upon wich role we are looking for.
 		Group role = null;
 		if (ROLE_ADMIN.equals(roleName))
@@ -214,36 +216,46 @@ public class FlowContainerUtils
 			role = collection.getAdministrators();
 			if (role == null)
 				role = collection.createAdministrators();
-		} 
+		}
 		else if (ROLE_SUBMIT.equals(roleName))
 		{
 			role = collection.getSubmitters();
 			if (role == null)
 				role = collection.createSubmitters();
-		}
-		else if (ROLE_WF_STEP1.equals(roleName))
-		{	
-			role = collection.getWorkflowGroup(1);
-			if (role == null)
-				role = collection.createWorkflowGroup(1);
-			
-		}
-		else if (ROLE_WF_STEP2.equals(roleName))
-		{
-			role = collection.getWorkflowGroup(2);
-			if (role == null)
-				role = collection.createWorkflowGroup(2);
-		}
-		else if (ROLE_WF_STEP3.equals(roleName))
-		{
-			role = collection.getWorkflowGroup(3);
-			if (role == null)
-				role = collection.createWorkflowGroup(3);
-			
-		}
-		
-		// In case we needed to create a group, save our changes
-		collection.update();
+		}else{
+            role = WorkflowManager.getRoleGroup(context, collectionID, roleName);
+            if(role == null){
+                AuthorizeManager.authorizeAction(context, collection, Constants.WRITE);
+                role = Group.create(context);
+                role.setName("COLLECTION_" + collection.getID() + "_WORKFLOW_ROLE_" + roleName);
+                role.update();
+                AuthorizeManager.addPolicy(context, collection, Constants.ADD, role);
+                WorkflowManager.createWorkflowRole(context, collectionID, roleName, role);
+            }
+        }
+//		else if (ROLE_WF_STEP1.equals(roleName))
+//		{
+//			role = collection.getWorkflowGroup(1);
+//			if (role == null)
+//				role = collection.createWorkflowGroup(1);
+//
+//		}
+//		else if (ROLE_WF_STEP2.equals(roleName))
+//		{
+//			role = collection.getWorkflowGroup(2);
+//			if (role == null)
+//				role = collection.createWorkflowGroup(2);
+//		}
+//		else if (ROLE_WF_STEP3.equals(roleName))
+//		{
+//			role = collection.getWorkflowGroup(3);
+//			if (role == null)
+//				role = collection.createWorkflowGroup(3);
+//
+//		}
+//
+//		// In case we needed to create a group, save our changes
+//		collection.update();
 		context.commit();
 		
 		// If the role name was valid then role should be non null,
@@ -279,20 +291,23 @@ public class FlowContainerUtils
 		{
 			collection.removeSubmitters();
 		}
-		else if (ROLE_WF_STEP1.equals(roleName))
-		{	
-			collection.setWorkflowGroup(1, null);
-		}
-		else if (ROLE_WF_STEP2.equals(roleName))
-		{
-			collection.setWorkflowGroup(2, null);
-		}
-		else if (ROLE_WF_STEP3.equals(roleName))
-		{
-			collection.setWorkflowGroup(3, null);
-			
-		}
-		
+        else{
+            WorkflowManager.deleteRoleGroup(context, collectionID, roleName);
+        }
+//		else if (ROLE_WF_STEP1.equals(roleName))
+//		{
+//			collection.setWorkflowGroup(1, null);
+//		}
+//		else if (ROLE_WF_STEP2.equals(roleName))
+//		{
+//			collection.setWorkflowGroup(2, null);
+//		}
+//		else if (ROLE_WF_STEP3.equals(roleName))
+//		{
+//			collection.setWorkflowGroup(3, null);
+//
+//		}
+		//TODO: nakijken of volledig
 		// Second, remove all outhorizations for this role by searching for all policies that this 
 		// group has on the collection and remove them otherwise the delete will fail because 
 		// there are dependencies.
@@ -822,6 +837,5 @@ public class FlowContainerUtils
     	
     	return false;
     }
-	
 
 }
