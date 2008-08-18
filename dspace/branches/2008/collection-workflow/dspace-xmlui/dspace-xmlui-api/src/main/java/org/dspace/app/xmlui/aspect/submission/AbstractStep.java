@@ -69,6 +69,7 @@ import org.dspace.content.InProgressSubmission;
 import org.dspace.content.WorkspaceItem;
 import org.dspace.submit.AbstractProcessingStep;
 import org.dspace.workflow.WorkflowItem;
+import org.dspace.workflow_new.WorkflowConfigurationException;
 import org.xml.sax.SAXException;
 
 /**
@@ -231,8 +232,12 @@ abstract public class AbstractStep extends AbstractDSpaceTransformer
 		catch (SQLException sqle) 
 		{
 			throw new ProcessingException("Unable to find submission.",sqle);
-		}
-	}
+		} catch (AuthorizeException e) {
+            e.printStackTrace();  //TODO o change body of catch statement use File | Settings | File Templates.
+        } catch (WorkflowConfigurationException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        }
+    }
 
 
 	/** 
