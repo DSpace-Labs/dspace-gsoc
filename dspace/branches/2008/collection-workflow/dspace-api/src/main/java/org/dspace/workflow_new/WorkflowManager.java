@@ -5,12 +5,12 @@ import org.dspace.eperson.EPerson;
 import org.dspace.eperson.Group;
 import org.dspace.storage.rdbms.DatabaseManager;
 import org.dspace.storage.rdbms.TableRow;
-import org.dspace.workflow_new.Actions.Action;
 import org.dspace.content.*;
 import org.dspace.content.Collection;
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.handle.HandleManager;
-import org.dspace.app.webui.util.UIUtil;
+import org.dspace.workflow_new.Step;
+import org.dspace.workflow_new.Workflow;
 import org.apache.log4j.Logger;
 
 import javax.servlet.http.HttpServletRequest;
@@ -18,7 +18,6 @@ import javax.mail.MessagingException;
 import java.util.*;
 import java.sql.SQLException;
 import java.io.IOException;
-
 /**
  * @author Bram De Schouwer
  */
@@ -69,7 +68,7 @@ public class WorkflowManager {
     /*
      * Claims an action for a given eperson
      */
-    public static void claim(Context c, WorkflowItem wi, Step step, Action action, EPerson e) throws SQLException {
+    public static void claim(Context c, WorkflowItem wi, Step step, ActionInterface action, EPerson e) throws SQLException {
         ClaimedTask task = ClaimedTask.create(c);
         task.setWorkflowItemID(wi.getID());
         task.setStepID(step.getId());
@@ -80,7 +79,7 @@ public class WorkflowManager {
     /*
      * Deletes the claim for a given eperson
      */
-    public static void deleteActionClaim(Context c, WorkflowItem wi, Step step, Action action, EPerson e) throws SQLException {
+    public static void deleteActionClaim(Context c, WorkflowItem wi, Step step, ActionInterface action, EPerson e) throws SQLException {
         List<ClaimedTask> list = ClaimedTask.find(c,e.getID(),wi.getID(),step.getId(),action.getId());
         for(ClaimedTask task: list){
             task.delete();
@@ -93,8 +92,8 @@ public class WorkflowManager {
         try{WorkflowItem wi = WorkflowItem.find(c, Integer.valueOf(request.getParameter("workflow_item_id")));
             Workflow wf = WorkflowFactory.getWorkflow(c, wi.getCollection().getID());
             Step step = wf.getStep(request.getParameter("step_id"));
-            Action currentAction = step.getAction(request.getParameter("action_id"));
-            Action next = currentAction.execute(c,wi,c.getCurrentUser(),request);
+            ActionInterface currentAction = step.getAction(request.getParameter("action_id"));
+            ActionInterface next = currentAction.execute(c,wi,c.getCurrentUser(),request);
             if(next!=null){
                 return next.getId();
             }else{
@@ -128,6 +127,7 @@ public class WorkflowManager {
     public static void start(Context context, WorkspaceItem wsi) throws SQLException, AuthorizeException, IOException, WorkflowConfigurationException, MessagingException {
         Item myitem = wsi.getItem();
         Collection collection = wsi.getCollection();
+        Workflow wf = WorkflowFactory.getWorkflow(context, collection.getID());
         TableRow row = DatabaseManager.create(context, "workflowitem");
         row.setColumn("item_id", myitem.getID());
         row.setColumn("collection_id", wsi.getCollection().getID());
@@ -135,8 +135,12 @@ public class WorkflowManager {
         wfi.setMultipleFiles(wsi.hasMultipleFiles());
         wfi.setMultipleTitles(wsi.hasMultipleTitles());
         wfi.setPublishedBefore(wsi.isPublishedBefore());
-        Workflow wf = WorkflowFactory.getWorkflow(context, collection.getID());
-        wf.activate(context, wfi, null);
+        try{
+            wf.activate(context, wfi, null);
+        }catch(WorkflowConfigurationException e){
+            wfi.deleteWrapper();
+            throw e;
+        }
 
         // remove the WorkspaceItem
         wsi.deleteWrapper();
@@ -190,7 +194,7 @@ public class WorkflowManager {
     /*
      * Returns the existance of an action for a given eperson
      */
-    public static boolean tasksExist(Context c, WorkflowItem wi, EPerson e, Step step, Action action) throws SQLException {
+    public static boolean tasksExist(Context c, WorkflowItem wi, EPerson e, Step step, ActionInterface action) throws SQLException {
         List<ClaimedTask> list = ClaimedTask.findByEperson(c,e.getID());
         for(ClaimedTask task: list){
             if(task.getStepID().equals(step.getId())&&task.getWorkflowItemID()==wi.getID()&&action.getId().equals(task.getActionID())){
@@ -290,5 +294,4 @@ public class WorkflowManager {
     {
         return ConfigurationManager.getProperty("dspace.url") + "/mydspace";
     }
-
 }

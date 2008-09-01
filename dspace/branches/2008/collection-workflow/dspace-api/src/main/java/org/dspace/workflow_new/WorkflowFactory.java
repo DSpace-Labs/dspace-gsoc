@@ -6,7 +6,8 @@ import org.w3c.dom.NodeList;
 import org.dspace.content.Collection;
 import org.dspace.core.Context;
 import org.dspace.core.ConfigurationManager;
-import org.dspace.workflow_new.Actions.Action;
+import org.dspace.workflow_new.Step;
+import org.dspace.workflow_new.Workflow;
 
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.DocumentBuilder;
@@ -113,7 +114,7 @@ public class WorkflowFactory {
             if (step.getAction(node.getAttributes().getNamedItem("id").getFirstChild().getNodeValue()) == null) {
                 try {
                     Class action = Class.forName(actionType);
-                    Action act = (Action) action.getConstructor(new Class[]{Node.class, Step.class}).newInstance(new Object[]{node, step});
+                    action.getConstructor(new Class[]{Node.class, Step.class}).newInstance(new Object[]{node, step});
                 } catch (Exception e){
                     throw new WorkflowConfigurationException("WorkflowConfigurationException: Error creating actions for step:"+step.getId());
                 }
@@ -160,14 +161,14 @@ public class WorkflowFactory {
     /*
      * Creates an action with a given ID for a given step and workflow system
      */
-    public static Action createAction(String workflowId, String actionId, Step step) throws WorkflowConfigurationException {
+    public static ActionInterface createAction(String workflowId, String actionId, Step step) throws WorkflowConfigurationException {
         Node stepNode = getStepNode(workflowId, step.getId());
         Node node = getActionNode(actionId, stepNode);
         String actionType = node.getAttributes().getNamedItem("type").getFirstChild().getNodeValue();
         if (step.getAction(actionId) == null) {
             try {
                 Class action = Class.forName(actionType);
-                Action act = (Action) action.getConstructor(new Class[]{Node.class, Step.class}).newInstance(new Object[]{node, step});
+                ActionInterface act = (ActionInterface) action.getConstructor(new Class[]{Node.class, Step.class}).newInstance(new Object[]{node, step});
                 return act;
             } catch (Exception e){
                 throw new WorkflowConfigurationException("WorkflowConfigurationException: creating action:"+actionId+" for step:"+step.getId());
