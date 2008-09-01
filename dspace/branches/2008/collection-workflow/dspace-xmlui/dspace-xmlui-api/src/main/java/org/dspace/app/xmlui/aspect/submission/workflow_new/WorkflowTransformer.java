@@ -2,19 +2,15 @@ package org.dspace.app.xmlui.aspect.submission.workflow_new;
 
 import org.dspace.app.xmlui.cocoon.AbstractDSpaceTransformer;
 import org.dspace.app.xmlui.wing.element.Body;
-import org.dspace.app.xmlui.wing.element.PageMeta;
 import org.dspace.app.xmlui.wing.WingException;
-import org.dspace.app.xmlui.utils.UIException;
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.workflow_new.*;
-import org.dspace.workflow_new.Actions.Action;
-import org.apache.cocoon.environment.SourceResolver;
-import org.apache.cocoon.ProcessingException;
-import org.apache.avalon.framework.parameters.Parameters;
+import org.dspace.app.xmlui.workflow_new.actions.Action;
+import org.dspace.workflow_new.Step;
+import org.dspace.workflow_new.Workflow;
 import org.apache.avalon.framework.parameters.ParameterException;
 import org.xml.sax.SAXException;
 
-import java.util.Map;
 import java.io.IOException;
 import java.sql.SQLException;
 
@@ -33,9 +29,9 @@ public class WorkflowTransformer extends AbstractDSpaceTransformer {
             Step step = wf.getStep(stepID);
             Action action;
             if(actionID == null || actionID.equals("")){
-                action = step.getFirstAction();
+                action = (Action) step.getFirstAction();
             }else{
-                action = step.getAction(actionID);
+                action = (Action) step.getAction(actionID);
             }
             action.addBody(body, parameters, objectModel, workflowID);
         } catch (ParameterException e) {

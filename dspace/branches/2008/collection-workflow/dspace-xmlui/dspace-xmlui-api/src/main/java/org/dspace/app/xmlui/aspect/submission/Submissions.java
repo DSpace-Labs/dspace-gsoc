@@ -55,7 +55,6 @@ import org.dspace.app.xmlui.wing.element.PageMeta;
 import org.dspace.app.xmlui.wing.element.Para;
 import org.dspace.app.xmlui.wing.element.Row;
 import org.dspace.app.xmlui.wing.element.Table;
-import org.dspace.app.webui.util.UIUtil;
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.Collection;
 import org.dspace.content.DCValue;
@@ -65,7 +64,8 @@ import org.dspace.content.WorkspaceItem;
 import org.dspace.core.Constants;
 import org.dspace.eperson.EPerson;
 import org.dspace.workflow_new.*;
-import org.dspace.workflow_new.Actions.Action;
+import org.dspace.workflow_new.Workflow;
+import org.dspace.workflow_new.Step;
 import org.xml.sax.SAXException;
 
 /**
@@ -255,7 +255,7 @@ public class Submissions extends AbstractDSpaceTransformer
                     item = WorkflowItem.find(context, workflowItemID);
                     Workflow wf = WorkflowFactory.getWorkflow(context,item.getCollection().getID());
                     Step step = wf.getStep(step_id);
-                    Action action = step.getAction(action_id);
+                    ActionInterface action = step.getAction(action_id);
                     String url = contextPath+"/handle/"+item.getCollection().getHandle()+"/workflow?workflowID="+workflowItemID+"&stepID="+step_id+"&actionID="+action_id;
                     DCValue[] titles = item.getItem().getDC("title", null, Item.ANY);
                     String collectionName = item.getCollection().getMetadata("name");
